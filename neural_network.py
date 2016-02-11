@@ -10,7 +10,7 @@ import theano.tensor as T;
 from sklearn.datasets import fetch_mldata
 import time;
 
-theano.config.mode = 'FAST_COMPILE'
+# theano.config.mode = 'FAST_COMPILE'
 
 class NeuralNetwork(object):
     '''
@@ -27,10 +27,8 @@ class NeuralNetwork(object):
         self.hidden_dim = hidden_dim;
         self.output_dim = output_dim;
         
-        #self.init_W = np.random.uniform(np.sqrt(1.0/self.words_dim),np.sqrt(1.0/self.hidden_dim),(self.words_dim,self.hidden_dim));
-        #self.init_V = np.random.uniform(np.sqrt(1.0/self.hidden_dim),np.sqrt(1.0/self.output_dim),(self.hidden_dim,self.output_dim));
-        self.init_W = np.zeros((self.words_dim,self.hidden_dim));
-        self.init_V = np.zeros((self.hidden_dim,self.output_dim));
+        self.init_W = np.random.uniform(-np.sqrt(1.0/self.words_dim),np.sqrt(1.0/self.words_dim),(self.words_dim,self.hidden_dim));
+        self.init_V = np.random.uniform(-np.sqrt(1.0/self.hidden_dim),np.sqrt(1.0/self.hidden_dim),(self.hidden_dim,self.output_dim));
         
         self.W = theano.shared(name='W', value=self.init_W);
         self.V = theano.shared(name='V', value=self.init_V);
@@ -38,10 +36,16 @@ class NeuralNetwork(object):
         # Forward pass
         X = T.fmatrix('X');
         target = T.fmatrix('target');
-        hidden = T.nnet.sigmoid(X.dot(self.W));
-        Y = T.nnet.softmax(hidden.dot(self.V));
+        unsigmoided_hidden = X.dot(self.W);
+        hidden = T.nnet.sigmoid(unsigmoided_hidden);
+        unmaxed_Y = hidden.dot(self.V);
+        Y = T.nnet.softmax(unmaxed_Y);
         prediction = T.argmax(Y, axis=1);
-        error = T.sum(T.nnet.categorical_crossentropy(Y, target));
+        # http://deeplearning.net/tutorial/logreg.html
+        unsummed_error = T.nnet.categorical_crossentropy(Y, target);
+        error = T.mean(unsummed_error);
+#         unsummed_error = T.log(Y)[T.arange(target.shape[0]), T.argmax(target,axis=1)];
+#         error = -T.mean(unsummed_error);
         
         # Backward pass: gradients
         dW, dV = T.grad(error, [self.W, self.V]);
@@ -53,13 +57,13 @@ class NeuralNetwork(object):
         
         # Stochastic Gradient Descent
         learning_rate = T.dscalar('learning_rate');
-        self.sgd = theano.function([X, target, learning_rate], [dW, dV, hidden, Y, error], 
+        self.sgd = theano.function([X, target, learning_rate], [dW, dV, unsigmoided_hidden, unmaxed_Y, unsummed_error], 
                                    updates=[(self.W,self.W - learning_rate * dW),
                                             (self.V,self.V - learning_rate * dV)],
                                    allow_input_downcast=False)
         
     def train(self, training_data, training_labels, learning_rate, max_training_size=None):
-        minibatch_size = 5;
+        minibatch_size = 20;
         k = 0;
         total = np.size(training_data,0);
         printing_interval = 1000;
@@ -108,9 +112,14 @@ class NeuralNetwork(object):
         
 if (__name__ == '__main__'):
     datasplit = 60000;
-    max_training_size = 10000;
+    max_training_size = 60000;
+    repetitions = 2;
     
     mnist = fetch_mldata('MNIST original', data_home='./data')
+    
+    words_dim = np.size(mnist.data,1);
+    hidden_dim = words_dim * 1;
+    output_classes = 10;
     
     training_data = mnist.data[:datasplit,:];
     training_labels = mnist.target[:datasplit];
@@ -131,16 +140,13 @@ if (__name__ == '__main__'):
     for i in range(np.size(training_labels[:max_training_size])):
         train_histogram[training_labels[i]] += 1;
     
-    words_dim = np.size(mnist.data,1);
-    hidden_dim = words_dim;
-    output_classes = 10;
-    
     nn = NeuralNetwork(words_dim, hidden_dim, output_classes);
     
     start = time.clock();
     
     # Train
-    nn.train(training_data, training_labels, 0.1, max_training_size);
+    for r in range(repetitions):
+        nn.train(training_data, training_labels, 0.01, max_training_size);
     
     # Test
     score, prediction_histogram, weights = nn.test(test_data, test_labels)
@@ -151,11 +157,9 @@ if (__name__ == '__main__'):
     # Print statistics
     duration = time.clock() - start;
     print("Duration: %d seconds" % duration);
-    print("Weight difference:");
-    print("\tW:");
-    print(str(W.get_value() - nn.init_W));
-    print("\tV:");
-    print(str(V.get_value() - nn.init_V));
+    print("Summed weight difference:");
+    print("W:" + str(np.sum(W.get_value() - nn.init_W)));
+    print("V:" + str(np.sum(V.get_value() - nn.init_V)));
     print("Score: %.2f percent" % (score*100));
     print("Training histogram:     %s" % (", ".join(map(lambda (k,v): "%d:%d" % (k,v), train_histogram.items()))));
     print("Prediction histogram:   %s" % (", ".join(map(lambda (k,v): "%d:%d" % (k,v), prediction_histogram.items()))));
