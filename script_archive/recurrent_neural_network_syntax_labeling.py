@@ -13,7 +13,7 @@ import operator;
 
 #theano.config.mode = 'FAST_COMPILE'
 
-class NeuralNetwork(object):
+class RecurrentNeuralNetwork(object):
     '''
     classdocs
     '''
@@ -165,7 +165,7 @@ if (__name__ == '__main__'):
     # Use dummy embeddings for now
     emb = np.random.uniform(-0.2, 0.2, (max_words_index+1, words_dim));
      
-    nn = NeuralNetwork(words_dim, hidden_dim, output_classes, max_words_index, emb);
+    nn = RecurrentNeuralNetwork(words_dim, hidden_dim, output_classes, max_words_index, emb);
 
     start = time.clock();
      
