@@ -84,34 +84,53 @@ class ExpressionNode(object):
             
             return output;
 
-if __name__ == '__main__':
-    # http://stackoverflow.com/questions/273192/in-python-check-if-a-directory-exists-and-create-it-if-necessary
-    if (not os.path.exists('data/expressions-one_digit_answer')):
-        #raise ValueError("Dataset already present");
-        os.makedirs('data/expressions-one_digit_answer');
-    if (os.path.exists('data/expressions-one_digit_answer/test.txt')):
-        raise ValueError("Dataset already present");
-    
-    n = 20000; # Amount of expressions to generate
-    
-    filters = [lambda x: x.getValue() % 1.0 == 0, # Value must be integer
-               lambda x: x.getValue() < 10, # Value must be single-digit
-               lambda x: x.getValue() >= 0
-               ];
-    
+def generateFile(filePath, n, filters, currentRecursionDepth=0, minRecursionDepth=1, maxRecursionDepth=2, terminalProb=0.5, verbose=False):
     savedExpressions = [];
     while len(savedExpressions) < n:
-        expression = ExpressionNode(0, 1, 2);
-        #print(str(expression) + " = " + str(expression.getValue()));
+        expression = ExpressionNode(currentRecursionDepth, minRecursionDepth, maxRecursionDepth, terminalProb);
+        if (verbose):
+            print(str(expression) + " = " + str(expression.getValue()));
         fail = False;
         for f_i, filterFunction in enumerate(filters):
             if (not filterFunction(expression)):
-                #print("\tFails filter %d" % f_i);
+                if (verbose):
+                    print("\tFails filter %d" % f_i);
                 fail = True;
                 break;
         if (not fail):
             savedExpressions.append(str(expression) + "=" + str(int(expression.getValue())));    
     
-    f = open('data/expressions-one_digit_answer/test.txt','w');
+    f = open(filePath,'w');
     f.write("\n".join(savedExpressions));
     f.close();
+
+if __name__ == '__main__':
+    # Settings
+    folder = 'data/expressions_one_digit_answer_large';
+    train_size = 1000000; # One million
+    test_size = 100000; # Hundred thousand
+    currentRecursionDepth = 0;
+    minRecursionDepth = 1;
+    maxRecursionDepth = 2;
+    terminalProb = 0.5;
+    filters = [lambda x: x.getValue() % 1.0 == 0, # Value must be integer
+               lambda x: x.getValue() < 10, # Value must be single-digit
+               lambda x: x.getValue() >= 0
+               ];
+    
+    # Generate other variables
+    trainFilePath = folder + '/train.txt';
+    testFilePath = folder + '/test.txt'
+    
+    # http://stackoverflow.com/questions/273192/in-python-check-if-a-directory-exists-and-create-it-if-necessary
+    if (not os.path.exists(folder)):
+        os.makedirs(folder);
+    if (os.path.exists(trainFilePath)):
+        raise ValueError("Train part of dataset already present");
+    if (os.path.exists(testFilePath)):
+        raise ValueError("Test part of dataset already present");
+    
+    generateFile(trainFilePath,train_size,filters,currentRecursionDepth,
+                 minRecursionDepth, maxRecursionDepth, terminalProb);
+    generateFile(testFilePath,test_size,filters,currentRecursionDepth,
+                 minRecursionDepth, maxRecursionDepth, terminalProb);
