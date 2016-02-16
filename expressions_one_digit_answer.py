@@ -176,21 +176,24 @@ class GeneratedExpressionDataset(object):
         
 if (__name__ == '__main__'):
     
-    dataset = GeneratedExpressionDataset('./data/expressions_one_digit_answer_large');
+    dataset_path = './data/expressions_one_digit_answer_large';
     repetitions = 1;
-    hidden_dim = dataset.data_dim*2;
+    hidden_dim = 32;
     learning_rate = 0.05;
     
     if (len(sys.argv) > 1):
-        dataset = sys.argv[1];
+        dataset_path = sys.argv[1];
         if (len(sys.argv) > 2):
             repetitions = int(sys.argv[2]);
             if (len(sys.argv) > 3):
                 hidden_dim = int(sys.argv[3]);
+                if (len(sys.argv) > 4):
+                    learning_rate = float(sys.argv[4]);
     
     # Debug settings
     max_training_size = None;
     
+    dataset = GeneratedExpressionDataset(dataset_path);
     rnn = RecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim);
 
     start = time.clock();
