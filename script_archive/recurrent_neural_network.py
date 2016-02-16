@@ -146,7 +146,7 @@ class NeuralNetwork(object):
         
 if (__name__ == '__main__'):
     max_training_size = None;
-    repetitions = 2;
+    repetitions = 10;
         
     train, test, dicts = cPickle.load(open("atis.pkl"));
     

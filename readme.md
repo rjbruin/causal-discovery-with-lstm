@@ -3,3 +3,6 @@
 Robert-Jan Bruintjes (R.Bruintjes@uva.nl)
 
 Supervised by Efstratios Gavves and Joris Mooij
+
+## Contents
+* [Results](/results)
