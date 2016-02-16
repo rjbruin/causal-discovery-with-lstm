@@ -1,8 +1,10 @@
 # Thesis Causality and Deep Learning
 
-Robert-Jan Bruintjes (R.Bruintjes@uva.nl)
+## Project information
+This project is a thesis research project by Robert-Jan Bruintjes (R.Bruintjes@uva.nl).
 
-Supervised by Efstratios Gavves and Joris Mooij
+This project is supervised by Efstratios Gavves and Joris Mooij.
 
 ## Contents
 * [Results](/results)
+* [Repository design choices](/docs/design_choices.md)
