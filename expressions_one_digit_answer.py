@@ -10,7 +10,7 @@ import theano.tensor as T;
 import time;
 import sys;
 
-from statistic_tools import confusion_matrix;
+from statistic_tools import confusion_matrix, accuracy_per_origin;
 
 #theano.config.mode = 'FAST_COMPILE'
 
@@ -98,7 +98,7 @@ class RecurrentNeuralNetwork(object):
             
             k += 1; #minibatch_size;
         
-    def test(self, test_data, test_labels, max_testing_size=None):
+    def test(self, test_data, test_labels, operators, key_indices, max_testing_size=None):
         """
         Run test data through model. Output percentage of correctly predicted
         test instances.
@@ -112,27 +112,33 @@ class RecurrentNeuralNetwork(object):
         if (total < printing_interval * 10):
             printing_interval = total / 100;
         
+        # Set up statistics
         correct = 0.0;
         prediction_size = 0;
         prediction_histogram = {k: 0 for k in range(self.output_dim)};
         groundtruth_histogram = {k: 0 for k in range(self.output_dim)};
         # First dimension is actual class, second dimension is predicted dimension
         prediction_confusion_matrix = np.zeros((dataset.output_dim,dataset.output_dim));
+        # For each non-digit symbol keep correct and total predictions
+        operator_scores = np.zeros((len(key_indices),2));
+        
         # Predict
         for j in range(len(test_data)):
             if (j % printing_interval == 0):
                 print("%d / %d" % (j, total));
             data = test_data[j];                
             prediction = self.predict(data);
-            # For each index in sentence
+            
+            # Statistics
             if (prediction == test_labels[j]):
                 correct += 1.0;
             prediction_histogram[int(prediction)] += 1;
             groundtruth_histogram[test_labels[j]] += 1;
             prediction_confusion_matrix[test_labels[j],int(prediction)] += 1;
             prediction_size += 1;
+            operator_scores = GeneratedExpressionDataset.operator_scores(test_data[j],int(prediction)==test_labels[j],operators,key_indices,operator_scores);
                 
-        return (correct / float(prediction_size), prediction_histogram, groundtruth_histogram, prediction_confusion_matrix);
+        return (correct / float(prediction_size), prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, operator_scores);
 
 class GeneratedExpressionDataset(object):
     
@@ -142,6 +148,7 @@ class GeneratedExpressionDataset(object):
         
         # Setting one-hot encoding
         self.oneHot = {'+': 10, '-': 11, '*': 12, '/': 13, '(': 14, ')': 15, '=': 16};
+        self.operators = self.oneHot.keys();
         # Digits are pre-assigned 0-9
         for digit in range(10):
             self.oneHot[str(digit)] = digit;
@@ -178,6 +185,20 @@ class GeneratedExpressionDataset(object):
             labels.append(self.oneHot[right_hand]);
         
         return data, targets, np.array(labels);
+    
+    @staticmethod
+    def operator_scores(expression, correct, operators, key_indices, op_scores):
+        # Find operators in expression
+        ops_in_expression = [];
+        for literal in expression:
+            if (literal in operators):
+                ops_in_expression.append(literal);
+        # For each operator, update statistics
+        for op in set(ops_in_expression):
+            if (correct):
+                op_scores[key_indices[op],0] += 1;
+            op_scores[key_indices[op],1] += 1;
+        return op_scores;
         
 if (__name__ == '__main__'):
     
@@ -185,7 +206,7 @@ if (__name__ == '__main__'):
     repetitions = 1;
     hidden_dim = 16;
     learning_rate = 0.01;
-    
+     
     if (len(sys.argv) > 1):
         dataset_path = sys.argv[1];
         if (len(sys.argv) > 2):
@@ -194,31 +215,37 @@ if (__name__ == '__main__'):
                 hidden_dim = int(sys.argv[3]);
                 if (len(sys.argv) > 4):
                     learning_rate = float(sys.argv[4]);
-    
+     
     # Debug settings
     max_training_size = 1000;
-    
+     
     dataset = GeneratedExpressionDataset(dataset_path);
     rnn = RecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim);
-
+ 
     start = time.clock();
-     
+      
     # Train
     for r in range(repetitions):
         print("Repetition %d of %d" % (r+1,repetitions));
         rnn.train(dataset.train, dataset.train_labels, learning_rate, max_training_size);
      
+    # Set up statistics
+    key_indices = {k: i for (i,k) in enumerate(dataset.operators)};
+      
     # Test
-    score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix = rnn.test(dataset.test, dataset.test_labels)
-     
+    score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, op_scores = rnn.test(dataset.test, dataset.test_labels, dataset.operators, key_indices)
+
     print
-     
+
     # Print statistics
     duration = time.clock() - start;
     print("Duration: %d seconds" % duration);
     print("Score: %.2f percent" % (score*100));
     print("Prediction histogram:   %s" % (str(prediction_histogram)));
     print("Ground truth histogram: %s" % (str(groundtruth_histogram)));
-    
+     
     print("Confusion matrix:");
-    confusion_matrix(prediction_confusion_matrix)
+    confusion_matrix(prediction_confusion_matrix);
+     
+    print("Accuracy per origin");
+    accuracy_per_origin(op_scores, dataset.operators);

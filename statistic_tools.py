@@ -26,7 +26,27 @@ def confusion_matrix(data):
             output += "%d\t" % int(data[i,j]);
         print(output);
 
+def accuracy_per_origin(data, keys):
+    # Print headers
+    output = "\t";
+    for index in range(data.shape[0]):
+        output += "%s\t" % keys[index];
+    print(output);
+    
+    # Print corrects
+    output = "CORRECT\t";
+    for index in range(data.shape[0]):
+        output += "%d\t" % data[index,0];
+    print(output);
+    
+    # Print totals
+    output = "TOTAL\t";
+    for index in range(data.shape[0]):
+        output += "%d\t" % data[index,1];
+    print(output);
+
 if __name__ == '__main__':
     dim = 10;
-    prediction_confusion_matrix = np.random.uniform(0,10,(dim,dim));
-    confusion_matrix(prediction_confusion_matrix)
+    scores = np.random.uniform(0,10,(dim,2));
+    keys = range(10);
+    accuracy_per_origin(scores, keys)
