@@ -10,6 +10,8 @@ import theano.tensor as T;
 import time;
 import sys;
 
+from statistic_tools import confusion_matrix;
+
 #theano.config.mode = 'FAST_COMPILE'
 
 class RecurrentNeuralNetwork(object):
@@ -114,6 +116,8 @@ class RecurrentNeuralNetwork(object):
         prediction_size = 0;
         prediction_histogram = {k: 0 for k in range(self.output_dim)};
         groundtruth_histogram = {k: 0 for k in range(self.output_dim)};
+        # First dimension is actual class, second dimension is predicted dimension
+        prediction_confusion_matrix = np.zeros((dataset.output_dim,dataset.output_dim));
         # Predict
         for j in range(len(test_data)):
             if (j % printing_interval == 0):
@@ -125,9 +129,10 @@ class RecurrentNeuralNetwork(object):
                 correct += 1.0;
             prediction_histogram[int(prediction)] += 1;
             groundtruth_histogram[test_labels[j]] += 1;
+            prediction_confusion_matrix[test_labels[j],int(prediction)] += 1;
             prediction_size += 1;
                 
-        return (correct / float(prediction_size), prediction_histogram, groundtruth_histogram);
+        return (correct / float(prediction_size), prediction_histogram, groundtruth_histogram, prediction_confusion_matrix);
 
 class GeneratedExpressionDataset(object):
     
@@ -178,8 +183,8 @@ if (__name__ == '__main__'):
     
     dataset_path = './data/expressions_one_digit_answer_large';
     repetitions = 1;
-    hidden_dim = 32;
-    learning_rate = 0.05;
+    hidden_dim = 16;
+    learning_rate = 0.01;
     
     if (len(sys.argv) > 1):
         dataset_path = sys.argv[1];
@@ -191,7 +196,7 @@ if (__name__ == '__main__'):
                     learning_rate = float(sys.argv[4]);
     
     # Debug settings
-    max_training_size = None;
+    max_training_size = 1000;
     
     dataset = GeneratedExpressionDataset(dataset_path);
     rnn = RecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim);
@@ -204,7 +209,7 @@ if (__name__ == '__main__'):
         rnn.train(dataset.train, dataset.train_labels, learning_rate, max_training_size);
      
     # Test
-    score, prediction_histogram, groundtruth_histogram = rnn.test(dataset.test, dataset.test_labels)
+    score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix = rnn.test(dataset.test, dataset.test_labels)
      
     print
      
@@ -213,4 +218,7 @@ if (__name__ == '__main__'):
     print("Duration: %d seconds" % duration);
     print("Score: %.2f percent" % (score*100));
     print("Prediction histogram:   %s" % (str(prediction_histogram)));
-    print("Ground thuth histogram: %s" % (str(groundtruth_histogram)));
+    print("Ground truth histogram: %s" % (str(groundtruth_histogram)));
+    
+    print("Confusion matrix:");
+    confusion_matrix(prediction_confusion_matrix)
