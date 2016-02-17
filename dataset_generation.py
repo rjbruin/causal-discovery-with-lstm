@@ -84,10 +84,17 @@ class ExpressionNode(object):
             
             return output;
 
-def generateFile(filePath, n, filters, currentRecursionDepth=0, minRecursionDepth=1, maxRecursionDepth=2, terminalProb=0.5, verbose=False):
-    savedExpressions = [];
-    while len(savedExpressions) < n:
+def generateExpressions(baseFilePath, n, test_percentage, filters, currentRecursionDepth=0, minRecursionDepth=1, maxRecursionDepth=2, terminalProb=0.5, verbose=False):
+    savedExpressions = {};
+    sequential_fails = 0;
+    fail_limit = 100000;
+    while len(savedExpressions) < n and sequential_fails < fail_limit:
         expression = ExpressionNode(currentRecursionDepth, minRecursionDepth, maxRecursionDepth, terminalProb);
+        full_expression = str(expression) + "=" + str(int(expression.getValue()));
+        # Check if expression already exists
+        if (full_expression in savedExpressions):
+            sequential_fails += 1;
+            continue;
         if (verbose):
             print(str(expression) + " = " + str(expression.getValue()));
         fail = False;
@@ -98,17 +105,26 @@ def generateFile(filePath, n, filters, currentRecursionDepth=0, minRecursionDept
                 fail = True;
                 break;
         if (not fail):
-            savedExpressions.append(str(expression) + "=" + str(int(expression.getValue())));    
+            savedExpressions[full_expression] = True;    
     
-    f = open(filePath,'w');
-    f.write("\n".join(savedExpressions));
+    # Define train/test split
+    train_n = int(len(savedExpressions) - (len(savedExpressions) * test_percentage));
+    
+    # Generate training file
+    f = open(baseFilePath + '/train.txt','w');
+    f.write("\n".join(savedExpressions.keys()[:train_n]));
+    f.close();
+    
+    # Generate training file
+    f = open(baseFilePath + '/test.txt','w');
+    f.write("\n".join(savedExpressions.keys()[train_n:]));
     f.close();
 
 if __name__ == '__main__':
     # Settings
-    folder = 'data/expressions_one_digit_answer_large';
-    train_size = 1000000; # One million
-    test_size = 100000; # Hundred thousand
+    folder = 'data/expressions_one_digit_answer';
+    train_size = 100000; # Hundred thousand
+    test_size = 0.10; # Twenty thousand
     currentRecursionDepth = 0;
     minRecursionDepth = 1;
     maxRecursionDepth = 2;
@@ -130,7 +146,5 @@ if __name__ == '__main__':
     if (os.path.exists(testFilePath)):
         raise ValueError("Test part of dataset already present");
     
-    generateFile(trainFilePath,train_size,filters,currentRecursionDepth,
-                 minRecursionDepth, maxRecursionDepth, terminalProb);
-    generateFile(testFilePath,test_size,filters,currentRecursionDepth,
+    generateExpressions(folder,train_size,test_size,filters,currentRecursionDepth,
                  minRecursionDepth, maxRecursionDepth, terminalProb);
