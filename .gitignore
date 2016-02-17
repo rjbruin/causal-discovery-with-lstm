@@ -3,3 +3,6 @@
 
 # PyDev files
 .pydevproject
+
+# Data folders
+raw_results/*
