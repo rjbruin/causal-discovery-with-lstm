@@ -98,7 +98,7 @@ class RecurrentNeuralNetwork(object):
             
             k += 1; #minibatch_size;
         
-    def test(self, test_data, test_labels, operators, key_indices, max_testing_size=None):
+    def test(self, test_data, test_labels, test_expressions, operators, key_indices, max_testing_size=None):
         """
         Run test data through model. Output percentage of correctly predicted
         test instances.
@@ -136,7 +136,7 @@ class RecurrentNeuralNetwork(object):
             groundtruth_histogram[test_labels[j]] += 1;
             prediction_confusion_matrix[test_labels[j],int(prediction)] += 1;
             prediction_size += 1;
-            operator_scores = GeneratedExpressionDataset.operator_scores(test_data[j],int(prediction)==test_labels[j],operators,key_indices,operator_scores);
+            operator_scores = GeneratedExpressionDataset.operator_scores(test_expressions[j],int(prediction)==test_labels[j],operators,key_indices,operator_scores);
                 
         return (correct / float(prediction_size), prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, operator_scores);
 
@@ -159,8 +159,8 @@ class GeneratedExpressionDataset(object):
         self.load();
     
     def load(self):
-        self.train, self.train_targets, self.train_labels = self.loadFile(self.train_source);
-        self.test, self.test_targets, self.test_labels = self.loadFile(self.test_source);
+        self.train, self.train_targets, self.train_labels, self.train_expressions = self.loadFile(self.train_source);
+        self.test, self.test_targets, self.test_labels, self.test_expressions = self.loadFile(self.test_source);
     
     def loadFile(self, source):
         # Importing data
@@ -168,9 +168,11 @@ class GeneratedExpressionDataset(object):
         data = [];
         targets = [];
         labels = [];
+        expressions = [];
         for line in f_data:
             # Get expression from line
             expression = line.strip();
+            expressions.append(expression);
             left_hand = expression[:-1];
             right_hand = expression[-1];
             # Generate encodings for data and target
@@ -184,7 +186,7 @@ class GeneratedExpressionDataset(object):
             targets.append(np.array([target]));
             labels.append(self.oneHot[right_hand]);
         
-        return data, targets, np.array(labels);
+        return data, targets, np.array(labels), expressions;
     
     @staticmethod
     def operator_scores(expression, correct, operators, key_indices, op_scores):
@@ -202,7 +204,7 @@ class GeneratedExpressionDataset(object):
         
 if (__name__ == '__main__'):
     
-    dataset_path = './data/expressions_one_digit_answer_large';
+    dataset_path = './data/expressions_one_digit_answer_shallow';
     repetitions = 1;
     hidden_dim = 16;
     learning_rate = 0.01;
@@ -217,7 +219,7 @@ if (__name__ == '__main__'):
                     learning_rate = float(sys.argv[4]);
      
     # Debug settings
-    max_training_size = 1000;
+    max_training_size = None;
      
     dataset = GeneratedExpressionDataset(dataset_path);
     rnn = RecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim);
@@ -233,7 +235,7 @@ if (__name__ == '__main__'):
     key_indices = {k: i for (i,k) in enumerate(dataset.operators)};
       
     # Test
-    score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, op_scores = rnn.test(dataset.test, dataset.test_labels, dataset.operators, key_indices)
+    score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, op_scores = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices)
 
     print
 

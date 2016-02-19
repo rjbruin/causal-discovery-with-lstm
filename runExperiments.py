@@ -9,66 +9,12 @@ from subprocess import PIPE, STDOUT;
 import os;
 
 if __name__ == '__main__':
-    experiments = {'one_digit_answer_2_256_001_1': {
+    experiments = {'one_digit_answer_1_128_001_1228': {
                         'script': 'expressions_one_digit_answer.py',
                         'dataset': './data/expressions_one_digit_answer_large',
-                        'repetitions': '2',
-                        'hidden_dim': '256',
-                        'learning_rate': '0.01' },
-                   'one_digit_answer_2_256_001_2': {
-                        'script': 'expressions_one_digit_answer.py',
-                        'dataset': './data/expressions_one_digit_answer_large',
-                        'repetitions': '2',
-                        'hidden_dim': '256',
-                        'learning_rate': '0.01' },
-                   'one_digit_answer_2_256_001_3': {
-                        'script': 'expressions_one_digit_answer.py',
-                        'dataset': './data/expressions_one_digit_answer_large',
-                        'repetitions': '2',
-                        'hidden_dim': '256',
-                        'learning_rate': '0.01' },
-                   'one_digit_answer_2_256_001_4': {
-                        'script': 'expressions_one_digit_answer.py',
-                        'dataset': './data/expressions_one_digit_answer_large',
-                        'repetitions': '2',
-                        'hidden_dim': '256',
-                        'learning_rate': '0.01' },
-                   'one_digit_answer_2_256_001_5': {
-                        'script': 'expressions_one_digit_answer.py',
-                        'dataset': './data/expressions_one_digit_answer_large',
-                        'repetitions': '2',
-                        'hidden_dim': '256',
-                        'learning_rate': '0.01' },
-                   'one_digit_answer_2_256_001_6': {
-                        'script': 'expressions_one_digit_answer.py',
-                        'dataset': './data/expressions_one_digit_answer_large',
-                        'repetitions': '2',
-                        'hidden_dim': '256',
-                        'learning_rate': '0.01' },
-                   'one_digit_answer_2_256_001_7': {
-                        'script': 'expressions_one_digit_answer.py',
-                        'dataset': './data/expressions_one_digit_answer_large',
-                        'repetitions': '2',
-                        'hidden_dim': '256',
-                        'learning_rate': '0.01' },
-                   'one_digit_answer_2_256_001_8': {
-                        'script': 'expressions_one_digit_answer.py',
-                        'dataset': './data/expressions_one_digit_answer_large',
-                        'repetitions': '2',
-                        'hidden_dim': '256',
-                        'learning_rate': '0.01' },
-                   'one_digit_answer_2_256_001_9': {
-                        'script': 'expressions_one_digit_answer.py',
-                        'dataset': './data/expressions_one_digit_answer_large',
-                        'repetitions': '2',
-                        'hidden_dim': '256',
-                        'learning_rate': '0.01' },
-                   'one_digit_answer_2_256_001_10': {
-                        'script': 'expressions_one_digit_answer.py',
-                        'dataset': './data/expressions_one_digit_answer_large',
-                        'repetitions': '2',
-                        'hidden_dim': '256',
-                        'learning_rate': '0.01' },
+                        'repetitions': '1',
+                        'hidden_dim': '128',
+                        'learning_rate': '0.01' }
                    };
     
     # Check if values can be stored

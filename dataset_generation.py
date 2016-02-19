@@ -18,24 +18,70 @@ class ExpressionNode(object):
     OP_DIVIDE = 3;
     OPERATOR_SIZE = 4;
     
-    def __init__(self, currentRecursionDepth=0, minRecursionDepth=1, maxRecursionDepth=10, terminalProb=0.5, maxIntValue=10):
+    def __init__(self, nodeType, value):
+        self.nodeType = nodeType;
+        self.value = value;
+    
+    @staticmethod
+    def allExpressions(currentRecursionDepth=0, minRecursionDepth=1, maxRecursionDepth=10, maxIntValue=10):
+        expressions = [];
+        
+        nodes = True;
+        if (currentRecursionDepth >= maxRecursionDepth):
+            nodes = False;
+        
+        leafs = True;
+        if (currentRecursionDepth < minRecursionDepth):
+            leafs = False;
+        
+        # Generate all expressions that end here (leaf)
+        if (leafs):
+            for i in range(maxIntValue):
+                leaf = ExpressionNode(ExpressionNode.TYPE_DIGIT, i);
+                expressions.append(leaf);
+        
+        if (nodes):
+            # Generate all expressions that continue (node)
+            possible_children = ExpressionNode.allExpressions(currentRecursionDepth+1, minRecursionDepth, maxRecursionDepth, maxIntValue);
+            for i in range(ExpressionNode.OPERATOR_SIZE):
+                for left_child in possible_children:
+                    for right_child in possible_children:
+                        # Create no expressions that divide by zero 
+                        if (i == ExpressionNode.OP_DIVIDE and right_child.getValue() == 0.0):
+                            continue;
+                        node = ExpressionNode(ExpressionNode.TYPE_OPERATOR, i);
+                        node.left = left_child;
+                        node.right = right_child;
+                        expressions.append(node);
+        
+        return expressions;
+    
+    @staticmethod
+    def randomExpression(currentRecursionDepth=0, minRecursionDepth=1, maxRecursionDepth=10, terminalProb=0.5, maxIntValue=10):
+        """
+        Alternative constructor that generates a random expression.
+        """
+        node = ExpressionNode(0,0);
+        
         if (currentRecursionDepth < maxRecursionDepth):
             if (currentRecursionDepth >= minRecursionDepth and np.random.random() < terminalProb):
                 # Create terminal child (digit) with probability 'terminalProb'
-                self.createDigit(maxIntValue);
+                node.createDigit(maxIntValue);
             else:
                 # Create operator
-                self.nodeType = self.TYPE_OPERATOR;
-                self.value = np.random.randint(self.OPERATOR_SIZE);
+                node.nodeType = ExpressionNode.TYPE_OPERATOR;
+                node.value = np.random.randint(ExpressionNode.OPERATOR_SIZE);
                 # Create children
-                self.left = ExpressionNode(currentRecursionDepth+1,minRecursionDepth,maxRecursionDepth,terminalProb,maxIntValue);
-                self.right = ExpressionNode(currentRecursionDepth+1,minRecursionDepth,maxRecursionDepth,terminalProb,maxIntValue);
-                while (self.value == self.OP_DIVIDE and self.right.getValue() == 0.0):
+                node.left = ExpressionNode.randomExpression(currentRecursionDepth+1,minRecursionDepth,maxRecursionDepth,terminalProb,maxIntValue);
+                node.right = ExpressionNode.randomExpression(currentRecursionDepth+1,minRecursionDepth,maxRecursionDepth,terminalProb,maxIntValue);
+                while (node.value == ExpressionNode.OP_DIVIDE and node.right.getValue() == 0.0):
                     # Replace right-hand while it is zero
-                    self.right = ExpressionNode(currentRecursionDepth+1,minRecursionDepth,maxRecursionDepth,terminalProb,maxIntValue);
+                    node.right = ExpressionNode.randomExpression(currentRecursionDepth+1,minRecursionDepth,maxRecursionDepth,terminalProb,maxIntValue);
         else:
             # Create terminal child (digit) if we are at maximum expression depth
-            self.createDigit(maxIntValue);
+            node.createDigit(maxIntValue);
+        
+        return node;
     
     def createDigit(self, maxIntValue):
         # Create terminal child (digit)
@@ -84,12 +130,12 @@ class ExpressionNode(object):
             
             return output;
 
-def generateExpressions(baseFilePath, n, test_percentage, filters, currentRecursionDepth=0, minRecursionDepth=1, maxRecursionDepth=2, terminalProb=0.5, verbose=False):
+def generateExpressions(baseFilePath, n, test_percentage, filters, minRecursionDepth=1, maxRecursionDepth=2, terminalProb=0.5, verbose=False):
     savedExpressions = {};
     sequential_fails = 0;
     fail_limit = 100000;
     while len(savedExpressions) < n and sequential_fails < fail_limit:
-        expression = ExpressionNode(currentRecursionDepth, minRecursionDepth, maxRecursionDepth, terminalProb);
+        expression = ExpressionNode.randomExpression(0, minRecursionDepth, maxRecursionDepth, terminalProb);
         full_expression = str(expression) + "=" + str(int(expression.getValue()));
         # Check if expression already exists
         if (full_expression in savedExpressions):
@@ -105,46 +151,75 @@ def generateExpressions(baseFilePath, n, test_percentage, filters, currentRecurs
                 fail = True;
                 break;
         if (not fail):
-            savedExpressions[full_expression] = True;    
+            savedExpressions[full_expression] = True;
     
+    writeToFiles(savedExpressions, baseFilePath, test_percentage);
+    
+def generateAllExpressions(baseFilePath, test_percentage, filters, minRecursionDepth=1, maxRecursionDepth=2, maxIntValue=10):
+    expressions = ExpressionNode.allExpressions(0, minRecursionDepth=minRecursionDepth, maxRecursionDepth=maxRecursionDepth, maxIntValue=maxIntValue);
+    
+    filteredExpressions = []
+    for expression in expressions:
+        discard = False;
+        for filter in filters:
+            discard = not filter(expression);
+            if (discard):
+                break;
+        if (not discard):
+            full_expression = str(expression) + "=" + str(int(expression.getValue()));
+            filteredExpressions.append(full_expression);
+    
+    print(len(filteredExpressions));
+    
+    # Shuffle expressions
+    np.random.shuffle(filteredExpressions);
+    
+    writeToFiles(filteredExpressions, baseFilePath, test_percentage, isList=True);
+
+def writeToFiles(expressions,baseFilePath,test_percentage,isList=False):
     # Define train/test split
-    train_n = int(len(savedExpressions) - (len(savedExpressions) * test_percentage));
+    train_n = int(len(expressions) - (len(expressions) * test_percentage));
+    
+    if (not isList):
+        expressions = expressions.keys();
     
     # Generate training file
     f = open(baseFilePath + '/train.txt','w');
-    f.write("\n".join(savedExpressions.keys()[:train_n]));
+    f.write("\n".join(expressions[:train_n]));
     f.close();
     
     # Generate training file
     f = open(baseFilePath + '/test.txt','w');
-    f.write("\n".join(savedExpressions.keys()[train_n:]));
+    f.write("\n".join(expressions[train_n:]));
     f.close();
 
 if __name__ == '__main__':
     # Settings
-    folder = 'data/expressions_one_digit_answer';
-    train_size = 100000; # Hundred thousand
+    folder = 'data/expressions_one_digit_answer_deep';
+#     train_size = 100000; # Hundred thousand
     test_size = 0.10; # Twenty thousand
     currentRecursionDepth = 0;
     minRecursionDepth = 1;
-    maxRecursionDepth = 2;
+    maxRecursionDepth = 3;
+    maxIntValue = 10;
     terminalProb = 0.5;
     filters = [lambda x: x.getValue() % 1.0 == 0, # Value must be integer
                lambda x: x.getValue() < 10, # Value must be single-digit
                lambda x: x.getValue() >= 0
                ];
-    
-    # Generate other variables
+     
+#     # Generate other variables
     trainFilePath = folder + '/train.txt';
     testFilePath = folder + '/test.txt'
-    
-    # http://stackoverflow.com/questions/273192/in-python-check-if-a-directory-exists-and-create-it-if-necessary
+     
+#     # http://stackoverflow.com/questions/273192/in-python-check-if-a-directory-exists-and-create-it-if-necessary
     if (not os.path.exists(folder)):
         os.makedirs(folder);
     if (os.path.exists(trainFilePath)):
         raise ValueError("Train part of dataset already present");
     if (os.path.exists(testFilePath)):
         raise ValueError("Test part of dataset already present");
-    
-    generateExpressions(folder,train_size,test_size,filters,currentRecursionDepth,
-                 minRecursionDepth, maxRecursionDepth, terminalProb);
+#     
+#     generateExpressions(folder,train_size,test_size,filters,
+#                  minRecursionDepth, maxRecursionDepth, terminalProb);
+    generateAllExpressions(folder, test_size, filters, minRecursionDepth, maxRecursionDepth, maxIntValue);
