@@ -9,12 +9,20 @@ from subprocess import PIPE, STDOUT;
 import os;
 
 if __name__ == '__main__':
-    experiments = {'one_digit_answer_1_128_001_1228': {
+    experiments = {'one_digit_answer_1_128_shallow_rnn': {
                         'script': 'expressions_one_digit_answer.py',
-                        'dataset': './data/expressions_one_digit_answer_large',
+                        'dataset': './data/expressions_one_digit_answer_shallow',
                         'repetitions': '1',
                         'hidden_dim': '128',
-                        'learning_rate': '0.01' }
+                        'learning_rate': '0.01',
+                        'lstm': 'False' },
+                   'one_digit_answer_1_128_shallow_lstm': {
+                        'script': 'expressions_one_digit_answer.py',
+                        'dataset': './data/expressions_one_digit_answer_shallow',
+                        'repetitions': '1',
+                        'hidden_dim': '128',
+                        'learning_rate': '0.01',
+                        'lstm': 'True' }
                    };
     
     # Check if values can be stored
@@ -26,7 +34,7 @@ if __name__ == '__main__':
     
     # Run experiments    
     for name, exp in experiments.items():
-        p = subprocess.Popen(['python',exp['script'],exp['dataset'],exp['repetitions'],exp['hidden_dim'],exp['learning_rate']],stdout=PIPE,stderr=STDOUT,shell=True);
+        p = subprocess.Popen(['python',exp['script'],exp['dataset'],exp['repetitions'],exp['hidden_dim'],exp['learning_rate'],exp['lstm']],stdout=PIPE,stderr=STDOUT,shell=True);
         outputs = [];
         while (p.poll() == None):
             out = p.stdout.readline();

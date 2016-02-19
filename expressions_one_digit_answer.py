@@ -20,7 +20,7 @@ class RecurrentNeuralNetwork(object):
     '''
 
 
-    def __init__(self, data_dim, hidden_dim, output_dim):
+    def __init__(self, data_dim, hidden_dim, output_dim, lstm=False):
         '''
         Constructor
         '''
@@ -29,17 +29,21 @@ class RecurrentNeuralNetwork(object):
         self.hidden_dim = hidden_dim;
         self.output_dim = output_dim;
         
-        # X weights to hidden
-        self.init_XWh = np.random.uniform(-np.sqrt(1.0/self.data_dim),np.sqrt(1.0/self.data_dim),(self.data_dim,self.hidden_dim));
-        # hidden weights to hidden
-        self.init_hWh = np.random.uniform(-np.sqrt(1.0/self.hidden_dim),np.sqrt(1.0/self.hidden_dim),(self.hidden_dim,self.hidden_dim));
-        # hidden weights to output
-        self.init_hWo = np.random.uniform(-np.sqrt(1.0/self.hidden_dim),np.sqrt(1.0/self.hidden_dim),(self.hidden_dim,self.output_dim));
-        
         # Set up shared variables
-        self.XWh = theano.shared(name='XWh', value=self.init_XWh);
-        self.hWh = theano.shared(name='hWh', value=self.init_hWh);
-        self.hWo = theano.shared(name='hWo', value=self.init_hWo);
+        if (not lstm):
+            self.XWh = theano.shared(name='XWh', value=np.random.uniform(-np.sqrt(1.0/self.data_dim),np.sqrt(1.0/self.data_dim),(self.data_dim,self.hidden_dim)));
+            self.hWh = theano.shared(name='hWh', value=np.random.uniform(-np.sqrt(1.0/self.hidden_dim),np.sqrt(1.0/self.hidden_dim),(self.hidden_dim,self.hidden_dim)));
+            self.hWo = theano.shared(name='hWo', value=np.random.uniform(-np.sqrt(1.0/self.hidden_dim),np.sqrt(1.0/self.hidden_dim),(self.hidden_dim,self.output_dim)));
+        else:
+            self.hWf = theano.shared(name='XWh', value=np.random.uniform(-np.sqrt(1.0/self.hidden_dim),np.sqrt(1.0/self.hidden_dim),(self.hidden_dim,self.hidden_dim)));
+            self.XWf = theano.shared(name='XWf', value=np.random.uniform(-np.sqrt(1.0/self.data_dim),np.sqrt(1.0/self.data_dim),(self.data_dim,self.hidden_dim)));
+            self.hWi = theano.shared(name='hWi', value=np.random.uniform(-np.sqrt(1.0/self.hidden_dim),np.sqrt(1.0/self.hidden_dim),(self.hidden_dim,self.hidden_dim)));
+            self.XWi = theano.shared(name='XWi', value=np.random.uniform(-np.sqrt(1.0/self.data_dim),np.sqrt(1.0/self.data_dim),(self.data_dim,self.hidden_dim)));
+            self.hWc = theano.shared(name='hWc', value=np.random.uniform(-np.sqrt(1.0/self.hidden_dim),np.sqrt(1.0/self.hidden_dim),(self.hidden_dim,self.hidden_dim)));
+            self.XWc = theano.shared(name='XWc', value=np.random.uniform(-np.sqrt(1.0/self.data_dim),np.sqrt(1.0/self.data_dim),(self.data_dim,self.hidden_dim)));
+            self.hWo = theano.shared(name='hWo', value=np.random.uniform(-np.sqrt(1.0/self.hidden_dim),np.sqrt(1.0/self.hidden_dim),(self.hidden_dim,self.hidden_dim)));
+            self.XWo = theano.shared(name='XWo', value=np.random.uniform(-np.sqrt(1.0/self.data_dim),np.sqrt(1.0/self.data_dim),(self.data_dim,self.hidden_dim)));
+            self.hWY = theano.shared(name='hWY', value=np.random.uniform(-np.sqrt(1.0/self.hidden_dim),np.sqrt(1.0/self.hidden_dim),(self.hidden_dim,self.output_dim)));
         
         # Forward pass
         # X is 2-dimensional: 1) index in sentence, 2) dimensionality of data 
@@ -52,7 +56,22 @@ class RecurrentNeuralNetwork(object):
             Ys = T.nnet.softmax(hidden.dot(self.hWo));
             return hidden, Ys;
         
-        [_, Y], _ = theano.scan(fn=rnn_recurrence,
+        def lstm_recurrence(current_X, previous_hidden):
+            forget_gate = T.nnet.sigmoid(previous_hidden.dot(self.hWf) + current_X.dot(self.XWf));
+            input_gate = T.nnet.sigmoid(previous_hidden.dot(self.hWi) + current_X.dot(self.XWi));
+            candidate_cell = T.tanh(previous_hidden.dot(self.hWc) + current_X.dot(self.XWc));
+            cell = forget_gate * previous_hidden + input_gate * candidate_cell;
+            output_gate = T.nnet.sigmoid(previous_hidden.dot(self.hWo) + current_X.dot(self.XWo));
+            hidden = output_gate * cell;
+            Y_output = T.nnet.softmax(hidden.dot(self.hWY));
+            return hidden, Y_output;
+        
+        if (not lstm):
+            recurrence_function = rnn_recurrence;
+        else:
+            recurrence_function = lstm_recurrence;
+        
+        [_, Y], _ = theano.scan(fn=recurrence_function,
                                  sequences=X,
                                  # Input a zero hidden layer
                                  outputs_info=(np.zeros(self.hidden_dim),None))
@@ -62,17 +81,32 @@ class RecurrentNeuralNetwork(object):
         error = T.nnet.categorical_crossentropy(Y[-1], label)[0];
         
         # Backward pass: gradients
-        dXWh, dhWh, dhWo = T.grad(error, [self.XWh, self.hWh, self.hWo]);
+        if (not lstm):
+            dXWh, dhWh, dhWo = T.grad(error, [self.XWh, self.hWh, self.hWo]);
+        else:
+            dhWf, dXWf, dhWi, dXWi, dhWc, dXWc, dhWo, dXWo, dhWY = T.grad(error, [self.hWf, self.XWf, self.hWi, self.XWi, self.hWc, self.XWc, self.hWo, self.XWo, self.hWY]);
         
         # Functions
         self.predict = theano.function([X], prediction);
         
         # Stochastic Gradient Descent
         learning_rate = T.dscalar('learning_rate');
-        self.sgd = theano.function([X, label, learning_rate], [dXWh, dhWh, dhWo, Y[-1]], 
-                                   updates=[(self.XWh,self.XWh - learning_rate * dXWh),
-                                            (self.hWh,self.hWh - learning_rate * dhWh),
-                                            (self.hWo,self.hWo - learning_rate * dhWo)],
+        if (not lstm):
+            updates = [(self.XWh,self.XWh - learning_rate * dXWh),
+                       (self.hWh,self.hWh - learning_rate * dhWh),
+                       (self.hWo,self.hWo - learning_rate * dhWo)];
+        else:
+            updates = [(self.hWf,self.hWf - learning_rate * dhWf),
+                       (self.XWf,self.XWf - learning_rate * dXWf),
+                       (self.hWi,self.hWi - learning_rate * dhWi),
+                       (self.XWi,self.XWi - learning_rate * dXWi),
+                       (self.hWc,self.hWc - learning_rate * dhWc),
+                       (self.XWc,self.XWc - learning_rate * dXWc),
+                       (self.hWo,self.hWo - learning_rate * dhWo),
+                       (self.XWo,self.XWo - learning_rate * dXWo),
+                       (self.hWY,self.hWY - learning_rate * dhWY)];
+        self.sgd = theano.function([X, label, learning_rate], [], 
+                                   updates=updates,
                                    allow_input_downcast=False)
         
     def train(self, training_data, training_labels, learning_rate, max_training_size=None):
@@ -88,13 +122,13 @@ class RecurrentNeuralNetwork(object):
             data = training_data[k];
             label = training_labels[k];
             # Run training
-            dXWh_value, dhWh_value, dhWo_value, Y_last = self.sgd(data, np.array([label]), learning_rate);
+            self.sgd(data, np.array([label]), learning_rate);
             
             if (k % printing_interval == 0):
                 print("%d / %d" % (k, total));
             
-            if (np.isnan(dXWh_value[0,0])):
-                print("NaN!");
+#             if (np.isnan(dXWh_value[0,0])):
+#                 print("NaN!");
             
             k += 1; #minibatch_size;
         
@@ -206,8 +240,9 @@ if (__name__ == '__main__'):
     
     dataset_path = './data/expressions_one_digit_answer_shallow';
     repetitions = 1;
-    hidden_dim = 16;
+    hidden_dim = 32;
     learning_rate = 0.01;
+    lstm = False;
      
     if (len(sys.argv) > 1):
         dataset_path = sys.argv[1];
@@ -217,12 +252,14 @@ if (__name__ == '__main__'):
                 hidden_dim = int(sys.argv[3]);
                 if (len(sys.argv) > 4):
                     learning_rate = float(sys.argv[4]);
+                    if (len(sys.argv) > 5):
+                        lstm = sys.argv[5] == 'True';
      
     # Debug settings
-    max_training_size = None;
+    max_training_size = 1000;
      
     dataset = GeneratedExpressionDataset(dataset_path);
-    rnn = RecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim);
+    rnn = RecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim, lstm=lstm);
  
     start = time.clock();
       
