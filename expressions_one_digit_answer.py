@@ -27,6 +27,8 @@ def print_statistics(score, prediction_histogram, groundtruth_histogram, predict
     if (prediction_confusion_matrix is not None):
         print("Confusion matrix:");
         confusion_matrix(prediction_confusion_matrix);
+    
+    print
    
 if (__name__ == '__main__'):
     
@@ -105,7 +107,7 @@ if (__name__ == '__main__'):
     # Train
     if (test_interval is not None):
         for b, batch in enumerate(batches):
-            print("Batch %d of %d" % (b+1,len(batches)));
+            print("Batch %d of %d (ends at index %d)" % (b+1,len(batches),batch[:-1]));
             rnn.train(dataset.train[batch], dataset.train_labels[batch], learning_rate);
             if (b != len(batches)-1):
                 # Intermediate testing if this was not the last iteration of training
