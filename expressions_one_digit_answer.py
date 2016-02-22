@@ -16,13 +16,15 @@ from statistic_tools import confusion_matrix, accuracy_per_origin;
         
 if (__name__ == '__main__'):
     
+    # Default settings
     dataset_path = './data/expressions_one_digit_answer_shallow';
     repetitions = 3;
     hidden_dim = 128;
     learning_rate = 0.01;
     lstm = True;
     max_training_size = None;
-     
+    
+    # Command-line settings
     if (len(sys.argv) > 1):
         dataset_path = sys.argv[1];
         if (len(sys.argv) > 2):
@@ -39,10 +41,12 @@ if (__name__ == '__main__'):
     # Debug settings
     if (max_training_size is not None):
         print("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!");
-     
+    
+    # Construct models
     dataset = ge_dataset.GeneratedExpressionDataset(dataset_path);
     rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim, lstm=lstm);
  
+    # Start timing
     start = time.clock();
       
     # Train
