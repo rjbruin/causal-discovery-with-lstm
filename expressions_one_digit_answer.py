@@ -21,6 +21,7 @@ if (__name__ == '__main__'):
     hidden_dim = 128;
     learning_rate = 0.01;
     lstm = True;
+    max_training_size = None;
      
     if (len(sys.argv) > 1):
         dataset_path = sys.argv[1];
@@ -32,9 +33,10 @@ if (__name__ == '__main__'):
                     learning_rate = float(sys.argv[4]);
                     if (len(sys.argv) > 5):
                         lstm = sys.argv[5] == 'True';
+                        if (len(sys.argv) > 6):
+                            max_training_size = int(sys.argv[6]);
      
     # Debug settings
-    max_training_size = 1000;
     if (max_training_size is not None):
         print("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!");
      
