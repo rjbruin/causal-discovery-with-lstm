@@ -31,7 +31,7 @@ class RecurrentNeuralNetwork(object):
             varSettings.append(('hWh',self.hidden_dim,self.hidden_dim));
             varSettings.append(('hWo',self.hidden_dim,self.output_dim));
         else:
-            varSettings.append(('XWh',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('hWf',self.hidden_dim,self.hidden_dim));
             varSettings.append(('XWf',self.data_dim,self.hidden_dim));
             varSettings.append(('hWi',self.hidden_dim,self.hidden_dim));
             varSettings.append(('XWi',self.data_dim,self.hidden_dim));
