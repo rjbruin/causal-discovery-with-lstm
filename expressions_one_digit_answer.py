@@ -107,11 +107,11 @@ if (__name__ == '__main__'):
     # Train
     if (test_interval is not None):
         for b, batch in enumerate(batches):
-            print("Batch %d of %d (ends at index %d)" % (b+1,len(batches),batch[-1]));
+            print("Batch %d of %d (ends after %d samples)" % (b+1,len(batches),batch[-1]+1));
             rnn.train(dataset.train[batch], dataset.train_labels[batch], learning_rate);
             if (b != len(batches)-1):
                 # Intermediate testing if this was not the last iteration of training
-                score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = rnn.test(dataset.test[:100], dataset.test_labels[:100], dataset.test_expressions[:100], dataset.operators, key_indices, dataset)
+                score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset)
                 print_statistics(score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix=None);
     else:
         rnn.train(dataset.train, dataset.train_labels, learning_rate);
