@@ -107,7 +107,7 @@ if (__name__ == '__main__'):
     # Train
     if (test_interval is not None):
         for b, batch in enumerate(batches):
-            print("Batch %d of %d (ends at index %d)" % (b+1,len(batches),batch[:-1]));
+            print("Batch %d of %d (ends at index %d)" % (b+1,len(batches),batch[-1]));
             rnn.train(dataset.train[batch], dataset.train_labels[batch], learning_rate);
             if (b != len(batches)-1):
                 # Intermediate testing if this was not the last iteration of training
