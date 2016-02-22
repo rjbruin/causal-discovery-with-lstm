@@ -93,13 +93,11 @@ class RecurrentNeuralNetwork(object):
         Y_output = T.nnet.softmax(hidden.dot(self.vars['hWY']));
         return hidden, Y_output;
         
-    def train(self, training_data, training_labels, learning_rate, max_training_size=None):
+    def train(self, training_data, training_labels, learning_rate):
         total = len(training_data);
         printing_interval = 1000;
-        if (max_training_size is not None):
-            total = max_training_size;
         if (total <= printing_interval * 10):
-            printing_interval = total / 100;
+            printing_interval = total / 10;
         
         for k in range(total):
             data = training_data[k];
@@ -108,7 +106,7 @@ class RecurrentNeuralNetwork(object):
             self.sgd(data, np.array([label]), learning_rate);
             
             if (k % printing_interval == 0):
-                print("%d / %d" % (k, total));
+                print("# %d / %d" % (k, total));
         
     def test(self, test_data, test_labels, test_expressions, operators, key_indices, dataset, max_testing_size=None):
         """
@@ -122,7 +120,7 @@ class RecurrentNeuralNetwork(object):
         if (max_testing_size is not None):
             total = max_testing_size;
         if (total < printing_interval * 10):
-            printing_interval = total / 100;
+            printing_interval = total / 10;
         
         # Set up statistics
         correct = 0.0;
@@ -137,7 +135,7 @@ class RecurrentNeuralNetwork(object):
         # Predict
         for j in range(len(test_data)):
             if (j % printing_interval == 0):
-                print("%d / %d" % (j, total));
+                print("# %d / %d" % (j, total));
             data = test_data[j];                
             prediction = self.predict(data);
             

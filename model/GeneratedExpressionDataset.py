@@ -52,7 +52,7 @@ class GeneratedExpressionDataset(object):
             targets.append(np.array([target]));
             labels.append(self.oneHot[right_hand]);
         
-        return data, targets, np.array(labels), expressions;
+        return np.array(data), np.array(targets), np.array(labels), expressions;
     
     @staticmethod
     def operator_scores(expression, correct, operators, key_indices, op_scores):

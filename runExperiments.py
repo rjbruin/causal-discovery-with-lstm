@@ -28,7 +28,7 @@ if __name__ == '__main__':
         while (p.poll() == None):
             out = p.stdout.readline();
             print(out.strip());
-            if (out != ''):
+            if (out != '' and out[0] != '#'):
                 outputs.append(out.strip());
         
         # Write to file

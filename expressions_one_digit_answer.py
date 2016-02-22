@@ -10,10 +10,24 @@ import sys;
 import model.RecurrentNeuralNetwork as rnn;
 import model.GeneratedExpressionDataset as ge_dataset;
 
-from statistic_tools import confusion_matrix, accuracy_per_origin;
+from statistic_tools import confusion_matrix;
 
 #theano.config.mode = 'FAST_COMPILE'
-        
+
+def print_statistics(score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix=None):
+    print
+
+    # Print statistics
+    duration = time.clock() - start;
+    print("Duration: %d seconds" % duration);
+    print("Score: %.2f percent" % (score*100));
+    print("Prediction histogram:   %s" % (str(prediction_histogram)));
+    print("Ground truth histogram: %s" % (str(groundtruth_histogram)));
+    
+    if (prediction_confusion_matrix is not None):
+        print("Confusion matrix:");
+        confusion_matrix(prediction_confusion_matrix);
+   
 if (__name__ == '__main__'):
     
     # Default settings
@@ -23,6 +37,7 @@ if (__name__ == '__main__'):
     learning_rate = 0.01;
     lstm = True;
     max_training_size = None;
+    test_interval = 100000; # 100,000
     
     # Command-line settings
     if (len(sys.argv) > 1):
@@ -36,7 +51,16 @@ if (__name__ == '__main__'):
                     if (len(sys.argv) > 5):
                         lstm = sys.argv[5] == 'True';
                         if (len(sys.argv) > 6):
-                            max_training_size = int(sys.argv[6]);
+                            if (max_training_size == "False"):
+                                max_training_size = None;
+                            else:
+                                max_training_size = int(sys.argv[6]);
+                            if (len(sys.argv) > 7):
+                                if (test_interval == "False"):
+                                    test_interval = None;
+                                else:
+                                    test_interval = int(sys.argv[7]);
+                                    
      
     # Debug settings
     if (max_training_size is not None):
@@ -45,32 +69,40 @@ if (__name__ == '__main__'):
     # Construct models
     dataset = ge_dataset.GeneratedExpressionDataset(dataset_path);
     rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim, lstm=lstm);
+    
+    # Set up training indices
+    if (max_training_size is not None):
+        one_rep_indices = range(max_training_size);
+    else:
+        one_rep_indices = range(len(dataset.train));
+    all_indices = [];
+    for n in range(repetitions):
+        all_indices.extend(one_rep_indices);
+    
+    if (test_interval is not None):    
+        batches = [];
+        i = 0;
+        while (len(all_indices) > 0):
+            batches.append(all_indices[i:i+test_interval]);
+            all_indices = all_indices[i+test_interval:];
  
     # Start timing
     start = time.clock();
-      
-    # Train
-    for r in range(repetitions):
-        print("Repetition %d of %d" % (r+1,repetitions));
-        rnn.train(dataset.train, dataset.train_labels, learning_rate, max_training_size);
-     
+    
     # Set up statistics
     key_indices = {k: i for (i,k) in enumerate(dataset.operators)};
       
-    # Test
-    score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, op_scores = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset)
-
-    print
-
-    # Print statistics
-    duration = time.clock() - start;
-    print("Duration: %d seconds" % duration);
-    print("Score: %.2f percent" % (score*100));
-    print("Prediction histogram:   %s" % (str(prediction_histogram)));
-    print("Ground truth histogram: %s" % (str(groundtruth_histogram)));
-     
-    print("Confusion matrix:");
-    confusion_matrix(prediction_confusion_matrix);
-     
-    print("Accuracy per origin");
-    accuracy_per_origin(op_scores, dataset.operators);
+    # Train
+    if (test_interval is not None):
+        for b, batch in enumerate(batches):
+            print("Batch %d of %d" % (b+1,len(batches)));
+            rnn.train(dataset.train[batch], dataset.train_labels[batch], learning_rate);
+            # Intermediate testing
+            score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = rnn.test(dataset.test[:100], dataset.test_labels[:100], dataset.test_expressions[:100], dataset.operators, key_indices, dataset)
+            print_statistics(score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix=None);
+    else:
+        rnn.train(dataset.train, dataset.train_labels, learning_rate);
+      
+    # Final test
+    score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset)
+    print_statistics(score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix);
