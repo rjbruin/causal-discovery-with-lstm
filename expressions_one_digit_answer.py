@@ -39,27 +39,37 @@ if (__name__ == '__main__'):
     max_training_size = None;
     test_interval = 100000; # 100,000
     
-    # Command-line settings
-    if (len(sys.argv) > 1):
-        dataset_path = sys.argv[1];
-        if (len(sys.argv) > 2):
-            repetitions = int(sys.argv[2]);
-            if (len(sys.argv) > 3):
-                hidden_dim = int(sys.argv[3]);
-                if (len(sys.argv) > 4):
-                    learning_rate = float(sys.argv[4]);
-                    if (len(sys.argv) > 5):
-                        lstm = sys.argv[5] == 'True';
-                        if (len(sys.argv) > 6):
-                            if (max_training_size == "False"):
-                                max_training_size = None;
-                            else:
-                                max_training_size = int(sys.argv[6]);
-                            if (len(sys.argv) > 7):
-                                if (test_interval == "False"):
-                                    test_interval = None;
-                                else:
-                                    test_interval = int(sys.argv[7]);
+    # Command-line arguments
+    key = None;
+    for arg in sys.argv[1:]:
+        if (arg[:2] == '--'):
+            # Key
+            key = arg[2:];
+        else:
+            val = arg;
+            if (key is not None):
+                if (key == 'dataset'):
+                    dataset_path = val;
+                elif (key == 'repetitions'):
+                    repetitions = int(val);
+                elif (key == 'hidden_dim'):
+                    hidden_dim = int(val);
+                elif (key == 'learning_rate'):
+                    learning_rate = float(val);
+                elif (key == 'model'):
+                    lstm = val == 'lstm';
+                elif (key == 'max_training_size'):
+                    if (val == "False"):
+                        max_training_size = None;
+                    else:
+                        max_training_size = int(val);
+                elif (key == 'testing_interval'):
+                    if (val == "False"):
+                        test_interval = None;
+                    else:
+                        test_interval = int(val);
+                key = None;
+                val = None;
                                     
      
     # Debug settings
@@ -97,9 +107,10 @@ if (__name__ == '__main__'):
         for b, batch in enumerate(batches):
             print("Batch %d of %d" % (b+1,len(batches)));
             rnn.train(dataset.train[batch], dataset.train_labels[batch], learning_rate);
-            # Intermediate testing
-            score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = rnn.test(dataset.test[:100], dataset.test_labels[:100], dataset.test_expressions[:100], dataset.operators, key_indices, dataset)
-            print_statistics(score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix=None);
+            if (b != len(batches)-1):
+                # Intermediate testing if this was not the last iteration of training
+                score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = rnn.test(dataset.test[:100], dataset.test_labels[:100], dataset.test_expressions[:100], dataset.operators, key_indices, dataset)
+                print_statistics(score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix=None);
     else:
         rnn.train(dataset.train, dataset.train_labels, learning_rate);
       
