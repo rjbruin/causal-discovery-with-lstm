@@ -7,23 +7,12 @@ Created on 16 feb. 2016
 import subprocess;
 from subprocess import PIPE, STDOUT;
 import os;
+import json;
 
 if __name__ == '__main__':
-    experiments = {'one_digit_answer_1_128_shallow_rnn': {
-                        'script': 'expressions_one_digit_answer.py',
-                        'dataset': './data/expressions_one_digit_answer_shallow',
-                        'repetitions': '1',
-                        'hidden_dim': '128',
-                        'learning_rate': '0.01',
-                        'lstm': 'False' },
-                   'one_digit_answer_1_128_shallow_lstm': {
-                        'script': 'expressions_one_digit_answer.py',
-                        'dataset': './data/expressions_one_digit_answer_shallow',
-                        'repetitions': '1',
-                        'hidden_dim': '128',
-                        'learning_rate': '0.01',
-                        'lstm': 'True' }
-                   };
+    f = open('experiments.json','r');
+    experiments = json.load(f);
+    f.close();
     
     # Check if values can be stored
     for name, exp in experiments.items():
