@@ -13,7 +13,7 @@ if __name__ == '__main__':
     experiments_file = 'experiments.json';
     if (len(sys.argv) > 1):
         if (sys.argv[1] == 'choose'):
-            experiments_file = raw_input("Please provide the name of the experiment settings JSON file:");
+            experiments_file = raw_input("Please provide the name of the experiment settings JSON file:\n");
         else:
             experiments_file = sys.argv[1];
     
