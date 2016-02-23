@@ -12,9 +12,12 @@ import json;
 if __name__ == '__main__':
     experiments_file = 'experiments.json';
     if (len(sys.argv) > 1):
-        experiments_file = sys.argv[1];
+        if (sys.argv[1] == 'choose'):
+            experiments_file = raw_input("Please provide the name of the experiment settings JSON file:");
+        else:
+            experiments_file = sys.argv[1];
     
-    f = open(experiments_file,'r');
+    f = open("./experiment_settings/" + experiments_file,'r');
     experiments = json.load(f);
     f.close();
     
