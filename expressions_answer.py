@@ -6,6 +6,7 @@ Created on 16 feb. 2016
 
 import time;
 import sys;
+import pickle;
 
 import model.RecurrentNeuralNetwork as rnn;
 import model.GeneratedExpressionDataset as ge_dataset;
@@ -14,15 +15,19 @@ from statistic_tools import confusion_matrix;
 
 #theano.config.mode = 'FAST_COMPILE'
 
-def print_statistics(score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix=None):
+def print_statistics(start, score, prediction_histogram=None, groundtruth_histogram=None, prediction_confusion_matrix=None):
     print
 
     # Print statistics
     duration = time.clock() - start;
     print("Duration: %d seconds" % duration);
     print("Score: %.2f percent" % (score*100));
-    print("Prediction histogram:   %s" % (str(prediction_histogram)));
-    print("Ground truth histogram: %s" % (str(groundtruth_histogram)));
+    
+    if (prediction_histogram is not None):
+        print("Prediction histogram:   %s" % (str(prediction_histogram)));
+        
+    if (groundtruth_histogram is not None):
+        print("Ground truth histogram: %s" % (str(groundtruth_histogram)));
     
     if (prediction_confusion_matrix is not None):
         print("Confusion matrix:");
@@ -34,12 +39,15 @@ if (__name__ == '__main__'):
     
     # Default settings
     dataset_path = './data/expressions_one_digit_answer_shallow';
+    single_digit = False;
     repetitions = 3;
     hidden_dim = 128;
     learning_rate = 0.01;
     lstm = True;
     max_training_size = None;
     test_interval = 100000; # 100,000
+    # Default name is time of experiment
+    name = time.strftime("%d-%m-%Y_%H-%M-%S");
     
     # Command-line arguments
     key = None;
@@ -52,6 +60,8 @@ if (__name__ == '__main__'):
             if (key is not None):
                 if (key == 'dataset'):
                     dataset_path = val;
+                elif (key == 'single_digit'):
+                    single_digit = val == 'True';
                 elif (key == 'repetitions'):
                     repetitions = int(val);
                 elif (key == 'hidden_dim'):
@@ -70,17 +80,20 @@ if (__name__ == '__main__'):
                         test_interval = None;
                     else:
                         test_interval = int(val);
+                elif (key == 'name'):
+                    name = val;
                 key = None;
                 val = None;
                                     
-     
+    
     # Debug settings
     if (max_training_size is not None):
         print("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!");
     
     # Construct models
-    dataset = ge_dataset.GeneratedExpressionDataset(dataset_path);
-    rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim, lstm=lstm);
+    dataset = ge_dataset.GeneratedExpressionDataset(dataset_path, single_digit=single_digit);
+    rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim, 
+                                     lstm=lstm, single_digit=single_digit, EOS_symbol_index=dataset.EOS_symbol_index);
     
     # Set up training indices
     if (max_training_size is not None):
@@ -111,11 +124,29 @@ if (__name__ == '__main__'):
             rnn.train(dataset.train[batch], dataset.train_labels[batch], learning_rate);
             if (b != len(batches)-1):
                 # Intermediate testing if this was not the last iteration of training
-                score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset)
-                print_statistics(score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix=None);
+                stats = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset, single_digit=single_digit)
+                if (single_digit):
+                    score, prediction_histogram, groundtruth_histogram, _, _ = stats;
+                    print_statistics(start, score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix=None);
+                else:
+                    score = stats;
+                    print_statistics(start, score);
+                    
     else:
-        rnn.train(dataset.train, dataset.train_labels, learning_rate);
+        rnn.train(dataset.train[all_indices], dataset.train_labels[all_indices], learning_rate);
       
     # Final test
-    score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset)
-    print_statistics(score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix);
+    stats = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset, single_digit=single_digit)
+    if (single_digit):
+        score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = stats;
+        print_statistics(start, score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix);
+    else:
+        score = stats;
+        print_statistics(start, score);
+    
+    # Save weights to pickles
+    saveVars = rnn.vars.items();
+    f = open('saved_models/%s.model' % name, 'w');
+    pickle.dump(saveVars,f);
+    f.close();
+    
