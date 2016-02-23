@@ -6,24 +6,35 @@ Created on 16 feb. 2016
 
 import subprocess;
 from subprocess import PIPE, STDOUT;
-import os;
+import os, sys;
 import json;
 
 if __name__ == '__main__':
-    f = open('experiments.json','r');
+    experiments_file = 'experiments.json';
+    if (len(sys.argv) > 1):
+        experiments_file = sys.argv[1];
+    
+    f = open(experiments_file,'r');
     experiments = json.load(f);
     f.close();
     
     # Check if values can be stored
-    for name, exp in experiments.items():
+    for exp in experiments:
+        name = exp['name'];
         outputPath = 'raw_results/' + name + '.txt';
         # http://stackoverflow.com/questions/273192/in-python-check-if-a-directory-exists-and-create-it-if-necessary
         if (os.path.exists(outputPath)):
             raise ValueError("Experiment already exists!");
     
     # Run experiments    
-    for name, exp in experiments.items():
-        p = subprocess.Popen(['python',exp['script'],exp['dataset'],exp['repetitions'],exp['hidden_dim'],exp['learning_rate'],exp['lstm']],stdout=PIPE,stderr=STDOUT,shell=True);
+    for exp in experiments:
+        name = exp['name'];
+        args = ['python',exp['script']];
+        for key,value in exp.items():
+            if (key not in ['script','name']):
+                args.append("--" + key);
+                args.append(value);
+        p = subprocess.Popen(args,stdout=PIPE,stderr=STDOUT,shell=True);
         outputs = [];
         while (p.poll() == None):
             out = p.stdout.readline();
