@@ -48,6 +48,7 @@ if (__name__ == '__main__'):
     test_interval = 100000; # 100,000
     # Default name is time of experiment
     name = time.strftime("%d-%m-%Y_%H-%M-%S");
+    saveModels = True;
     
     # Command-line arguments
     key = None;
@@ -82,6 +83,8 @@ if (__name__ == '__main__'):
                         test_interval = int(val);
                 elif (key == 'name'):
                     name = val;
+                elif (key == 'save_models'):
+                    saveModels = val == 'False';
                 key = None;
                 val = None;
                                     
@@ -145,8 +148,9 @@ if (__name__ == '__main__'):
         print_statistics(start, score);
     
     # Save weights to pickles
-    saveVars = rnn.vars.items();
-    f = open('saved_models/%s.model' % name, 'w');
-    pickle.dump(saveVars,f);
-    f.close();
+    if (saveModels):
+        saveVars = rnn.vars.items();
+        f = open('saved_models/%s.model' % name, 'w');
+        pickle.dump(saveVars,f);
+        f.close();
     
