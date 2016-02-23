@@ -7,6 +7,7 @@ Created on 16 feb. 2016
 import time;
 import sys;
 import pickle;
+import theano;
 
 import model.RecurrentNeuralNetwork as rnn;
 import model.GeneratedExpressionDataset as ge_dataset;

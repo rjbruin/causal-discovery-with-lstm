@@ -20,6 +20,8 @@ class RecurrentNeuralNetwork(object):
         '''
         Constructor
         '''
+        self.single_digit = single_digit;
+        
         # Store dimensions        
         self.data_dim = data_dim;
         self.hidden_dim = hidden_dim;
@@ -58,47 +60,50 @@ class RecurrentNeuralNetwork(object):
         if (single_digit):
             label = T.ivector('label');
         else:
-            label = T.imatrix('label');
+            label = T.dmatrix('label');
         
         if (lstm):
             recurrence_function = self.lstm_predict;
             if (not single_digit):
-                Y_function = self.lstm_predict_sequence_from_Y;
+                Y_function = self.lstm_predict_sequence;
         else:
             recurrence_function = self.rnn_predict;
             if (not single_digit):
-                Y_function = self.rnn_predict_sequence_from_Y;
-            
+                Y_function = self.rnn_predict_sequence;
         
         [Y, hidden], _ = theano.scan(fn=recurrence_function,
                                 sequences=X,
                                 # Input a zero hidden layer
-                                outputs_info=(np.zeros(self.hidden_dim),None))
+                                outputs_info=(None,np.zeros(self.hidden_dim)))
         
         # If X is shorter than Y we are testing and thus need to predict
         # multiple digits at the end by inputting the previously predicted
         # digit at each step as X
-        sentence_size = np.size(Y,0);
-        total_size = np.size(label,0);
+        sentence_size = Y.shape[0];
+        total_size = label.shape[0];
         if (not single_digit and T.lt(sentence_size,total_size)):
             # Add predictions until EOS to Y
             [Ys, _], _ = theano.scan(fn=recurrence_function,
                                      # Inputs the last hidden layer and the last predicted symbol
-                                     #outputs_info=({'initial': hidden[-1], 'taps': [-1]},
-                                     #              {'initial': Y[-1], 'taps': [-1]}),
-                                     outputs_info=(np.zeros(self.output_dim),np.zeros(self.hidden_dim)),
+                                     outputs_info=({'initial': Y[-1], 'taps': [-1]},
+                                                   {'initial': hidden[-1], 'taps': [-1]}),
+                                     #outputs_info=(np.zeros(self.output_dim),np.zeros(self.hidden_dim)),
                                      #non_sequences=EOS_symbol_index,
                                      n_steps=5)
-            Y[sentence_size:] = Ys;
             # After predicting digits, check if we predicted the right amount of digits
-            sentence_size = np.size(Y,0);
+            sentence = T.concatenate([Y,Ys],axis=1);
+            sentence_size = sentence.shape[0];
             if (T.lt(sentence_size,total_size)):
                 # We did not predict enough digits - add zero scores
-                Y[sentence_size:total_size] = np.zeros((total_size-sentence_size,self.output_dim));
+                x = total_size - sentence_size;
+                zero_scores = T.zeros((x,self.output_dim));
+                right_hand = T.concatenate([Ys,zero_scores],axis=1)
+                sentence = T.concatenate([Y,right_hand],axis=1);
             elif (T.gt(sentence_size,total_size)):
                 # We predicted too many digits - throw away digits we don't need
                 # The algorithm will be punished as the final symbol should be EOS
-                Y = Y[:total_size];
+                sentence = sentence[:total_size];
+                right_hand = right_hand[:(total_size-Y.shape[0])]
         
         if (single_digit):
             # We only predict on the final Y because for now we only predict the final digit in the expression
@@ -106,59 +111,55 @@ class RecurrentNeuralNetwork(object):
             error = T.nnet.categorical_crossentropy(Y[-1], label)[0];
         else:
             # We predict the final n symbols (all symbols predicted as output from input '=')
-            output_digits = np.size(label,0);
-            prediction = T.argmax(Y[-output_digits:], axis=1);
-            error = T.mean(T.nnet.categorical_crossentropy(Y[-output_digits:], label));
+            prediction = T.argmax(right_hand, axis=1);
+            error = T.mean(T.nnet.categorical_crossentropy(right_hand, label));
         
         # Backward pass: gradients
         derivatives = T.grad(error, self.vars.values());
         
         # Functions
-        self.predict = theano.function([X], prediction);
+        self.predict = theano.function([X, label], prediction);
         
         # Stochastic Gradient Descent
         learning_rate = T.dscalar('learning_rate');
         updates = [(var,var-learning_rate*der) for (var,der) in zip(self.vars.values(),derivatives)];
         self.sgd = theano.function([X, label, learning_rate], [], 
                                    updates=updates,
-                                   allow_input_downcast=False)
+                                   allow_input_downcast=False,
+                                   mode='DebugMode')
     
     def rnn_predict(self, current_X, previous_hidden):
         hidden = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWh']) + current_X.dot(self.vars['XWh']));
         Ys = T.nnet.softmax(hidden.dot(self.vars['hWo']));
-        return Ys, hidden;
+        return Ys.flatten(ndim=1), hidden;
+        #return Ys, hidden;
     
     #def rnn_predict_sequence(self, current_X, previous_hidden, EOS_symbol_index):
     def rnn_predict_sequence(self, current_X, previous_hidden):
-        hidden, Ys = self.rnn_predict(current_X, previous_hidden);
+        Ys, hidden = self.rnn_predict(current_X, previous_hidden);
         #return [hidden, Ys], {}, theano.scan_module.until(T.eq(T.argmax(Ys),EOS_symbol_index));
         #return [hidden, Ys], {}, theano.scan_module.until(T.eq(EOS_symbol_index,T.nnet.softmax(T.nnet.sigmoid(previous_hidden.dot(self.vars['hWh']) + current_X.dot(self.vars['XWh']))).dot(self.vars['hWo'])));
         # TODO: debug - using random termination criterion now
-        return (hidden, Ys), theano.scan_module.until(T.sum(T.nnet.softmax(current_X[-1].dot(previous_hidden[-1]))) > 2.0);
+        return (Ys, hidden), theano.scan_module.until(T.sum(T.nnet.softmax(current_X[-1].dot(previous_hidden[-1]))) > 2.0);
         #return hidden, Ys;
     
-    #def rnn_predict_sequence_from_Y(self, previous_hidden, previous_Y, EOS_symbol_index):
-        #return self.rnn_predict_sequence(previous_Y, previous_hidden, EOS_symbol_index);
-    def rnn_predict_sequence_from_Y(self, previous_hidden, previous_Y):
-        return self.rnn_predict_sequence(previous_Y, previous_hidden);
-    
-    def lstm_predict(self, current_X, previous_hidden):
-        forget_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWf']) + current_X.dot(self.vars['XWf']));
-        input_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWi']) + current_X.dot(self.vars['XWi']));
-        candidate_cell = T.tanh(previous_hidden.dot(self.vars['hWc']) + current_X.dot(self.vars['XWc']));
-        cell = forget_gate * previous_hidden + input_gate * candidate_cell;
-        output_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWo']) + current_X.dot(self.vars['XWo']));
-        hidden = output_gate * cell;
-        Y_output = T.nnet.softmax(hidden.dot(self.vars['hWY']));
-        return hidden, Y_output;
-    
-    def lstm_predict_sequence(self, current_X, previous_hidden, EOS_symbol_index):
-        hidden, Y_output = self.lstm_predict(current_X, previous_hidden);
-        prediction = T.eq(T.argmax(Y_output),EOS_symbol_index);
-        return [hidden, Y_output], theano.scan_module.until(prediction);
-    
-    def lstm_predict_sequence_from_Y(self, previous_hidden, previous_Y, EOS_symbol_index):
-        return self.lstm_predict_seqence(previous_Y, previous_hidden, EOS_symbol_index);
+#     def lstm_predict(self, current_X, previous_hidden):
+#         forget_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWf']) + current_X.dot(self.vars['XWf']));
+#         input_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWi']) + current_X.dot(self.vars['XWi']));
+#         candidate_cell = T.tanh(previous_hidden.dot(self.vars['hWc']) + current_X.dot(self.vars['XWc']));
+#         cell = forget_gate * previous_hidden + input_gate * candidate_cell;
+#         output_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWo']) + current_X.dot(self.vars['XWo']));
+#         hidden = output_gate * cell;
+#         Y_output = T.nnet.softmax(hidden.dot(self.vars['hWY']));
+#         return hidden, Y_output;
+#     
+#     def lstm_predict_sequence(self, current_X, previous_hidden, EOS_symbol_index):
+#         hidden, Y_output = self.lstm_predict(current_X, previous_hidden);
+#         prediction = T.eq(T.argmax(Y_output),EOS_symbol_index);
+#         return [hidden, Y_output], theano.scan_module.until(prediction);
+#     
+#     def lstm_predict_sequence_from_Y(self, previous_hidden, previous_Y, EOS_symbol_index):
+#         return self.lstm_predict_seqence(previous_Y, previous_hidden, EOS_symbol_index);
     
     def train(self, training_data, training_labels, learning_rate):
         total = len(training_data);
@@ -167,10 +168,13 @@ class RecurrentNeuralNetwork(object):
             printing_interval = total / 10;
         
         for k in range(total):
-            data = training_data[k];
-            label = training_labels[k];
+            data = np.array(training_data[k]);
+            label = np.array(training_labels[k]);
+            if (self.single_digit):
+                label = np.array([label]);
             # Run training
-            self.sgd(data, np.array([label]), learning_rate);
+            
+            self.sgd(data, label, learning_rate);
             
             if (k % printing_interval == 0):
                 print("# %d / %d" % (k, total));
