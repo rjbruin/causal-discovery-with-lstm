@@ -10,3 +10,4 @@
 # Data folders
 raw_results/*
 saved_models/*
+experiment_settings/*
