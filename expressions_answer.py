@@ -134,6 +134,12 @@ if (__name__ == '__main__'):
                 else:
                     score = stats;
                     print_statistics(start, score);
+                # Save weights to pickles
+                if (saveModels):
+                    saveVars = rnn.vars.items();
+                    f = open('saved_models/%s_%d.model' % (name, b),'w');
+                    pickle.dump(saveVars,f);
+                    f.close();
                     
     else:
         rnn.train(dataset.train[all_indices], dataset.train_labels[all_indices], learning_rate);
