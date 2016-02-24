@@ -15,7 +15,7 @@ class RecurrentNeuralNetwork(object):
     '''
 
 
-    def __init__(self, data_dim, hidden_dim, output_dim, lstm=False):
+    def __init__(self, data_dim, hidden_dim, output_dim, lstm=False, weight_values={}):
         '''
         Constructor
         '''
@@ -43,7 +43,11 @@ class RecurrentNeuralNetwork(object):
         
         self.vars = {};
         for (varName,dim1,dim2) in varSettings:
-            self.vars[varName] = theano.shared(name=varName, value=np.random.uniform(-np.sqrt(1.0/dim1),np.sqrt(1.0/dim1),(dim1,dim2)));
+            # Get value for shared variable from constructor if present
+            value = np.random.uniform(-np.sqrt(1.0/dim1),np.sqrt(1.0/dim1),(dim1,dim2));
+            if (varName in weight_values):
+                value = weight_values[varName];
+            self.vars[varName] = theano.shared(name=varName, value=value);
         
         # Forward pass
         # X is 2-dimensional: 1) index in sentence, 2) dimensionality of data 
@@ -77,6 +81,13 @@ class RecurrentNeuralNetwork(object):
         self.sgd = theano.function([X, label, learning_rate], [], 
                                    updates=updates,
                                    allow_input_downcast=False)
+        
+        # Sequence repairing
+        missing_X = T.iscalar();
+        dX = T.grad(error, X);
+        self.find_x_gradient = theano.function([X, label, missing_X], [dX[missing_X]]);
+        missing_X_digit = T.argmin(dX[missing_X]);
+        self.find_x = theano.function([X, label, missing_X], [missing_X_digit]);
     
     def rnn_recurrence(self, current_X, previous_hidden):
         hidden = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWh']) + current_X.dot(self.vars['XWh']));

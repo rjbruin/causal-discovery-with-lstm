@@ -31,6 +31,7 @@ if __name__ == '__main__':
     
     # Run experiments    
     for exp in experiments:
+        outputPath = 'raw_results/' + name + '.txt';
         name = exp['name'];
         args = ['python',exp['script']];
         for key,value in exp.items():
@@ -38,15 +39,11 @@ if __name__ == '__main__':
                 args.append("--" + key);
                 args.append(value);
         p = subprocess.Popen(args,stdout=PIPE,stderr=STDOUT,shell=True);
-        outputs = [];
         while (p.poll() == None):
             out = p.stdout.readline();
             print(out.strip());
             if (out != '' and out[0] != '#'):
-                outputs.append(out.strip());
-        
-        # Write to file
-        outputPath = 'raw_results/' + name + '.txt';
-        f = open(outputPath,'w');
-        f.write("\n".join(outputs));
-        f.close();
+                # Write to file
+                f = open(outputPath,'a');
+                f.write(out.strip() + "\n");
+                f.close();

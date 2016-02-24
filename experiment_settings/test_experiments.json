@@ -1,7 +1,7 @@
 [
     {
         "name": "one_digit_answer_test",
-        "script": "expressions_one_digit_answer.py",
+        "script": "expressions_answer.py",
         "dataset": "./data/expressions_one_digit_answer_shallow",
         "single_digit": "True",
         "repetitions": "1",
@@ -9,6 +9,6 @@
         "learning_rate": "0.01",
         "model": "rnn",
         "max_training_size": "1000",
-        "testing_interval": "False"
+        "testing_interval": "100"
     }
 ]

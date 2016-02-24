@@ -94,9 +94,13 @@ if (__name__ == '__main__'):
         print("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!");
     
     # Construct models
-    dataset = ge_dataset.GeneratedExpressionDataset(dataset_path, single_digit=single_digit);
+    #dataset = ge_dataset.GeneratedExpressionDataset(dataset_path, single_digit=single_digit);
+    dataset = ge_dataset.GeneratedExpressionDataset(dataset_path);
+    #rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim, 
+    #                                 lstm=lstm, single_digit=single_digit, EOS_symbol_index=dataset.EOS_symbol_index);
     rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim, 
-                                     lstm=lstm, single_digit=single_digit, EOS_symbol_index=dataset.EOS_symbol_index);
+                                     #lstm=lstm, EOS_symbol_index=dataset.EOS_symbol_index);
+                                     lstm=lstm);
     
     # Set up training indices
     if (max_training_size is not None):
@@ -127,7 +131,8 @@ if (__name__ == '__main__'):
             rnn.train(dataset.train[batch], dataset.train_labels[batch], learning_rate);
             if (b != len(batches)-1):
                 # Intermediate testing if this was not the last iteration of training
-                stats = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset, single_digit=single_digit)
+                #stats = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset, single_digit=single_digit)
+                stats = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset)
                 if (single_digit):
                     score, prediction_histogram, groundtruth_histogram, _, _ = stats;
                     print_statistics(start, score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix=None);
@@ -145,13 +150,14 @@ if (__name__ == '__main__'):
         rnn.train(dataset.train[all_indices], dataset.train_labels[all_indices], learning_rate);
       
     # Final test
-    stats = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset, single_digit=single_digit)
-    if (single_digit):
-        score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = stats;
-        print_statistics(start, score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix);
-    else:
-        score = stats;
-        print_statistics(start, score);
+    #stats = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset, single_digit=single_digit)
+    stats = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset)
+#     if (single_digit):
+    score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = stats;
+    print_statistics(start, score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix);
+#     else:
+#         score = stats;
+#         print_statistics(start, score);
     
     # Save weights to pickles
     if (saveModels):
