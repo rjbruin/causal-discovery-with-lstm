@@ -30,15 +30,33 @@ if __name__ == '__main__':
     rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim, 
                                      lstm=lstm, weight_values=models_dict);
     
-    s = 1;
-    for i in [1,3,7,9]:
-        sentence_index = s; 
-        missing_index = i;
+    s = range(100);
+    total_found = 0;
+    correct = 0;
+    for j in s:
+        sentence = dataset.train[j];
+        label = dataset.train_labels[j];
         
-        sentence = dataset.train[s];
-        label = dataset.train_labels[s];
-        actual_digit = np.argmax(sentence[missing_index,:]);
-        sentence[missing_index,:] = np.ones(dataset.data_dim) * 0.1;
+        predicted_digit = rnn.predict(sentence);
+        print("Prediction: " + str(predicted_digit) + " vs. " + str(label));
         
-        print(rnn.find_x_gradient(sentence,np.array([label]),missing_index));
-        print(str(actual_digit) + " vs. " + str(rnn.find_x(sentence,np.array([label]),missing_index)[0]));
+        for i in range(len(dataset.train_expressions[j])-1):
+            # Reset sentence
+            sentence = dataset.train[j];
+            
+            missing_index = i;
+            actual_digit = np.argmax(sentence[missing_index,:]);
+            sentence[missing_index,:] = np.ones(dataset.data_dim) * 0.1;
+            found_x = rnn.find_x(sentence,np.array([label]),missing_index)[0];
+            score = actual_digit == found_x;
+            print_score = "CORRECT" if score else "WRONG";
+            
+            # Stats
+            total_found += 1;
+            if (score):
+                correct += 1;
+            
+            #print(rnn.find_x_gradient(sentence,np.array([label]),missing_index));
+            print("Find x - " + print_score + ": " + str(actual_digit) + " vs. " + str(found_x));
+    
+    print("%d of %d correct = %.2f percent" % (correct, total_found, (float(correct) / total_found)*100.0));
