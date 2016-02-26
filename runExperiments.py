@@ -30,13 +30,14 @@ if __name__ == '__main__':
     
     # Run experiments    
     for exp in experiments:
-        outputPath = 'raw_results/' + name + '.txt';
+        outputPath = './raw_results/' + name + '.txt';
         name = exp['name'];
         args = ['python',exp['script']];
         for key,value in exp.items():
             if (key not in ['script','name']):
                 args.append("--" + key);
                 args.append(value);
+        print(" ".join(args));
         p = subprocess.Popen(" ".join(args),stdout=PIPE,stderr=STDOUT,shell=True);
         while (p.poll() == None):
             out = p.stdout.readline();
