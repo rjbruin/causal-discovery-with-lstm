@@ -23,7 +23,7 @@ if __name__ == '__main__':
     # Check if values can be stored
     for exp in experiments:
         name = exp['name'];
-        outputPath = 'raw_results/' + name + '.txt';
+        outputPath = './raw_results/' + name + '.txt';
         # http://stackoverflow.com/questions/273192/in-python-check-if-a-directory-exists-and-create-it-if-necessary
         if (os.path.exists(outputPath)):
             raise ValueError("Experiment already exists!");
