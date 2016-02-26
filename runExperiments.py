@@ -37,7 +37,7 @@ if __name__ == '__main__':
             if (key not in ['script','name']):
                 args.append("--" + key);
                 args.append(value);
-        p = subprocess.Popen(args,stdout=PIPE,stderr=STDOUT,shell=True);
+        p = subprocess.Popen(" ".join(args),stdout=PIPE,stderr=STDOUT,shell=True);
         while (p.poll() == None):
             out = p.stdout.readline();
             print(out.strip());
