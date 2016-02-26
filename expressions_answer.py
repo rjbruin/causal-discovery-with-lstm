@@ -5,7 +5,7 @@ Created on 16 feb. 2016
 '''
 
 import time;
-import sys;
+import sys, os;
 import pickle;
 
 import model.RecurrentNeuralNetwork as rnn;
@@ -15,26 +15,33 @@ from statistic_tools import confusion_matrix;
 
 #theano.config.mode = 'FAST_COMPILE'
 
-def print_statistics(start, score, prediction_histogram=None, groundtruth_histogram=None, prediction_confusion_matrix=None):
-    print
+def statistics(start, score, prediction_histogram=None, groundtruth_histogram=None, prediction_confusion_matrix=None):
+    output = "\n";
 
     # Print statistics
     duration = time.clock() - start;
-    print("Duration: %d seconds" % duration);
-    print("Score: %.2f percent" % (score*100));
+    output += "Duration: %d seconds\n" % duration;
+    output += "Score: %.2f percent\n" % (score*100);
     
     if (prediction_histogram is not None):
-        print("Prediction histogram:   %s" % (str(prediction_histogram)));
+        output += "Prediction histogram:   %s\n" % (str(prediction_histogram));
         
     if (groundtruth_histogram is not None):
-        print("Ground truth histogram: %s" % (str(groundtruth_histogram)));
+        output += "Ground truth histogram: %s\n" % (str(groundtruth_histogram));
     
     if (prediction_confusion_matrix is not None):
-        print("Confusion matrix:");
-        confusion_matrix(prediction_confusion_matrix);
+        output += "Confusion matrix:\n";
+        output += confusion_matrix(prediction_confusion_matrix);
     
-    print
-   
+    output += "\n";
+    
+    return output;
+    
+def append_to_file(filepath, string):
+    f = open(filepath, 'a');
+    f.write(string);
+    f.close();
+
 if (__name__ == '__main__'):
     
     # Default settings
@@ -47,8 +54,12 @@ if (__name__ == '__main__'):
     max_training_size = None;
     test_interval = 100000; # 100,000
     # Default name is time of experiment
+    raw_results_folder = './raw_results';
     name = time.strftime("%d-%m-%Y_%H-%M-%S");
     saveModels = True;
+    
+    # Generated variables
+    raw_results_filepath = os.path.join(raw_results_folder,name+'.txt');
     
     # Command-line arguments
     key = None;
@@ -128,6 +139,8 @@ if (__name__ == '__main__'):
     if (test_interval is not None):
         for b, batch in enumerate(batches):
             print("Batch %d of %d (ends after %d samples)" % (b+1,len(batches),batch[-1]+1));
+            append_to_file(raw_results_filepath, "Batch %d of %d (ends after %d samples)\n" % (b+1,len(batches),batch[-1]+1));
+            
             rnn.train(dataset.train[batch], dataset.train_labels[batch], learning_rate);
             if (b != len(batches)-1):
                 # Intermediate testing if this was not the last iteration of training
@@ -135,10 +148,11 @@ if (__name__ == '__main__'):
                 stats = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset)
                 if (single_digit):
                     score, prediction_histogram, groundtruth_histogram, _, _ = stats;
-                    print_statistics(start, score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix=None);
+                    stats_str = statistics(start, score, prediction_histogram, groundtruth_histogram);
                 else:
                     score = stats;
-                    print_statistics(start, score);
+                    stats_str = statistics(start, score);
+                append_to_file(raw_results_filepath, stats_str)
                 # Save weights to pickles
                 if (saveModels):
                     saveVars = rnn.vars.items();
@@ -154,7 +168,8 @@ if (__name__ == '__main__'):
     stats = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset)
 #     if (single_digit):
     score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = stats;
-    print_statistics(start, score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix);
+    stats_str = statistics(start, score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix);
+    append_to_file(raw_results_filepath, stats_str);
 #     else:
 #         score = stats;
 #         print_statistics(start, score);
