@@ -74,6 +74,7 @@ class RecurrentNeuralNetwork(object):
         
         # Functions
         self.predict = theano.function([X], prediction);
+        self.error = theano.function([X, label], error);
         
         # Stochastic Gradient Descent
         learning_rate = T.dscalar('learning_rate');
