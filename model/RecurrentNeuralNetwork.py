@@ -114,7 +114,7 @@ class RecurrentNeuralNetwork(object):
             data = training_data[k];
             label = training_labels[k];
             # Run training
-            self.sgd(data, np.array([label]), learning_rate);
+            self.sgd(data, np.array([label], dtype=np.int32), learning_rate);
             
             if (k % printing_interval == 0):
                 print("# %d / %d" % (k, total));
