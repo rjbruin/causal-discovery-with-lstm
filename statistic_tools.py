@@ -7,6 +7,8 @@ Created on 17 feb. 2016
 import numpy as np;
 
 def confusion_matrix(data):
+    output = "";
+    
     # Data must be square
     if (data.shape[0] != data.shape[1]):
         raise ValueError("Data must be square!");
@@ -14,36 +16,40 @@ def confusion_matrix(data):
     dim = data.shape[0];
     
     # Print headers
-    output = "\t";
+    output += "\t";
     for i in range(dim):
         output += "%d\t" % (i+1);
-    print(output);
+    output += "\n";
     # Print data
     for i in range(dim):
         digit_i = i+1;
-        output = "%d\t" % digit_i;
+        output += "%d\t" % digit_i;
         for j in range(dim):
             output += "%d\t" % int(data[i,j]);
-        print(output);
+        output += "\n";
+    
+    return output;
 
 def accuracy_per_origin(data, keys):
     # Print headers
     output = "\t";
     for index in range(data.shape[0]):
         output += "%s\t" % keys[index];
-    print(output);
+    output += "\n";
     
     # Print corrects
-    output = "CORRECT\t";
+    output += "CORRECT\t";
     for index in range(data.shape[0]):
         output += "%d\t" % data[index,0];
-    print(output);
+    output += "\n";
     
     # Print totals
-    output = "TOTAL\t";
+    output += "TOTAL\t";
     for index in range(data.shape[0]):
         output += "%d\t" % data[index,1];
-    print(output);
+    output += "\n";
+    
+    return output;
 
 if __name__ == '__main__':
     dim = 10;
