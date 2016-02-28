@@ -6,8 +6,9 @@ import sys;
 import matplotlib.pyplot as plt
 import numpy as np
 
-labels = ['lstm','rnn'];
-colors = ['b','r'];
+title = '128 hidden units / shallow dataset';
+labels = ['lstm 0.01','lstm 0.005','rnn 0.01'];
+colors = ['b-','b--','r'];
 graphName = 'test.png';
 
 i = 1;
@@ -55,7 +56,7 @@ for i, path in enumerate(filepaths):
 
 plt.xlabel('iterations x 100,000')
 plt.ylabel('accuracy (%)')
-plt.title('128 hidden units / 0.01 learning rate / shallow dataset')
+plt.title(title)
 plt.grid(True)
 plt.legend(labels,loc=4)
 plt.savefig(graphName);
