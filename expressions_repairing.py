@@ -15,7 +15,7 @@ if __name__ == '__main__':
     dataset_path = './data/expressions_one_digit_answer_shallow';
     hidden_dim = 128;
     lstm = False;
-    analytical = False;
+    analytical = True;
     
     # Load models
     models_path = './saved_models/23-02-2016_14-21-19_29.model';
@@ -53,8 +53,8 @@ if __name__ == '__main__':
             actual_digit = np.argmax(sentence[missing_index,:]);
             
             if analytical:
-                #sentence[missing_index,:] = np.ones(dataset.data_dim) * 0.1;
-                sentence[missing_index,:] = np.random.uniform(-1.0,1.0,dataset.data_dim) * 0.1;
+                sentence[missing_index,:] = np.ones(dataset.data_dim) * 0.1;
+                #sentence[missing_index,:] = np.random.uniform(-1.0,1.0,dataset.data_dim) * 0.1;
                 found_x = rnn.find_x(sentence,np.array([label]),missing_index)[0];
                 score = actual_digit == found_x;
                 print_score = "CORRECT" if score else "WRONG";
