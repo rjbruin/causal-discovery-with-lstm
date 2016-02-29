@@ -16,7 +16,7 @@ class RecurrentNeuralNetwork(object):
     '''
 
 
-    def __init__(self, data_dim, hidden_dim, output_dim, lstm=False, single_digit=True, EOS_symbol_index=None):
+    def __init__(self, data_dim, hidden_dim, output_dim, lstm=False, weight_values={}, single_digit=True, EOS_symbol_index=None):
         '''
         Constructor
         '''
@@ -50,7 +50,11 @@ class RecurrentNeuralNetwork(object):
         
         self.vars = {};
         for (varName,dim1,dim2) in varSettings:
-            self.vars[varName] = theano.shared(name=varName, value=np.random.uniform(-np.sqrt(1.0/dim1),np.sqrt(1.0/dim1),(dim1,dim2)));
+            # Get value for shared variable from constructor if present
+            value = np.random.uniform(-np.sqrt(1.0/dim1),np.sqrt(1.0/dim1),(dim1,dim2));
+            if (varName in weight_values):
+                value = weight_values[varName];
+            self.vars[varName] = theano.shared(name=varName, value=value);
         
         # Forward pass
         # X is 2-dimensional: 1) index in sentence, 2) dimensionality of data 
@@ -119,14 +123,24 @@ class RecurrentNeuralNetwork(object):
         derivatives = T.grad(error, self.vars.values());
           
         # Functions
-        self.predict = theano.function([X, label], prediction);
-          
+        if (single_digit):
+            self.predict = theano.function([X], prediction);
+        else:
+            self.predict = theano.function([X, label], prediction);
+        
         # Stochastic Gradient Descent
         learning_rate = T.dscalar('learning_rate');
         updates = [(var,var-learning_rate*der) for (var,der) in zip(self.vars.values(),derivatives)];
         self.sgd = theano.function([X, label, learning_rate], [], 
                                    updates=updates,
                                    allow_input_downcast=True)
+        
+        # Sequence repairing
+        missing_X = T.iscalar();
+        dX = T.grad(error, X);
+        self.find_x_gradient = theano.function([X, label, missing_X], [dX[missing_X]]);
+        missing_X_digit = T.argmin(dX[missing_X]);
+        self.find_x = theano.function([X, label, missing_X], [missing_X_digit]);
     
     def rnn_predict(self, current_X, previous_hidden):
         hidden = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWh']) + current_X.dot(self.vars['XWh']));
@@ -178,7 +192,7 @@ class RecurrentNeuralNetwork(object):
             if (k % printing_interval == 0):
                 print("# %d / %d" % (k, total));
         
-    def test(self, test_data, test_targets, test_labels, test_expressions, operators, key_indices, dataset, max_testing_size=None, single_digit=True):
+    def test(self, test_data, test_targets, test_labels, test_expressions, operators, key_indices, dataset, max_testing_size=None):
         """
         Run test data through model. Output percentage of correctly predicted
         test instances.
@@ -197,7 +211,7 @@ class RecurrentNeuralNetwork(object):
         prediction_size = 0;
         digit_correct = 0.0;
         digit_prediction_size = 0;
-        if (single_digit):
+        if (self.single_digit):
             prediction_histogram = {k: 0 for k in range(self.output_dim)};
             groundtruth_histogram = {k: 0 for k in range(self.output_dim)};
             # First dimension is actual class, second dimension is predicted dimension
@@ -223,14 +237,14 @@ class RecurrentNeuralNetwork(object):
                     digit_correct += 1.0;
                 digit_prediction_size += 1;
                     
-            if (single_digit):
+            if (self.single_digit):
                 prediction_histogram[int(prediction)] += 1;
                 groundtruth_histogram[test_labels[j]] += 1;
                 prediction_confusion_matrix[test_labels[j],int(prediction)] += 1;
                 operator_scores = dataset.operator_scores(test_expressions[j],int(prediction)==test_labels[j],operators,key_indices,operator_scores);
             prediction_size += 1;
         
-        if (single_digit):
+        if (self.single_digit):
             return (correct / float(prediction_size), prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, operator_scores);
         else:
             return correct / float(prediction_size), digit_correct / float(digit_prediction_size);
