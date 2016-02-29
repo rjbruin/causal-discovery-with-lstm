@@ -6,15 +6,20 @@ import sys;
 import matplotlib.pyplot as plt
 import numpy as np
 
-title = '128 hidden units / shallow dataset';
-labels = ['lstm 0.01','lstm 0.005','rnn 0.01'];
-colors = ['b-','b--','r'];
+#title = '128 hidden units / shallow dataset';
+#labels = ['lstm 0.01','lstm 0.005','rnn 0.01'];
+#colors = ['b-','b--','r'];
+title = '128 hidden units / shallow dataset / learning rate 0.01';
+labels = ['lstm predict','lstm repair'];
+colors = ['b-','b--'];
 graphName = 'test.png';
 
 i = 1;
 filepaths = [];
 while (len(sys.argv) > i):
-    filepaths.append(sys.argv[i]);
+    path = sys.argv[i];
+    print(path);
+    filepaths.append(path);
     i += 1;
 
 scores = [];
