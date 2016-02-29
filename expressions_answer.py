@@ -8,6 +8,7 @@ import time;
 import sys;
 import pickle;
 import theano;
+import numpy as np;
 
 import model.RecurrentNeuralNetwork as rnn;
 import model.GeneratedExpressionDataset as ge_dataset;
@@ -39,7 +40,7 @@ def print_statistics(start, score, prediction_histogram=None, groundtruth_histog
 if (__name__ == '__main__'):
     
     # Default settings
-    dataset_path = './data/expressions_one_digit_answer_shallow';
+    dataset_path = './data/expressions_positive_integer_answer_shallow';
     single_digit = False;
     repetitions = 3;
     hidden_dim = 128;
@@ -101,19 +102,20 @@ if (__name__ == '__main__'):
     
     # Set up training indices
     if (max_training_size is not None):
-        one_rep_indices = range(max_training_size);
+        repetition_size = max_training_size;
     else:
-        one_rep_indices = range(len(dataset.train));
-    all_indices = [];
-    for n in range(repetitions):
-        all_indices.extend(one_rep_indices);
+        repetition_size = len(dataset.train);
+    indices_to_use = repetition_size * repetitions;
     
     if (test_interval is not None):    
         batches = [];
         i = 0;
-        while (len(all_indices) > 0):
-            batches.append(all_indices[i:i+test_interval]);
-            all_indices = all_indices[i+test_interval:];
+        while (indices_to_use - i > 0):
+            end = i + test_interval;
+            if (indices_to_use - end < 0):
+                end = i + indices_to_use;
+            batches.append((i,end));
+            i = end;
  
     # Start timing
     start = time.clock();
@@ -122,19 +124,26 @@ if (__name__ == '__main__'):
     key_indices = {k: i for (i,k) in enumerate(dataset.operators)};
       
     # Train
+    current_repetition = 1;
     if (test_interval is not None):
-        for b, batch in enumerate(batches):
-            print("Batch %d of %d (ends after %d samples)" % (b+1,len(batches),batch[-1]+1));
-            rnn.train(dataset.train[batch], dataset.train_labels[batch], learning_rate);
+        for b, (begin, end) in enumerate(batches):
+            batch = range(begin % repetition_size, end % repetition_size);
+            if (end <= begin):
+                batch = range(begin,repetition_size) + range(end);
+                current_repetition += 1;
+            
+            print("Batch %d of %d (repetition %d) (samples processed after batch: %d)" % (b+1,len(batches),current_repetition,(current_repetition-1)*repetition_size + end));
+            rnn.train(dataset.train[batch], dataset.train_targets[batch], learning_rate);
             if (b != len(batches)-1):
                 # Intermediate testing if this was not the last iteration of training
-                stats = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset, single_digit=single_digit)
+                stats = rnn.test(dataset.test, dataset.test_targets, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset, single_digit=single_digit)
                 if (single_digit):
                     score, prediction_histogram, groundtruth_histogram, _, _ = stats;
                     print_statistics(start, score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix=None);
                 else:
-                    score = stats;
+                    score, digit_score = stats;
                     print_statistics(start, score);
+                    print_statistics(start, digit_score);
                 # Save weights to pickles
                 if (saveModels):
                     saveVars = rnn.vars.items();
@@ -143,16 +152,17 @@ if (__name__ == '__main__'):
                     f.close();
                     
     else:
-        rnn.train(dataset.train[all_indices], dataset.train_labels[all_indices], learning_rate);
+        rnn.train(dataset.train[np.array(range(repetition_size))], dataset.train_targets[np.array(range(repetition_size))], learning_rate);
       
     # Final test
-    stats = rnn.test(dataset.test, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset, single_digit=single_digit)
+    stats = rnn.test(dataset.test, dataset.test_targets, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset, single_digit=single_digit)
     if (single_digit):
         score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = stats;
         print_statistics(start, score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix);
     else:
-        score = stats;
+        score, digit_score = stats;
         print_statistics(start, score);
+        print_statistics(start, digit_score);
     
     # Save weights to pickles
     if (saveModels):

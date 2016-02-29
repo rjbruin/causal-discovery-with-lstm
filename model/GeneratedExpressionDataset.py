@@ -31,7 +31,7 @@ class GeneratedExpressionDataset(object):
         self.train, self.train_targets, self.train_labels, self.train_expressions = self.loadFile(self.train_source, single_digit);
         self.test, self.test_targets, self.test_labels, self.test_expressions = self.loadFile(self.test_source, single_digit);
     
-    def loadFile(self, source, single_digit, train=True):
+    def loadFile(self, source, single_digit):
         # Importing data
         f_data = open(source,'r');
         data = [];
@@ -60,7 +60,7 @@ class GeneratedExpressionDataset(object):
                 right_hand_digits = [];
                 for i, literal in enumerate(expression):
                     expression_embeddings[i,self.oneHot[literal]] = 1.0;
-                    if (i > right_hand_start):
+                    if (i >= right_hand_start):
                         right_hand_digits.append(literal);
                 # Add EOS
                 expression_embeddings[-1,self.data_dim-1] = 1.0;
