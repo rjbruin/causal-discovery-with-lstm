@@ -6,12 +6,14 @@ import sys;
 import matplotlib.pyplot as plt
 import numpy as np
 
-#title = '128 hidden units / shallow dataset';
-#labels = ['lstm 0.01','lstm 0.005','rnn 0.01'];
-#colors = ['b-','b--','r'];
-title = '128 hidden units / shallow dataset / learning rate 0.01';
-labels = ['lstm predict','lstm repair'];
-colors = ['b-','b--'];
+title = 'RNN mult-digit prediction with fixed output (n=5) (128 hidden units / shallow dataset / learning rate 0.01)';
+
+labels = ['total prediction'];
+digit_labels = ['digit prediction']
+
+colors = ['b-'];
+digit_colors = ['b--'];
+
 graphName = 'test.png';
 
 i = 1;
@@ -23,6 +25,7 @@ while (len(sys.argv) > i):
     i += 1;
 
 scores = [];
+digit_scores = [];
 for i, path in enumerate(filepaths):
     f = open(path, 'r');
 
@@ -33,6 +36,9 @@ for i, path in enumerate(filepaths):
     batchNr = 0;
     duration = 0;
     score = 0.0;
+    digit_score = None;
+    batch_scores = [];
+    batch_digit_scores = [];
 
     while (line != ''):
         # Process line
@@ -42,27 +48,39 @@ for i, path in enumerate(filepaths):
                 if (batchNr != 0):
                     # First store previous batch
                     batches[batchNr] = (score,duration);
+                    batch_scores.append(score);
+                    if (digit_score is not None):
+                        batch_digit_scores.append(digit_score);
                 # Continue with next batch
                 batchNr = int(args[1]);
             elif (args[0] == 'Duration:'):
                 duration = int(args[1]);
             elif (args[0] == 'Score:'):
                 score = float(args[1]);
+            elif (line[0:18] == 'Digit-based score:'):
+                digit_score = float(args[2]);
         
         # Go to next line
         line = f.readline();
 
-    scores.append(map(lambda (k,(s,d)): str(s),sorted(batches.items(), key=lambda (k,_): k)));
-    print("Scores: %s" % ", ".join(scores[i]));
-    print("Durations: %s" % ", ".join(map(lambda (k,(s,d)): str(s),sorted(batches.items(), key=lambda (k,_): k))));
-    
-    t = range(1,len(scores[i])+1);
-    plt.plot(t, scores[i], colors[i]);
+    scores.append(batch_scores);
+    digit_scores.append(batch_digit_scores);
+    print("Scores: %s" % ", ".join(map(str, batch_scores)));
+        
 
+for i,batch in enumerate(scores):
+    t = range(1,len(batch)+1);
+    plt.plot(t, batch, colors[i]);
+
+for i, batch in enumerate(digit_scores):
+    t_digit = range(1,len(batch)+1);
+    plt.plot(t_digit, batch, digit_colors[i]);
+        
+        
 plt.xlabel('iterations x 100,000')
 plt.ylabel('accuracy (%)')
 plt.title(title)
 plt.grid(True)
-plt.legend(labels,loc=4)
+plt.legend(labels + digit_labels,loc=4)
 plt.savefig(graphName);
 plt.show()
