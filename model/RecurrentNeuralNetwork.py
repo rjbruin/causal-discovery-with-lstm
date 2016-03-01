@@ -212,6 +212,8 @@ class RecurrentNeuralNetwork(object):
             prediction_confusion_matrix = np.zeros((dataset.output_dim,dataset.output_dim));
             # For each non-digit symbol keep correct and total predictions
             operator_scores = np.zeros((len(key_indices),2));
+        else:
+            prediction_size_histogram = {k: 0 for k in range(60)};
         
         # Predict
         for j in range(len(test_data)):
@@ -221,7 +223,7 @@ class RecurrentNeuralNetwork(object):
             label = np.array(test_targets[j]);
             if (self.single_digit):
                 label = np.array([label]);
-            prediction = self.predict(data,label);
+            prediction, right_hand_size = self.predict(data,label);
             
             # Statistics
             if (np.array_equal(prediction,np.argmax(test_targets[j],axis=1))):
@@ -236,9 +238,11 @@ class RecurrentNeuralNetwork(object):
                 groundtruth_histogram[test_labels[j]] += 1;
                 prediction_confusion_matrix[test_labels[j],int(prediction)] += 1;
                 operator_scores = dataset.operator_scores(test_expressions[j],int(prediction)==test_labels[j],operators,key_indices,operator_scores);
+            else:
+                prediction_size_histogram[int(right_hand_size)] += 1;
             prediction_size += 1;
         
         if (self.single_digit):
             return (correct / float(prediction_size), prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, operator_scores);
         else:
-            return correct / float(prediction_size), digit_correct / float(digit_prediction_size);
+            return correct / float(prediction_size), digit_correct / float(digit_prediction_size), prediction_size_histogram;
