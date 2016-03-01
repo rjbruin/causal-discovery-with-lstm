@@ -176,7 +176,7 @@ if (__name__ == '__main__'):
         rnn.train(dataset.train[np.array(range(repetition_size))], targets[np.array(range(repetition_size))], learning_rate);
       
     # Final test
-    stats = rnn.test(dataset.test, dataset.test_targets, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset, single_digit=single_digit)
+    stats = rnn.test(dataset.test, dataset.test_targets, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset)
     if (single_digit):
         score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = stats;
         stats_str = statistics(start, score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix);

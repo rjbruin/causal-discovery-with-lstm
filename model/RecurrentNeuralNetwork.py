@@ -59,21 +59,20 @@ class RecurrentNeuralNetwork(object):
         # Forward pass
         # X is 2-dimensional: 1) index in sentence, 2) dimensionality of data 
         X = T.dmatrix('X');
-        # targets is 1-dimensional: 1) answer encoding
         
         if (single_digit):
+            # targets is 1-dimensional: 1) label for each answer
             label = T.ivector('label');
         else:
+            # targets is 2-dimensional: 1) answers, 2) encodings
             label = T.dmatrix('label');
         
         if (lstm):
-            recurrence_function = self.lstm_predict;
-            if (not single_digit):
-                Y_function = self.lstm_predict_sequence;
+            recurrence_function = self.lstm_predict_single;
+            #predict_function = self.lstm_predict_sequence;
         else:
-            recurrence_function = self.rnn_predict;
-            if (not single_digit):
-                Y_function = self.rnn_predict_sequence;
+            recurrence_function = self.rnn_predict_single;
+            #predict_function = self.rnn_predict_sequence;
         
         [Y_1, hidden], _ = theano.scan(fn=recurrence_function,
                                 sequences=X,
@@ -91,7 +90,6 @@ class RecurrentNeuralNetwork(object):
                                      # Inputs the last hidden layer and the last predicted symbol
                                      outputs_info=({'initial': Y_1[-1], 'taps': [-1]},
                                                    {'initial': hidden[-1], 'taps': [-1]}),
-                                     #outputs_info=(np.zeros(self.output_dim),np.zeros(self.hidden_dim)),
                                      #non_sequences=EOS_symbol_index,
                                      n_steps=5)
             # After predicting digits, check if we predicted the right amount of digits
@@ -142,11 +140,10 @@ class RecurrentNeuralNetwork(object):
         missing_X_digit = T.argmin(dX[missing_X]);
         self.find_x = theano.function([X, label, missing_X], [missing_X_digit]);
     
-    def rnn_predict(self, current_X, previous_hidden):
+    def rnn_predict_single(self, current_X, previous_hidden):
         hidden = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWh']) + current_X.dot(self.vars['XWh']));
         Ys = T.nnet.softmax(hidden.dot(self.vars['hWo']));
         return Ys.flatten(ndim=1), hidden;
-        #return Ys, hidden;
     
     #def rnn_predict_sequence(self, current_X, previous_hidden, EOS_symbol_index):
     def rnn_predict_sequence(self, current_X, previous_hidden):
@@ -157,15 +154,15 @@ class RecurrentNeuralNetwork(object):
         return (Ys, hidden), theano.scan_module.until(T.sum(T.nnet.softmax(current_X[-1].dot(previous_hidden[-1]))) > 2.0);
         #return hidden, Ys;
     
-#     def lstm_predict(self, current_X, previous_hidden):
-#         forget_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWf']) + current_X.dot(self.vars['XWf']));
-#         input_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWi']) + current_X.dot(self.vars['XWi']));
-#         candidate_cell = T.tanh(previous_hidden.dot(self.vars['hWc']) + current_X.dot(self.vars['XWc']));
-#         cell = forget_gate * previous_hidden + input_gate * candidate_cell;
-#         output_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWo']) + current_X.dot(self.vars['XWo']));
-#         hidden = output_gate * cell;
-#         Y_output = T.nnet.softmax(hidden.dot(self.vars['hWY']));
-#         return hidden, Y_output;
+    def lstm_predict_single(self, current_X, previous_hidden):
+        forget_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWf']) + current_X.dot(self.vars['XWf']));
+        input_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWi']) + current_X.dot(self.vars['XWi']));
+        candidate_cell = T.tanh(previous_hidden.dot(self.vars['hWc']) + current_X.dot(self.vars['XWc']));
+        cell = forget_gate * previous_hidden + input_gate * candidate_cell;
+        output_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWo']) + current_X.dot(self.vars['XWo']));
+        hidden = output_gate * cell;
+        Y_output = T.nnet.softmax(hidden.dot(self.vars['hWY']));
+        return Y_output.flatten(ndim=1), hidden;
 #     
 #     def lstm_predict_sequence(self, current_X, previous_hidden, EOS_symbol_index):
 #         hidden, Y_output = self.lstm_predict(current_X, previous_hidden);
