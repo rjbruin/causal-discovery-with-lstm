@@ -30,6 +30,7 @@ class RecurrentNeuralNetwork(object):
         if (not single_digit and EOS_symbol_index is None):
             # EOS symbol is last index by default
             EOS_symbol_index = self.data_dim-1;
+        EOS_symbol = T.constant(EOS_symbol_index);
         
         varSettings = [];
         # Set up shared variables
@@ -69,10 +70,10 @@ class RecurrentNeuralNetwork(object):
         
         if (lstm):
             recurrence_function = self.lstm_predict_single;
-            #predict_function = self.lstm_predict_sequence;
+            predict_function = self.lstm_predict_sequence;
         else:
             recurrence_function = self.rnn_predict_single;
-            #predict_function = self.rnn_predict_sequence;
+            predict_function = self.rnn_predict_sequence;
         
         [Y_1, hidden], _ = theano.scan(fn=recurrence_function,
                                 sequences=X,
@@ -86,17 +87,18 @@ class RecurrentNeuralNetwork(object):
         total_size = sentence_size + label.shape[0];
         if (not single_digit and T.lt(sentence_size,total_size)):
             # Add predictions until EOS to Y
-            [Ys, _], _ = theano.scan(fn=recurrence_function,
+            [Ys, _], _ = theano.scan(fn=predict_function,
                                      # Inputs the last hidden layer and the last predicted symbol
                                      outputs_info=({'initial': Y_1[-1], 'taps': [-1]},
                                                    {'initial': hidden[-1], 'taps': [-1]}),
-                                     #non_sequences=EOS_symbol_index,
-                                     n_steps=5)
+                                     non_sequences=EOS_symbol,
+                                     n_steps=24)
             # After predicting digits, check if we predicted the right amount of digits
             unfinished_sentence = T.join(0,Y_1,Ys);
             sentence_size = unfinished_sentence.shape[0];
+            predicted_size = Ys.shape[0];
             
-            self.predict_unfinished_sentence = theano.function([X],[unfinished_sentence]);
+            self.predict_unfinished_sentence = theano.function([X,label],[unfinished_sentence,total_size,sentence_size,label]);
             
             if (T.lt(sentence_size,total_size) == 1):
                 # We did not predict enough digits - add zero scores
@@ -129,7 +131,7 @@ class RecurrentNeuralNetwork(object):
         # Stochastic Gradient Descent
         learning_rate = T.dscalar('learning_rate');
         updates = [(var,var-learning_rate*der) for (var,der) in zip(self.vars.values(),derivatives)];
-        self.sgd = theano.function([X, label, learning_rate], [], 
+        self.sgd = theano.function([X, label, learning_rate], predicted_size, 
                                    updates=updates,
                                    allow_input_downcast=True)
         
@@ -145,14 +147,9 @@ class RecurrentNeuralNetwork(object):
         Ys = T.nnet.softmax(hidden.dot(self.vars['hWo']));
         return Ys.flatten(ndim=1), hidden;
     
-    #def rnn_predict_sequence(self, current_X, previous_hidden, EOS_symbol_index):
-    def rnn_predict_sequence(self, current_X, previous_hidden):
-        Ys, hidden = self.rnn_predict(current_X, previous_hidden);
-        #return [hidden, Ys], {}, theano.scan_module.until(T.eq(T.argmax(Ys),EOS_symbol_index));
-        #return [hidden, Ys], {}, theano.scan_module.until(T.eq(EOS_symbol_index,T.nnet.softmax(T.nnet.sigmoid(previous_hidden.dot(self.vars['hWh']) + current_X.dot(self.vars['XWh']))).dot(self.vars['hWo'])));
-        # TODO: debug - using random termination criterion now
-        return (Ys, hidden), theano.scan_module.until(T.sum(T.nnet.softmax(current_X[-1].dot(previous_hidden[-1]))) > 2.0);
-        #return hidden, Ys;
+    def rnn_predict_sequence(self, current_X, previous_hidden, EOS_symbol):
+        Ys, hidden = self.rnn_predict_single(current_X, previous_hidden);
+        return [Ys, hidden], {}, theano.scan_module.until(T.eq(T.argmax(Ys),EOS_symbol));
     
     def lstm_predict_single(self, current_X, previous_hidden):
         forget_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWf']) + current_X.dot(self.vars['XWf']));
@@ -163,18 +160,15 @@ class RecurrentNeuralNetwork(object):
         hidden = output_gate * cell;
         Y_output = T.nnet.softmax(hidden.dot(self.vars['hWY']));
         return Y_output.flatten(ndim=1), hidden;
-#     
-#     def lstm_predict_sequence(self, current_X, previous_hidden, EOS_symbol_index):
-#         hidden, Y_output = self.lstm_predict(current_X, previous_hidden);
-#         prediction = T.eq(T.argmax(Y_output),EOS_symbol_index);
-#         return [hidden, Y_output], theano.scan_module.until(prediction);
-#     
-#     def lstm_predict_sequence_from_Y(self, previous_hidden, previous_Y, EOS_symbol_index):
-#         return self.lstm_predict_seqence(previous_Y, previous_hidden, EOS_symbol_index);
+     
+    def lstm_predict_sequence(self, current_X, previous_hidden, EOS_symbol):
+        Y_output, hidden = self.lstm_predict_single(current_X, previous_hidden);
+        return [Y_output, hidden], {}, theano.scan_module.until(T.eq(T.argmax(Y_output),EOS_symbol));
     
     def train(self, training_data, training_labels, learning_rate):
         total = len(training_data);
         printing_interval = 1000;
+        predicted_size_histogram = {k: 0 for k in range(50)};
         if (total <= printing_interval * 10):
             printing_interval = total / 10;
         
@@ -184,10 +178,13 @@ class RecurrentNeuralNetwork(object):
             if (self.single_digit):
                 label = np.array([label]);
             # Run training
-            self.sgd(data, label, learning_rate);
+            predicted_size = self.sgd(data, label, learning_rate);
+            predicted_size_histogram[int(predicted_size)] += 1;
             
             if (k % printing_interval == 0):
                 print("# %d / %d" % (k, total));
+        
+        return predicted_size_histogram;
         
     def test(self, test_data, test_targets, test_labels, test_expressions, operators, key_indices, dataset, max_testing_size=None):
         """

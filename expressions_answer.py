@@ -153,7 +153,8 @@ if (__name__ == '__main__'):
             print("Batch %d of %d (repetition %d) (samples processed after batch: %d)" % (b+1,len(batches),current_repetition,(current_repetition-1)*repetition_size + end));
             append_to_file(raw_results_filepath, "Batch %d of %d (repetition %d) (samples processed after batch: %d)" % (b+1,len(batches),current_repetition,(current_repetition-1)*repetition_size + end));
             
-            rnn.train(dataset.train[batch], targets[batch], learning_rate);
+            predicted_size_histogram = rnn.train(dataset.train[batch], targets[batch], learning_rate);
+            print(predicted_size_histogram);
             if (b != len(batches)-1):
                 # Intermediate testing if this was not the last iteration of training
                 stats = rnn.test(dataset.test, dataset.test_targets, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset)
@@ -173,7 +174,8 @@ if (__name__ == '__main__'):
                     f.close();
                     
     else:
-        rnn.train(dataset.train[np.array(range(repetition_size))], targets[np.array(range(repetition_size))], learning_rate);
+        predicted_size_histogram = rnn.train(dataset.train[np.array(range(repetition_size))], targets[np.array(range(repetition_size))], learning_rate);
+        print(predicted_size_histogram);
       
     # Final test
     stats = rnn.test(dataset.test, dataset.test_targets, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset)
