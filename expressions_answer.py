@@ -17,7 +17,7 @@ from statistic_tools import confusion_matrix;
 
 #theano.config.mode = 'FAST_COMPILE'
 
-def statistics(start, score, prediction_histogram=None, groundtruth_histogram=None, prediction_confusion_matrix=None, digit_score=None):
+def statistics(start, score, prediction_histogram=None, groundtruth_histogram=None, prediction_confusion_matrix=None, digit_score=None, prediction_size_histogram=None):
     output = "\n";
 
     # Print statistics
@@ -27,6 +27,9 @@ def statistics(start, score, prediction_histogram=None, groundtruth_histogram=No
 
     if (digit_score is not None):
         output += "Digit-based score: %.2f percent\n" % (digit_score*100);
+    
+    if (prediction_size_histogram is not None):
+        output += "Prediction size histogram:   %s\n" % (str(prediction_size_histogram));
     
     if (prediction_histogram is not None):
         output += "Prediction histogram:   %s\n" % (str(prediction_histogram));
@@ -145,16 +148,17 @@ if (__name__ == '__main__'):
     current_repetition = 1;
     if (test_interval is not None):
         for b, (begin, end) in enumerate(batches):
-            batch = range(begin % repetition_size, end % repetition_size);
+            begin = begin % repetition_size;
+            end = end % repetition_size;
+            batch = range(begin, end);
             if (end <= begin):
                 batch = range(begin,repetition_size) + range(end);
                 current_repetition += 1;
             
             print("Batch %d of %d (repetition %d) (samples processed after batch: %d)" % (b+1,len(batches),current_repetition,(current_repetition-1)*repetition_size + end));
             append_to_file(raw_results_filepath, "Batch %d of %d (repetition %d) (samples processed after batch: %d)" % (b+1,len(batches),current_repetition,(current_repetition-1)*repetition_size + end));
-            
-            predicted_size_histogram = rnn.train(dataset.train[batch], targets[batch], learning_rate);
-            print(predicted_size_histogram);
+             
+            rnn.train(dataset.train[batch], targets[batch], learning_rate);
             if (b != len(batches)-1):
                 # Intermediate testing if this was not the last iteration of training
                 stats = rnn.test(dataset.test, dataset.test_targets, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset)
@@ -162,8 +166,8 @@ if (__name__ == '__main__'):
                     score, prediction_histogram, groundtruth_histogram, _, _ = stats;
                     stats_str = statistics(start, score, prediction_histogram, groundtruth_histogram);
                 else:
-                    score, digit_score = stats;
-                    stats_str = statistics(start, score, digit_score=digit_score);
+                    score, digit_score, prediction_size_histogram = stats;
+                    stats_str = statistics(start, score, digit_score=digit_score, prediction_size_histogram=prediction_size_histogram);
                 print(stats_str);
                 append_to_file(raw_results_filepath, stats_str)
                 # Save weights to pickles
@@ -174,8 +178,7 @@ if (__name__ == '__main__'):
                     f.close();
                     
     else:
-        predicted_size_histogram = rnn.train(dataset.train[np.array(range(repetition_size))], targets[np.array(range(repetition_size))], learning_rate);
-        print(predicted_size_histogram);
+        rnn.train(dataset.train[np.array(range(repetition_size))], targets[np.array(range(repetition_size))], learning_rate);
       
     # Final test
     stats = rnn.test(dataset.test, dataset.test_targets, dataset.test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset)
@@ -183,8 +186,8 @@ if (__name__ == '__main__'):
         score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = stats;
         stats_str = statistics(start, score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix);
     else:
-        score, digit_score = stats;
-        stats_str = statistics(start, score, digit_score);
+        score, digit_score, prediction_size_histogram = stats;
+        stats_str = statistics(start, score, digit_score=digit_score, prediction_size_histogram=prediction_size_histogram);
     print(stats_str);
     append_to_file(raw_results_filepath, stats_str)
     
