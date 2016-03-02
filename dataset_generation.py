@@ -156,8 +156,10 @@ def generateExpressions(baseFilePath, n, test_percentage, filters, minRecursionD
     writeToFiles(savedExpressions, baseFilePath, test_percentage);
     
 def generateAllExpressions(baseFilePath, test_percentage, filters, minRecursionDepth=1, maxRecursionDepth=2, maxIntValue=10):
+    print("Generating all expressions...");
     expressions = ExpressionNode.allExpressions(0, minRecursionDepth=minRecursionDepth, maxRecursionDepth=maxRecursionDepth, maxIntValue=maxIntValue);
     
+    print("Filtering expressions...");
     filteredExpressions = []
     for expression in expressions:
         discard = False;
@@ -169,10 +171,12 @@ def generateAllExpressions(baseFilePath, test_percentage, filters, minRecursionD
             full_expression = str(expression) + "=" + str(int(expression.getValue()));
             filteredExpressions.append(full_expression);
     
-    print(len(filteredExpressions));
+    print("Shuffling expressions...");
     
     # Shuffle expressions
     np.random.shuffle(filteredExpressions);
+    
+    print("Writing to files...");
     
     writeToFiles(filteredExpressions, baseFilePath, test_percentage, isList=True);
 
@@ -196,7 +200,6 @@ def writeToFiles(expressions,baseFilePath,test_percentage,isList=False):
 if __name__ == '__main__':
     # Settings
     folder = 'data/expressions_one_digit_answer_deep';
-#     train_size = 100000; # Hundred thousand
     test_size = 0.10; # Twenty thousand
     currentRecursionDepth = 0;
     minRecursionDepth = 1;
@@ -208,18 +211,16 @@ if __name__ == '__main__':
                lambda x: x.getValue() >= 0
                ];
      
-#     # Generate other variables
+    # Generate other variables
     trainFilePath = folder + '/train.txt';
     testFilePath = folder + '/test.txt'
      
-#     # http://stackoverflow.com/questions/273192/in-python-check-if-a-directory-exists-and-create-it-if-necessary
+    # http://stackoverflow.com/questions/273192/in-python-check-if-a-directory-exists-and-create-it-if-necessary
     if (not os.path.exists(folder)):
         os.makedirs(folder);
     if (os.path.exists(trainFilePath)):
         raise ValueError("Train part of dataset already present");
     if (os.path.exists(testFilePath)):
         raise ValueError("Test part of dataset already present");
-#     
-#     generateExpressions(folder,train_size,test_size,filters,
-#                  minRecursionDepth, maxRecursionDepth, terminalProb);
+    
     generateAllExpressions(folder, test_size, filters, minRecursionDepth, maxRecursionDepth, maxIntValue);
