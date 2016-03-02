@@ -119,14 +119,14 @@ class RecurrentNeuralNetwork(object):
             prediction = T.argmax(right_hand, axis=1);
             error = T.mean(T.nnet.categorical_crossentropy(right_hand, label));
           
-        # Backward pass: gradients
+        # Backward pass: gradients    
         derivatives = T.grad(error, self.vars.values());
           
         # Functions
         if (single_digit):
             self.predict = theano.function([X], prediction);
         else:
-            self.predict = theano.function([X, label], prediction);
+            self.predict = theano.function([X, label], [prediction, predicted_size]);
         
         # Stochastic Gradient Descent
         learning_rate = T.dscalar('learning_rate');
@@ -226,12 +226,16 @@ class RecurrentNeuralNetwork(object):
             prediction, right_hand_size = self.predict(data,label);
             
             # Statistics
-            if (np.array_equal(prediction,np.argmax(test_targets[j],axis=1))):
-                correct += 1.0;
-            for k,digit in enumerate(prediction):
-                if (digit == np.argmax(test_targets[j][k])):
-                    digit_correct += 1.0;
-                digit_prediction_size += 1;
+            if (self.single_digit):
+                if (prediction == test_targets[j]):
+                    correct += 1;
+            else:
+                if (np.array_equal(prediction,np.argmax(test_targets[j],axis=1))):
+                    correct += 1.0;
+                for k,digit in enumerate(prediction):
+                    if (digit == np.argmax(test_targets[j][k])):
+                        digit_correct += 1.0;
+                    digit_prediction_size += 1;
                     
             if (self.single_digit):
                 prediction_histogram[int(prediction)] += 1;
