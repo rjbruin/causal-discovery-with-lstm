@@ -6,13 +6,13 @@ import sys;
 import matplotlib.pyplot as plt
 import numpy as np
 
-title = 'RNN mult-digit prediction with fixed output (n=5) (128 hidden units / shallow dataset / learning rate 0.01)';
+title = 'Multi-digit prediction accuracy with fixed output (n=5) (128 hidden units / shallow dataset / learning rate 0.01)';
 
-labels = ['total prediction'];
-digit_labels = ['digit prediction']
+labels = ['RNN accuracy','LSTM accuracy'];
+digit_labels = ['RNN per digit','LSTM per digit']
 
-colors = ['b-'];
-digit_colors = ['b--'];
+colors = ['b-','r-'];
+digit_colors = ['b--','r--'];
 
 graphName = 'test.png';
 

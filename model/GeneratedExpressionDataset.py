@@ -26,6 +26,9 @@ class GeneratedExpressionDataset(object):
         # Digits are pre-assigned 0-9
         for digit in range(10):
             self.oneHot[str(digit)] = digit;
+        
+        self.findSymbol = {v: k for (k,v) in self.oneHot.items()};
+        
         # Data dimension = number of symbols + optional EOS
         self.data_dim = max(self.oneHot.values())+1;
         if (not single_digit):

@@ -131,7 +131,7 @@ class RecurrentNeuralNetwork(object):
         # Stochastic Gradient Descent
         learning_rate = T.dscalar('learning_rate');
         updates = [(var,var-learning_rate*der) for (var,der) in zip(self.vars.values(),derivatives)];
-        self.sgd = theano.function([X, label, learning_rate], predicted_size, 
+        self.sgd = theano.function([X, label, learning_rate], [], 
                                    updates=updates,
                                    allow_input_downcast=True)
         
@@ -168,7 +168,6 @@ class RecurrentNeuralNetwork(object):
     def train(self, training_data, training_labels, learning_rate):
         total = len(training_data);
         printing_interval = 1000;
-        predicted_size_histogram = {k: 0 for k in range(50)};
         if (total <= printing_interval * 10):
             printing_interval = total / 10;
         
@@ -178,13 +177,10 @@ class RecurrentNeuralNetwork(object):
             if (self.single_digit):
                 label = np.array([label]);
             # Run training
-            predicted_size = self.sgd(data, label, learning_rate);
-            predicted_size_histogram[int(predicted_size)] += 1;
+            self.sgd(data, label, learning_rate);
             
             if (k % printing_interval == 0):
                 print("# %d / %d" % (k, total));
-        
-        return predicted_size_histogram;
         
     def test(self, test_data, test_targets, test_labels, test_expressions, operators, key_indices, dataset, max_testing_size=None):
         """
@@ -223,7 +219,9 @@ class RecurrentNeuralNetwork(object):
             label = np.array(test_targets[j]);
             if (self.single_digit):
                 label = np.array([label]);
-            prediction, right_hand_size = self.predict(data,label);
+                prediction = self.predict(data,label);
+            else:
+                prediction, right_hand_size = self.predict(data,label);
             
             # Statistics
             if (self.single_digit):
