@@ -18,6 +18,8 @@ class ExpressionNode(object):
     OP_DIVIDE = 3;
     OPERATOR_SIZE = 4;
     
+    operators = range(OPERATOR_SIZE);
+    
     def __init__(self, nodeType, value):
         self.nodeType = nodeType;
         self.value = value;
@@ -156,8 +158,20 @@ def generateExpressions(baseFilePath, n, test_percentage, filters, minRecursionD
     writeToFiles(savedExpressions, baseFilePath, test_percentage);
     
 def generateAllExpressions(baseFilePath, test_percentage, filters, minRecursionDepth=1, maxRecursionDepth=2, maxIntValue=10):
-    print("Generating all expressions...");
-    expressions = ExpressionNode.allExpressions(0, minRecursionDepth=minRecursionDepth, maxRecursionDepth=maxRecursionDepth, maxIntValue=maxIntValue);
+    print("Generating expressions for level 2 and deeper...");
+    expressions_1 = ExpressionNode.allExpressions(1, minRecursionDepth=minRecursionDepth, maxRecursionDepth=maxRecursionDepth, maxIntValue=maxIntValue);
+    
+    print("Generating expressions for level 1");
+    expressions = [];
+    for op in ExpressionNode.operators:
+        for right_child in expressions_1:
+            if (right_child.getValue() == 0.0 and op == ExpressionNode.OP_DIVIDE):
+                continue;
+            for left_child in expressions_1:
+                exp = ExpressionNode(ExpressionNode.TYPE_OPERATOR, op);
+                exp.left = left_child;
+                exp.right = right_child;
+                expressions.append(exp);
     
     print("Filtering expressions...");
     filteredExpressions = []
@@ -199,11 +213,11 @@ def writeToFiles(expressions,baseFilePath,test_percentage,isList=False):
 
 if __name__ == '__main__':
     # Settings
-    folder = 'data/expressions_one_digit_answer_deep';
-    test_size = 0.10; # Twenty thousand
+    folder = 'data/test';
+    test_size = 0.10;
     currentRecursionDepth = 0;
     minRecursionDepth = 1;
-    maxRecursionDepth = 3;
+    maxRecursionDepth = 2;
     maxIntValue = 10;
     terminalProb = 0.5;
     filters = [lambda x: x.getValue() % 1.0 == 0, # Value must be integer
