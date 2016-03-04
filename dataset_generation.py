@@ -135,14 +135,16 @@ class ExpressionNode(object):
 def generateExpressions(baseFilePath, n, test_percentage, filters, minRecursionDepth=1, maxRecursionDepth=2, terminalProb=0.5, verbose=False):
     savedExpressions = {};
     sequential_fails = 0;
-    fail_limit = 100000;
+    fail_limit = 1000000000;
+    
+    print("Generating expressions...");
     while len(savedExpressions) < n and sequential_fails < fail_limit:
         expression = ExpressionNode.randomExpression(0, minRecursionDepth, maxRecursionDepth, terminalProb);
         full_expression = str(expression) + "=" + str(int(expression.getValue()));
         # Check if expression already exists
-        if (full_expression in savedExpressions):
-            sequential_fails += 1;
-            continue;
+#         if (full_expression in savedExpressions):
+#             sequential_fails += 1;
+#             continue;
         if (verbose):
             print(str(expression) + " = " + str(expression.getValue()));
         fail = False;
@@ -154,6 +156,9 @@ def generateExpressions(baseFilePath, n, test_percentage, filters, minRecursionD
                 break;
         if (not fail):
             savedExpressions[full_expression] = True;
+        
+            if len(savedExpressions) % (n/100) == 0:
+                print("%.0f percent generated" % (len(savedExpressions)*100/float(n)));
     
     writeToFiles(savedExpressions, baseFilePath, test_percentage);
     
@@ -213,15 +218,16 @@ def writeToFiles(expressions,baseFilePath,test_percentage,isList=False):
 
 if __name__ == '__main__':
     # Settings
-    folder = 'data/test';
+    folder = 'data/expressions_positive_integer_answer_deep';
     test_size = 0.10;
+    n = 1000000;
     currentRecursionDepth = 0;
     minRecursionDepth = 1;
-    maxRecursionDepth = 2;
+    maxRecursionDepth = 3;
     maxIntValue = 10;
     terminalProb = 0.5;
     filters = [lambda x: x.getValue() % 1.0 == 0, # Value must be integer
-               lambda x: x.getValue() < 10, # Value must be single-digit
+               #lambda x: x.getValue() < 10, # Value must be single-digit
                lambda x: x.getValue() >= 0
                ];
      
@@ -237,4 +243,5 @@ if __name__ == '__main__':
     if (os.path.exists(testFilePath)):
         raise ValueError("Test part of dataset already present");
     
-    generateAllExpressions(folder, test_size, filters, minRecursionDepth, maxRecursionDepth, maxIntValue);
+    #generateAllExpressions(folder, test_size, filters, minRecursionDepth, maxRecursionDepth, maxIntValue);
+    generateExpressions(folder, n, test_size, filters, minRecursionDepth=minRecursionDepth, maxRecursionDepth=maxRecursionDepth, terminalProb=terminalProb, verbose=False);
