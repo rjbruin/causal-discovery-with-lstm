@@ -11,7 +11,7 @@ import pickle;
 import model.RecurrentNeuralNetwork as rnn;
 import model.GeneratedExpressionDataset as ge_dataset;
 
-from statistic_tools import confusion_matrix;
+from tools.statistics import confusion_matrix;
 
 #theano.config.mode = 'FAST_COMPILE'
 
