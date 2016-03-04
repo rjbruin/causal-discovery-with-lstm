@@ -28,6 +28,7 @@ if (__name__ == '__main__'):
     parameters = {};
     parameters['dataset_path'] = './data/expressions_positive_integer_answer_shallow';
     parameters['single_digit'] = False;
+    parameters['single_class'] = None;
     parameters['repetitions'] = 3;
     parameters['hidden_dim'] = 128;
     parameters['learning_rate'] = 0.01;
@@ -45,7 +46,7 @@ if (__name__ == '__main__'):
         print("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!");
     
     # Construct models
-    dataset = ge_dataset.GeneratedExpressionDataset(parameters['dataset_path'], single_digit=parameters['single_digit']);
+    dataset = ge_dataset.GeneratedExpressionDataset(parameters['dataset_path'], single_digit=parameters['single_digit'], single_class=parameters['single_class']);
     rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
                                      lstm=parameters['lstm'], single_digit=parameters['single_digit']);
     

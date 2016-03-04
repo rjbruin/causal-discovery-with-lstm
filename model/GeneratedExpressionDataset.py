@@ -8,7 +8,7 @@ import numpy as np;
 
 class GeneratedExpressionDataset(object):
     
-    def __init__(self, sourceFolder, add_x=False, single_digit=False):
+    def __init__(self, sourceFolder, add_x=False, single_digit=False, single_class=None):
         self.train_source = sourceFolder + '/train.txt';
         self.test_source = sourceFolder + '/test.txt';
         
@@ -17,24 +17,35 @@ class GeneratedExpressionDataset(object):
             self.processor = self.processSampleWithX;
         if (not single_digit):
             self.processor = self.processSampleMultiDigit;
+        if (single_class):
+            self.processor = self.processSampleSingleClass;
         
         # Setting one-hot encoding
-        self.oneHot = {'+': 10, '-': 11, '*': 12, '/': 13, '(': 14, ')': 15, '=': 16};
-        if (add_x):
-            self.oneHot['x'] = 17;
-        self.operators = self.oneHot.keys();
-        # Digits are pre-assigned 0-9
-        for digit in range(10):
-            self.oneHot[str(digit)] = digit;
+        self.digits_range = 10;
+        if (single_class is not None):
+            self.digits_range = single_class;
         
+        # Digits are pre-assigned 0-9
+        self.oneHot = {};
+        for digit in range(self.digits_range):
+            self.oneHot[str(digit)] = digit;
+        symbols = ['+','-','*','/','(',')','='];
+        if (add_x):
+            symbols.append('x');
+        i = max(self.oneHot.values())+1;
+        for sym in symbols:
+            self.oneHot[sym] = i;
+            i += 1;
+        
+        self.operators = self.oneHot.keys();
         self.findSymbol = {v: k for (k,v) in self.oneHot.items()};
         
         # Data dimension = number of symbols + optional EOS
-        self.data_dim = max(self.oneHot.values())+1;
+        self.data_dim = self.digits_range + len(symbols);
         if (not single_digit):
             self.data_dim += 1;
         self.output_dim = self.data_dim;
-        self.EOS_symbol_index = self.output_dim-1;
+        self.EOS_symbol_index = self.data_dim-1;
         
         self.load();
     
@@ -74,6 +85,31 @@ class GeneratedExpressionDataset(object):
         
         return data, targets, labels, expressions;
     
+    def processSampleSingleClass(self, line, data, targets, labels, expressions):
+        # Get expression from line
+        expression = line.strip();
+        right_hand_start = expression.find('=')+1;
+        left_hand = expression[:right_hand_start];
+        right_hand = int(expression[right_hand_start:]);
+        if (right_hand >= self.digits_range):
+            # If the right hand size has a value that we cannot encode, skip 
+            # the sample
+            return data, targets, labels, expressions;
+        # Generate encodings for data and target
+        X = np.zeros((len(left_hand),self.data_dim));
+        for i, literal in enumerate(left_hand):
+            X[i,self.oneHot[literal]] = 1.0;
+        target = np.zeros(self.data_dim);
+        target[self.oneHot[str(right_hand)]] = 1.0;
+        
+        # Set training variables
+        data.append(X);
+        targets.append(np.array([target]));
+        labels.append(self.oneHot[str(right_hand)]);
+        expressions.append(expression);
+        
+        return data, targets, labels, expressions;
+    
     def processSampleWithX(self, line, data, targets, labels, expressions):
         # Get expression from line
         expression = line.strip();
@@ -106,7 +142,7 @@ class GeneratedExpressionDataset(object):
             if (i >= right_hand_start):
                 right_hand_digits.append(literal);
         # Add EOS
-        expression_embeddings[-1,self.data_dim-1] = 1.0;
+        expression_embeddings[-1,self.EOS_symbol_index] = 1.0;
         right_hand_digits.append('<EOS>');
         # The targets are simple the right hand part of the expression
         X = expression_embeddings[:right_hand_start];

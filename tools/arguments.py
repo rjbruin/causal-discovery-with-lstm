@@ -17,6 +17,11 @@ def processCommandLineArguments(arguments, parameters={}):
                     parameters['dataset_path'] = val;
                 elif (key == 'single_digit'):
                     parameters['single_digit'] = val == 'True';
+                elif (key == 'single_class'):
+                    if (val == "False"):
+                        parameters['single_class'] = None;
+                    else:
+                        parameters['single_class'] = int(val);
                 elif (key == 'repetitions'):
                     parameters['repetitions'] = int(val);
                 elif (key == 'hidden_dim'):
