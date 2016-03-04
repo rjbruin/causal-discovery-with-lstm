@@ -27,10 +27,11 @@ class RecurrentNeuralNetwork(object):
         self.hidden_dim = hidden_dim;
         self.output_dim = output_dim;
         
-        if (not single_digit and EOS_symbol_index is None):
-            # EOS symbol is last index by default
-            EOS_symbol_index = self.data_dim-1;
-        EOS_symbol = T.constant(EOS_symbol_index);
+        if (not single_digit):
+            if (EOS_symbol_index is None):
+                # EOS symbol is last index by default
+                EOS_symbol_index = self.data_dim-1;
+            EOS_symbol = T.constant(EOS_symbol_index);
         
         varSettings = [];
         # Set up shared variables
@@ -113,7 +114,7 @@ class RecurrentNeuralNetwork(object):
         if (single_digit):
             # We only predict on the final Y because for now we only predict the final digit in the expression
             prediction = T.argmax(Y_1[-1]);
-            error = T.nnet.categorical_crossentropy(Y_1[-1], label)[0];
+            error = T.nnet.categorical_crossentropy(Y_1[-1].reshape((1,self.output_dim)), label)[0];
         else:
             # We predict the final n symbols (all symbols predicted as output from input '=')
             prediction = T.argmax(right_hand, axis=1);
@@ -126,7 +127,7 @@ class RecurrentNeuralNetwork(object):
         if (single_digit):
             self.predict = theano.function([X], prediction);
         else:
-            self.predict = theano.function([X, label], [prediction, predicted_size]);
+            self.predict = theano.function([X, label], [prediction, predicted_size, T.argmax(Ys,axis=1)]);
         
         # Stochastic Gradient Descent
         learning_rate = T.dscalar('learning_rate');
@@ -218,14 +219,13 @@ class RecurrentNeuralNetwork(object):
             data = test_data[j];
             label = np.array(test_targets[j]);
             if (self.single_digit):
-                label = np.array([label]);
-                prediction = self.predict(data,label);
+                prediction = self.predict(data);
             else:
-                prediction, right_hand_size = self.predict(data,label);
+                prediction, right_hand_size, full_right_hand = self.predict(data,label);
             
             # Statistics
             if (self.single_digit):
-                if (prediction == test_targets[j]):
+                if (prediction == test_labels[j]):
                     correct += 1;
             else:
                 if (np.array_equal(prediction,np.argmax(test_targets[j],axis=1))):

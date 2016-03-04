@@ -5,6 +5,7 @@ Created on 17 feb. 2016
 '''
 
 import numpy as np;
+import time;
 
 def confusion_matrix(data):
     output = "";
@@ -47,6 +48,34 @@ def accuracy_per_origin(data, keys):
     output += "TOTAL\t";
     for index in range(data.shape[0]):
         output += "%d\t" % data[index,1];
+    output += "\n";
+    
+    return output;
+
+def str_statistics(start, score, prediction_histogram=None, groundtruth_histogram=None, prediction_confusion_matrix=None, digit_score=None, prediction_size_histogram=None):
+    output = "\n";
+
+    # Print statistics
+    duration = time.clock() - start;
+    output += "Duration: %d seconds\n" % duration;
+    output += "Score: %.2f percent\n" % (score*100);
+
+    if (digit_score is not None):
+        output += "Digit-based score: %.2f percent\n" % (digit_score*100);
+    
+    if (prediction_size_histogram is not None):
+        output += "Prediction size histogram:   %s\n" % (str(prediction_size_histogram));
+    
+    if (prediction_histogram is not None):
+        output += "Prediction histogram:   %s\n" % (str(prediction_histogram));
+        
+    if (groundtruth_histogram is not None):
+        output += "Ground truth histogram: %s\n" % (str(groundtruth_histogram));
+    
+    if (prediction_confusion_matrix is not None):
+        output += "Confusion matrix:\n";
+        output += confusion_matrix(prediction_confusion_matrix);
+    
     output += "\n";
     
     return output;
