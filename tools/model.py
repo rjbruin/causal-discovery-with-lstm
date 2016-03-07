@@ -11,6 +11,9 @@ from tools.file import append_to_file;
 from tools.file import save_to_pickle;
 
 def train(model, dataset, train, train_labels, test, test_targets, test_labels, batches, repetition_size, parameters, raw_results_filepath, key_indices, exp_name, start_time, saveModels=True):
+    # Create settings string for saving models
+    
+    
     current_repetition = 1;
     if (parameters['test_interval'] is not None):
         for b, (begin, end) in enumerate(batches):
@@ -31,7 +34,7 @@ def train(model, dataset, train, train_labels, test, test_targets, test_labels, 
                 # Save weights to pickles
                 if (saveModels):
                     saveVars = model.vars.items();
-                    save_to_pickle('saved_models/%s_%d.model' % (exp_name, b), saveVars);
+                    save_to_pickle('saved_models/%s_%d.model' % (exp_name, b), saveVars, settings={'test': 'True'});
                     
     else:
         model.train(train[np.array(range(repetition_size))], train_labels[np.array(range(repetition_size))], parameters['learning_rate']);

@@ -6,7 +6,9 @@ import sys;
 import matplotlib.pyplot as plt
 import numpy as np
 
-title = 'Multi-digit prediction accuracy with fixed output (n=5) (128 hidden units / shallow dataset / learning rate 0.01)';
+title = 'Single digit prediction accuracy (128 hidden units / deep dataset / learning rate 0.01)';
+#title = 'Single class prediction accuracy (128 hidden units / shallow dataset / learning rate 0.01)';
+#title = 'Multi-digit prediction accuracy with fixed output (n=5) (128 hidden units / shallow dataset / learning rate 0.01)';
 
 labels = ['RNN accuracy','LSTM accuracy'];
 digit_labels = ['RNN per digit','LSTM per digit']
@@ -81,6 +83,6 @@ plt.xlabel('iterations x 100,000')
 plt.ylabel('accuracy (%)')
 plt.title(title)
 plt.grid(True)
-plt.legend(labels + digit_labels,loc=4)
+plt.legend(labels + digit_labels,loc=2)
 plt.savefig(graphName);
 plt.show()

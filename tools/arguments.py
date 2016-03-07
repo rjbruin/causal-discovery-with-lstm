@@ -4,6 +4,55 @@ Created on 4 mrt. 2016
 @author: Robert-Jan
 '''
 
+def processString(val):
+    return val;
+
+def processInt(val):
+    return int(val);
+
+def processFloat(val):
+    return float(val);
+
+def processBool(val):
+    return val == 'True';
+
+def processFalseOrInt(val):
+    if (val == 'False'):
+        return None;
+    return int(val);
+
+
+
+argumentProcessors = {'dataset': processString,
+                      'single_digit': processBool,
+                      'single_class': processFalseOrInt,
+                      'repetitions': processInt,
+                      'hidden_dim': processInt,
+                      'learning_rate': processFloat,
+                      'lstm': processBool,
+                      'max_training_size': processFalseOrInt,
+                      'test_interval': processFalseOrInt,
+                      'name': processString,
+                      'save_models': processBool
+                      }
+defaults = {'dataset': './data/expressions_positive_integer_answer_shallow',
+            'single_digit': False,
+            'single_class': False,
+            'repetitions': 24,
+            'hidden_dim': 128,
+            'learning_rate': 0.01,
+            'lstm': True,
+            'max_training_size': None,
+            'test_interval': 100000,
+            'save_models': True
+            }
+
+def processKeyValue(key,value):
+    if (key in argumentProcessors):
+        return argumentProcessors[key](value);
+    else:
+        raise ValueError("Invalid key provided: %s" % key);
+
 def processCommandLineArguments(arguments, parameters={}):
     key = None;
     for arg in arguments:
@@ -13,37 +62,10 @@ def processCommandLineArguments(arguments, parameters={}):
         else:
             val = arg;
             if (key is not None):
-                if (key == 'dataset'):
-                    parameters['dataset_path'] = val;
-                elif (key == 'single_digit'):
-                    parameters['single_digit'] = val == 'True';
-                elif (key == 'single_class'):
-                    if (val == "False"):
-                        parameters['single_class'] = None;
-                    else:
-                        parameters['single_class'] = int(val);
-                elif (key == 'repetitions'):
-                    parameters['repetitions'] = int(val);
-                elif (key == 'hidden_dim'):
-                    parameters['hidden_dim'] = int(val);
-                elif (key == 'learning_rate'):
-                    parameters['learning_rate'] = float(val);
-                elif (key == 'model'):
-                    parameters['lstm'] = val == 'lstm';
-                elif (key == 'max_training_size'):
-                    if (val == "False"):
-                        parameters['max_training_size'] = None;
-                    else:
-                        parameters['max_training_size'] = int(val);
-                elif (key == 'testing_interval'):
-                    if (val == "False"):
-                        parameters['test_interval'] = None;
-                    else:
-                        parameters['test_interval'] = int(val);
-                elif (key == 'name'):
-                    parameters['name'] = val;
-                elif (key == 'save_models'):
-                    parameters['saveModels'] = val == 'False';
+                if (key in argumentProcessors):
+                    parameters[key] = processKeyValue(key,val);
+                else:
+                    raise ValueError("Invalid argument provided: %s" % key);
                 key = None;
                 val = None;
     
