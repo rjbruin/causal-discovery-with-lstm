@@ -6,7 +6,6 @@ Created on 16 feb. 2016
 
 import time;
 import sys, os;
-import numpy as np;
 
 import model.RecurrentNeuralNetwork as rnn;
 import model.GeneratedExpressionDataset as ge_dataset;
