@@ -234,6 +234,18 @@ class RecurrentNeuralNetwork(object):
                     if (digit == np.argmax(test_targets[j][k])):
                         digit_correct += 1.0;
                     digit_prediction_size += 1;
+                
+                # TEMP
+                if (j < 1000):
+                    f = open('temp_results.txt','a');
+                    f.write("%d: %s / %s / %s / %s / %s / %d / %s\n" % (j, str(full_right_hand), str(prediction), str(test_labels[j]), 
+                                                              str(test_targets[j]), str(np.array_equal(prediction,np.argmax(test_targets[j],axis=1))),
+                                                              int(right_hand_size), str(right_hand_size)));
+                    f.close();
+                elif (j == 1000):
+                    f = open('temp_results.txt','a');
+                    f.write("\n\n\n\n\n");
+                    f.close();
                     
             if (self.single_digit):
                 prediction_histogram[int(prediction)] += 1;
