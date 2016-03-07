@@ -39,9 +39,9 @@ if __name__ == '__main__':
     ground_truths = [];
     for i in range(0,100):
         prediction = rnn.predict(dataset.test[i], dataset.test_targets[i]);
-        predictions.append(prediction[0]);
+        predictions.append(prediction);
         ground_truths.append(dataset.test_labels[i]);
     
-    for i,prediction in enumerate(predictions):
-        print(", ".join(map(lambda x: dataset.findSymbol[int(x)],prediction)) + " should be " + ", ".join(map(str,ground_truths[i])));
+    for i,(prediction,size) in enumerate(predictions):
+        print(", ".join(map(lambda x: dataset.findSymbol[int(x)],prediction)) + " should be " + ", ".join(map(str,ground_truths[i])) + " (size = " + str(size) + ")");
     f.close();
