@@ -6,22 +6,17 @@ Run this script in debug mode to inspect the variables loaded.
 @author: Robert-Jan
 '''
 
-import pickle, sys;
+import sys;
+
 from model.RecurrentNeuralNetwork import RecurrentNeuralNetwork;
 from model.GeneratedExpressionDataset import GeneratedExpressionDataset;
+from tools.file import load_from_pickle;
 
-if __name__ == '__main__':
-    modelName = 'answer-lstm-multi_digit.model';
-    dataset_path = './data/expressions_positive_integer_answer_shallow';
-    hidden_dim = 128;
-    single_digit = False;
-    lstm = True;
-    
-    if (len(sys.argv) > 1):
-        modelName = sys.argv[1];
-        if (modelName == 'choose'):
-            modelName = raw_input("Please provide the name of the model you want to inspect:\n");
-    
+def load():
+    modelName = raw_input("Please provide the name of the model you want to inspect:\n");
+    return read_from_file(modelName);
+
+def read_from_file(modelName):
     # Keep trying to get a right filename
     while (True):
         try:
@@ -30,9 +25,32 @@ if __name__ == '__main__':
         except IOError:
             modelName = raw_input("This model does not exist! Please provide the name of the model you want to inspect:\n");
     
-    savedVars = pickle.load(f);
-    dataset = GeneratedExpressionDataset(dataset_path, single_digit=single_digit)
-    rnn = RecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim, lstm=lstm, weight_values=savedVars, single_digit=single_digit);
+    savedVars, settings = load_from_pickle(f);
+    
+    # Settings
+    if (settings['single_class'] != 'None'):
+        settings['single_class'] = int(settings['single_class']);
+    else:
+        settings['single_class'] = None;
+    
+    dataset = GeneratedExpressionDataset(settings['dataset'], 
+                                         single_digit=settings['single_digit'],
+                                         single_class=settings['single_class']);
+    rnn = RecurrentNeuralNetwork(dataset.data_dim, settings['hidden_dim'], dataset.output_dim, 
+                                 lstm=settings['lstm'], weight_values=savedVars, 
+                                 single_digit=settings['single_digit']);
+    
+    return dataset, rnn, f, settings;
+
+if __name__ == '__main__':
+    modelName = 'answer-lstm-multi_digit.model';
+    
+    if (len(sys.argv) > 1):
+        modelName = sys.argv[1];
+        if (modelName == 'choose'):
+            modelName = raw_input("Please provide the name of the model you want to inspect:\n");
+    
+    dataset, rnn, f, settings = read_from_file(modelName);
     
     # Do stuff
     predictions = [];
@@ -44,4 +62,3 @@ if __name__ == '__main__':
     
     for i,prediction in enumerate(predictions):
         print(", ".join(map(lambda x: dataset.findSymbol[int(x)],prediction)) + " should be " + ", ".join(map(str,ground_truths[i])));
-    f.close();
