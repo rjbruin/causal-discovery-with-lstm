@@ -6,15 +6,15 @@ import sys;
 import matplotlib.pyplot as plt
 import numpy as np
 
-title = 'Single digit prediction accuracy (128 hidden units / deep dataset / learning rate 0.01)';
-#title = 'Single class prediction accuracy (128 hidden units / shallow dataset / learning rate 0.01)';
+#title = 'Single digit prediction accuracy (128 hidden units / deep dataset / learning rate 0.01)';
+title = 'Multi-digit prediction accuracy (128 hidden units / shallow dataset / learning rate 0.01)';
 #title = 'Multi-digit prediction accuracy with fixed output (n=5) (128 hidden units / shallow dataset / learning rate 0.01)';
 
-labels = ['RNN accuracy','LSTM accuracy'];
-digit_labels = ['RNN per digit','LSTM per digit']
+labels = ['RNN single class','LSTM single class','RNN sequential','LSTM sequential'];
+digit_labels = ['RNN seq. (digit)','LSTM seq. (per digit)']
 
-colors = ['b-','r-'];
-digit_colors = ['b--','r--'];
+colors = ['b--','r--','b-','r-'];
+digit_colors = ['b:','r:'];
 
 graphName = 'test.png';
 
@@ -66,23 +66,25 @@ for i, path in enumerate(filepaths):
         line = f.readline();
 
     scores.append(batch_scores);
-    digit_scores.append(batch_digit_scores);
+    if (len(batch_digit_scores) > 0):
+        digit_scores.append(batch_digit_scores);
     print("Scores: %s" % ", ".join(map(str, batch_scores)));
         
-
+labels_to_plot = [];
 for i,batch in enumerate(scores):
     t = range(1,len(batch)+1);
     plt.plot(t, batch, colors[i]);
+    labels_to_plot.append(labels[i]);
 
 for i, batch in enumerate(digit_scores):
     t_digit = range(1,len(batch)+1);
     plt.plot(t_digit, batch, digit_colors[i]);
-        
+    labels_to_plot.append(digit_labels[i]);
         
 plt.xlabel('iterations x 100,000')
 plt.ylabel('accuracy (%)')
 plt.title(title)
 plt.grid(True)
-plt.legend(labels + digit_labels,loc=2)
+plt.legend(labels_to_plot,loc=4)
 plt.savefig(graphName);
 plt.show()
