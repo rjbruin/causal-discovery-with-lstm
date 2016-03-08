@@ -23,29 +23,21 @@ if (__name__ == '__main__'):
     name = time.strftime("%d-%m-%Y_%H-%M-%S");
     saveModels = True;
     
-    # Default settings
-    parameters = {};
-    parameters['dataset_path'] = './data/expressions_positive_integer_answer_shallow';
-    parameters['single_digit'] = False;
-    parameters['single_class'] = None;
-    parameters['repetitions'] = 3;
-    parameters['hidden_dim'] = 128;
-    parameters['learning_rate'] = 0.01;
-    parameters['lstm'] = True;
-    parameters['max_training_size'] = None;
-    parameters['test_interval'] = 100000; # 100,000
     # Generated variables
     raw_results_filepath = os.path.join(raw_results_folder,name+'.txt');
     
     # Process parameters
-    parameters = processCommandLineArguments(sys.argv, parameters);
+    parameters = processCommandLineArguments(sys.argv);
     
     # Debug settings
     if (parameters['max_training_size'] is not None):
         print("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!");
     
     # Construct models
-    dataset = ge_dataset.GeneratedExpressionDataset(parameters['dataset_path'], single_digit=parameters['single_digit'], single_class=parameters['single_class']);
+    dataset = ge_dataset.GeneratedExpressionDataset(parameters['dataset'], 
+                                                    add_x=parameters['find_x'],
+                                                    single_digit=parameters['single_digit'], 
+                                                    single_class=parameters['single_class']);
     rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
                                      lstm=parameters['lstm'], single_digit=parameters['single_digit']);
     

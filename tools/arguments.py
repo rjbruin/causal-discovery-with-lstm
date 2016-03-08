@@ -26,6 +26,7 @@ def processFalseOrInt(val):
 argumentProcessors = {'dataset': processString,
                       'single_digit': processBool,
                       'single_class': processFalseOrInt,
+                      'find_x': processBool,
                       'repetitions': processInt,
                       'hidden_dim': processInt,
                       'learning_rate': processFloat,
@@ -38,6 +39,7 @@ argumentProcessors = {'dataset': processString,
 defaults = {'dataset': './data/expressions_positive_integer_answer_shallow',
             'single_digit': False,
             'single_class': False,
+            'find_x': False,
             'repetitions': 24,
             'hidden_dim': 128,
             'learning_rate': 0.01,
@@ -53,7 +55,10 @@ def processKeyValue(key,value):
     else:
         raise ValueError("Invalid key provided: %s" % key);
 
-def processCommandLineArguments(arguments, parameters={}):
+def processCommandLineArguments(arguments, parameters=None):
+    if (parameters is None):
+        parameters = defaults;
+    
     key = None;
     for arg in arguments:
         if (arg[:2] == '--'):

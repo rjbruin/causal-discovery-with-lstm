@@ -31,12 +31,15 @@ def load_from_pickle(f):
     Reads models from pickle with settings as header.
     Settings are pre-populated with default values from tools.arguments.
     """
-    nrSettings = int(f.readline().split(" ")[1]);
+    firstLine = f.readline();
+    if (firstLine[:3] != "###"):
+        raise ValueError("Model file header is missing!");
+    nrSettings = int(firstLine.split(" ")[1]);
     
     settings = arg.defaults;
     for _ in range(nrSettings):
         line = f.readline()[1:].strip();
-        key,value = line.split(":");
+        key,value = map(lambda x: x.strip(), line.split(":"));
         settings[key] = arg.processKeyValue(key, value);
     
     savedVars = pickle.load(f);

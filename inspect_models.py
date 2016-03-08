@@ -27,12 +27,7 @@ def read_from_file(modelName):
     
     savedVars, settings = load_from_pickle(f);
     
-    # Settings
-    if (settings['single_class'] != 'None'):
-        settings['single_class'] = int(settings['single_class']);
-    else:
-        settings['single_class'] = None;
-    
+    print(settings);
     dataset = GeneratedExpressionDataset(settings['dataset'], 
                                          single_digit=settings['single_digit'],
                                          single_class=settings['single_class']);
@@ -40,7 +35,7 @@ def read_from_file(modelName):
                                  lstm=settings['lstm'], weight_values=savedVars, 
                                  single_digit=settings['single_digit']);
     
-    return dataset, rnn, f, settings;
+    return dataset, rnn, settings;
 
 if __name__ == '__main__':
     modelName = 'answer-lstm-multi_digit.model';
@@ -50,7 +45,7 @@ if __name__ == '__main__':
         if (modelName == 'choose'):
             modelName = raw_input("Please provide the name of the model you want to inspect:\n");
     
-    dataset, rnn, f, settings = read_from_file(modelName);
+    dataset, rnn, settings = read_from_file(modelName);
     
     # Do stuff
     predictions = [];
