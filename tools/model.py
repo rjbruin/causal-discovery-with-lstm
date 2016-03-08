@@ -10,9 +10,11 @@ from tools.statistics import str_statistics;
 from tools.file import append_to_file;
 from tools.file import save_to_pickle;
 
-def train(model, dataset, train, train_labels, test, test_targets, test_labels, batches, repetition_size, parameters, raw_results_filepath, key_indices, exp_name, start_time, saveModels=True):
-    # Create settings string for saving models
-    
+def train(model, dataset, batches, repetition_size, parameters, raw_results_filepath, key_indices, exp_name, start_time, saveModels=True, targets=False):
+    if (targets):
+        train_labels = dataset.train_targets;
+    else:
+        train_labels = dataset.train_labels;
     
     current_repetition = 1;
     if (parameters['test_interval'] is not None):
@@ -26,18 +28,26 @@ def train(model, dataset, train, train_labels, test, test_targets, test_labels, 
             
             print("Batch %d of %d (repetition %d) (samples processed after batch: %d)" % (b+1,len(batches),current_repetition,(current_repetition-1)*repetition_size + end));
             append_to_file(raw_results_filepath, "Batch %d of %d (repetition %d) (samples processed after batch: %d)" % (b+1,len(batches),current_repetition,(current_repetition-1)*repetition_size + end));
-             
-            model.train(train[batch], train_labels[batch], parameters['learning_rate']);
+            
+            # Get the part of the dataset for this batch
+            batch_train = dataset.train[batch];
+            batch_labels = train_labels[batch];
+            batch_test = dataset.test;
+            batch_test_targets = dataset.test_targets;
+            batch_test_labels = dataset.test_labels;
+            
+            # Train 
+            model.train(batch_train, batch_labels, parameters['learning_rate']);
             if (b != len(batches)-1):
                 # Intermediate testing if this was not the last iteration of training
-                test_and_save(model, dataset, test, test_targets, test_labels, parameters, raw_results_filepath, key_indices, start_time);
+                test_and_save(model, dataset, batch_test, batch_test_targets, batch_test_labels, parameters, raw_results_filepath, key_indices, start_time);
                 # Save weights to pickles
                 if (saveModels):
                     saveVars = model.vars.items();
                     save_to_pickle('saved_models/%s_%d.model' % (exp_name, b), saveVars, settings={'test': 'True'});
                     
     else:
-        model.train(train[np.array(range(repetition_size))], train_labels[np.array(range(repetition_size))], parameters['learning_rate']);
+        model.train(dataset.train[np.array(range(repetition_size))], train_labels[np.array(range(repetition_size))], parameters['learning_rate']);
 
 def test_and_save(model, dataset, test, test_targets, test_labels, parameters, raw_results_filepath, key_indices, start_time, show_prediction_conf_matrix=False):
     stats = model.test(test, test_targets, test_labels, dataset.test_expressions, dataset.operators, key_indices, dataset)

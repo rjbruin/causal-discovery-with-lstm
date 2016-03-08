@@ -8,7 +8,7 @@ import numpy as np;
 
 class GeneratedExpressionDataset(object):
     
-    def __init__(self, sourceFolder, add_x=False, single_digit=False, single_class=False):
+    def __init__(self, sourceFolder, preload=True, add_x=False, single_digit=False, single_class=False, balanced=False):
         self.train_source = sourceFolder + '/train.txt';
         self.test_source = sourceFolder + '/test.txt';
         
@@ -19,6 +19,8 @@ class GeneratedExpressionDataset(object):
             self.processor = self.processSampleSingleClass;
         elif (not single_digit):
             self.processor = self.processSampleMultiDigit;
+        elif (balanced):
+            self.processor = self.processSampleBalanced;
         
         # Setting one-hot encoding
         self.digits_range = 10;
@@ -47,11 +49,20 @@ class GeneratedExpressionDataset(object):
         self.output_dim = self.data_dim;
         self.EOS_symbol_index = self.data_dim-1;
         
-        self.load();
+        if (preload):
+            self.preloaded = self.load();
+            if (not self.preloaded):
+                print("WARNING! PRELOADING DATASET WAS ATTEMPTED BUT FAILED!");
+        else:
+            self.preloaded = False;
     
     def load(self):
-        self.train, self.train_targets, self.train_labels, self.train_expressions = self.loadFile(self.train_source, self.processor);
-        self.test, self.test_targets, self.test_labels, self.test_expressions = self.loadFile(self.test_source, self.processor);
+        try:
+            self.train, self.train_targets, self.train_labels, self.train_expressions = self.loadFile(self.train_source, self.processor);
+            self.test, self.test_targets, self.test_labels, self.test_expressions = self.loadFile(self.test_source, self.processor);
+        except Exception:
+            return False;
+        return True;
     
     def loadFile(self, source, processor):
         # Importing data
@@ -155,6 +166,22 @@ class GeneratedExpressionDataset(object):
         expressions.append(expression);
         
         return data, targets, labels, expressions;
+    
+    def processSampleBalanced(self, line, data, targets, labels, expressions):
+        expression = line.strip();
+        
+        # TODO: implement
+        
+        # Append data
+#         data.append(X);
+#         labels.append(right_hand_digits);
+#         targets.append(np.array(target));
+#         expressions.append(expression);
+        
+        return data, targets, labels, expressions;
+    
+    def batch(self):
+        
     
     @staticmethod
     def operator_scores(expression, correct, operators, key_indices, op_scores):

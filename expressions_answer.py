@@ -55,7 +55,7 @@ if (__name__ == '__main__'):
     start = time.clock();
     key_indices = {k: i for (i,k) in enumerate(dataset.operators)};
     # Train
-    train(rnn, dataset, dataset.train, targets, dataset.test, dataset.test_targets, dataset.test_labels, batches, repetition_size, parameters, raw_results_filepath, key_indices, name, start, saveModels=saveModels);
+    train(rnn, dataset, batches, repetition_size, parameters, raw_results_filepath, key_indices, name, start, saveModels=saveModels, targets=not parameters['single_digit']);
     # Final test
     test_and_save(rnn, dataset, dataset.test, dataset.test_targets, dataset.test_labels, parameters, raw_results_filepath, key_indices, start, show_prediction_conf_matrix=False);
     # Save weights to pickles
