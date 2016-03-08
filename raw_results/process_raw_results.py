@@ -6,15 +6,20 @@ import sys;
 import matplotlib.pyplot as plt
 import numpy as np
 
-#title = 'Single digit prediction accuracy (128 hidden units / deep dataset / learning rate 0.01)';
-title = 'Multi-digit prediction accuracy (128 hidden units / shallow dataset / learning rate 0.01)';
+title = 'Single digit prediction accuracy (128 hidden units / learning rate 0.01)';
+#title = 'Multi-digit prediction accuracy (128 hidden units / shallow dataset / learning rate 0.01)';
 #title = 'Multi-digit prediction accuracy with fixed output (n=5) (128 hidden units / shallow dataset / learning rate 0.01)';
 
-labels = ['RNN single class','LSTM single class','RNN sequential','LSTM sequential'];
+#labels = ['RNN single class','LSTM single class','RNN sequential','LSTM sequential'];
+labels = ['RNN deep','LSTM deep','RNN shallow','LSTM shallow'];
 digit_labels = ['RNN seq. (digit)','LSTM seq. (per digit)']
 
 colors = ['b--','r--','b-','r-'];
+#colors = ['b-','r-'];
 digit_colors = ['b:','r:'];
+
+# Legend location: 2 = top left, 4 = bottom right, 5 = right
+loc = 5;
 
 graphName = 'test.png';
 
@@ -85,6 +90,6 @@ plt.xlabel('iterations x 100,000')
 plt.ylabel('accuracy (%)')
 plt.title(title)
 plt.grid(True)
-plt.legend(labels_to_plot,loc=4)
+plt.legend(labels_to_plot,loc=loc)
 plt.savefig(graphName);
 plt.show()
