@@ -8,21 +8,21 @@ import numpy as np;
 
 class GeneratedExpressionDataset(object):
     
-    def __init__(self, sourceFolder, add_x=False, single_digit=False, single_class=None):
+    def __init__(self, sourceFolder, add_x=False, single_digit=False, single_class=False):
         self.train_source = sourceFolder + '/train.txt';
         self.test_source = sourceFolder + '/test.txt';
         
         self.processor = self.processSample;
         if (add_x):
             self.processor = self.processSampleWithX;
-        if (not single_digit):
-            self.processor = self.processSampleMultiDigit;
-        if (single_class):
+        elif (single_class):
             self.processor = self.processSampleSingleClass;
+        elif (not single_digit):
+            self.processor = self.processSampleMultiDigit;
         
         # Setting one-hot encoding
         self.digits_range = 10;
-        if (single_class is not None):
+        if (single_class is not False):
             self.digits_range = single_class;
         
         # Digits are pre-assigned 0-9
