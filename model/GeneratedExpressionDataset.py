@@ -180,8 +180,8 @@ class GeneratedExpressionDataset(object):
         
         return data, targets, labels, expressions;
     
-    def batch(self):
-        
+#     def batch(self):
+#         
     
     @staticmethod
     def operator_scores(expression, correct, operators, key_indices, op_scores):
