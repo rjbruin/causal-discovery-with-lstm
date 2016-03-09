@@ -99,16 +99,16 @@ class RecurrentNeuralNetwork(object):
             sentence_size = unfinished_sentence.shape[0];
             predicted_size = Ys.shape[0];
             
-            self.predict_unfinished_sentence = theano.function([X,label],[unfinished_sentence,total_size,sentence_size,label]);
-            
             if (T.lt(sentence_size,total_size) == 1):
                 # We did not predict enough digits - add zero scores
                 zero_scores = T.zeros((total_size - sentence_size,self.output_dim));
                 sentence = T.join(0,Y_1,Ys,zero_scores);
+                branch = T.constant(1);
             else:
                 # We predicted too many digits - throw away digits we don't need
                 # The algorithm will be punished as the final symbol should be EOS
                 sentence = unfinished_sentence[:total_size];
+                branch = T.constant(0);
             right_hand = sentence[-label.shape[0]:]
          
         if (single_digit):
@@ -127,7 +127,9 @@ class RecurrentNeuralNetwork(object):
         if (single_digit):
             self.predict = theano.function([X], prediction);
         else:
-            self.predict = theano.function([X, label], [prediction, predicted_size, T.argmax(Ys,axis=1)]);
+            self.predict = theano.function([X, label], [prediction, predicted_size, T.argmax(Ys,axis=1), 
+                                                        branch, total_size, sentence_size, T.argmax(sentence,axis=1),
+                                                        T.argmax(unfinished_sentence,axis=1)]);
         
         # Stochastic Gradient Descent
         learning_rate = T.dscalar('learning_rate');
@@ -221,7 +223,7 @@ class RecurrentNeuralNetwork(object):
             if (self.single_digit):
                 prediction = self.predict(data);
             else:
-                prediction, right_hand_size, full_right_hand = self.predict(data,label);
+                prediction, right_hand_size, full_right_hand, branch, total_size, sentence_size, sentence, unf_sentence = self.predict(data,label);
             
             # Statistics
             if (self.single_digit):
@@ -238,9 +240,10 @@ class RecurrentNeuralNetwork(object):
                 # TEMP
                 if (j < 1000):
                     f = open('temp_results.txt','a');
-                    f.write("%d: %s / %s / %s / %s / %s / %d / %s\n" % (j, str(full_right_hand), str(prediction), str(test_labels[j]), 
-                                                              str(test_targets[j]), str(np.array_equal(prediction,np.argmax(test_targets[j],axis=1))),
-                                                              int(right_hand_size), str(right_hand_size)));
+                    f.write("%d: full = %s / pred = %s / labels = %s / correct = %s / right_hand = %d / branch = %d / total = %d / pred_size = %d / sentence = %s / unf_sent = %s\n" % (j, str(full_right_hand), str(prediction), str(test_labels[j]), 
+                                                                   str(np.array_equal(prediction,np.argmax(test_targets[j],axis=1))),
+                                                                   int(right_hand_size), int(branch), int(total_size), int(prediction_size),
+                                                                   str(sentence), str(unf_sentence)));
                     f.close();
                 elif (j == 1000):
                     f = open('temp_results.txt','a');
