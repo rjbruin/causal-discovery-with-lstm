@@ -8,7 +8,7 @@ def create_batches(dataset, parameters):
     if (parameters['max_training_size'] is not None):
         repetition_size = parameters['max_training_size'];
     else:
-        repetition_size = dataset.data_size;
+        repetition_size = dataset.train_length;
     indices_to_use = repetition_size * parameters['repetitions'];
     if (parameters['test_interval'] is not None):    
         batches = [];
