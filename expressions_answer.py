@@ -28,7 +28,7 @@ if (__name__ == '__main__'):
     
     # Process parameters
     parameters = processCommandLineArguments(sys.argv);
-    
+     
     # Debug settings
     if (parameters['max_training_size'] is not None):
         print("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!");
@@ -37,20 +37,16 @@ if (__name__ == '__main__'):
     dataset = ge_dataset.GeneratedExpressionDataset(parameters['dataset'], 
                                                     add_x=parameters['find_x'],
                                                     single_digit=parameters['single_digit'], 
-                                                    single_class=parameters['single_class']);
+                                                    single_class=parameters['single_class'],
+                                                    preload=parameters['preload'],
+                                                    test_batch_size=parameters['test_batch_size']);
     rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
                                      lstm=parameters['lstm'], single_digit=parameters['single_digit']);
-    
-    # Prepare data
-    if (parameters['single_digit']):
-        targets = dataset.train_labels;
-    else:
-        targets = dataset.train_targets;
     
     ### From here the experiment should be the same every time
     
     # Create batches
-    batches, repetition_size = create_batches(dataset.train, parameters);
+    batches, repetition_size = create_batches(dataset, parameters);
     # Set up statistics
     start = time.clock();
     key_indices = {k: i for (i,k) in enumerate(dataset.operators)};

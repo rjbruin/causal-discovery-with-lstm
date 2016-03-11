@@ -34,7 +34,9 @@ argumentProcessors = {'dataset': processString,
                       'max_training_size': processFalseOrInt,
                       'test_interval': processFalseOrInt,
                       'name': processString,
-                      'save_models': processBool
+                      'save_models': processBool,
+                      'preload': processBool,
+                      'test_batch_size': processInt
                       }
 defaults = {'dataset': './data/expressions_positive_integer_answer_shallow',
             'single_digit': False,
@@ -46,7 +48,9 @@ defaults = {'dataset': './data/expressions_positive_integer_answer_shallow',
             'lstm': True,
             'max_training_size': None,
             'test_interval': 100000,
-            'save_models': True
+            'save_models': True,
+            'preload': True,
+            'test_batch_size': 100000
             }
 
 def processKeyValue(key,value):

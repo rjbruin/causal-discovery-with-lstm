@@ -8,9 +8,10 @@ import numpy as np;
 
 class GeneratedExpressionDataset(object):
     
-    def __init__(self, sourceFolder, preload=True, add_x=False, single_digit=False, single_class=False, balanced=False):
+    def __init__(self, sourceFolder, preload=True, add_x=False, single_digit=False, single_class=False, balanced=False, test_batch_size=10000):
         self.train_source = sourceFolder + '/train.txt';
         self.test_source = sourceFolder + '/test.txt';
+        self.test_batch_size = test_batch_size;
         
         self.processor = self.processSample;
         if (add_x):
@@ -50,31 +51,70 @@ class GeneratedExpressionDataset(object):
         self.EOS_symbol_index = self.data_dim-1;
         
         if (preload):
-            self.preloaded = self.load();
+            self.preloaded = self.preload();
             if (not self.preloaded):
                 print("WARNING! PRELOADING DATASET WAS ATTEMPTED BUT FAILED!");
         else:
             self.preloaded = False;
+            # Set test batch settings
+            self.test_location = 0;
+            self.test_done = False;
+        # Get basic statistics from dataset
+        self.train_length = self.filelength(self.train_source);
+        self.test_length = self.filelength(self.test_source);
     
-    def load(self):
+    def preload(self):
         try:
-            self.train, self.train_targets, self.train_labels, self.train_expressions = self.loadFile(self.train_source, self.processor);
-            self.test, self.test_targets, self.test_labels, self.test_expressions = self.loadFile(self.test_source, self.processor);
+            self.train, self.train_targets, self.train_labels, self.train_expressions = self.loadFile(self.train_source);
+            self.test, self.test_targets, self.test_labels, self.test_expressions = self.loadFile(self.test_source);
         except Exception:
             return False;
         return True;
     
-    def loadFile(self, source, processor):
-        # Importing data
-        f_data = open(source,'r');
+    def filelength(self, source):
+        f = open(source, 'r');
+        length = 0;
+        line = f.readline();
+        while (line != ""):
+            length += 1;
+            line = f.readline();
+        
+        return length;
+    
+    def load(self, source, start, end):
+        f = open(source,'r');
+        
+        # Prepare data storage 
         data = [];
         targets = [];
         labels = [];
         expressions = [];
-        for line in f_data:
-            data, targets, labels, expressions = processor(line, data, targets, labels, expressions);
         
+        # Skip all lines until start of batch
+        i = 0;
+        for i in range(start+1):
+            line = f.readline();
+        
+        # Read in lines until end
+        while i != end:
+            data, targets, labels, expressions = self.processor(line, data, targets, labels, expressions);
+            
+            line = f.readline();
+            i += 1;
+            # Skip empty lines and restart file at the end (if the end of file
+            # is not also end of reading
+            if (line == "" and i != end):
+                # http://stackoverflow.com/questions/3906137/why-cant-i-call-read-twice-on-an-open-file
+                f.seek(0);
+                i = 0;
+                line = f.readline();
+        
+        f.close();
         return np.array(data), np.array(targets), np.array(labels), expressions;
+    
+    def loadFile(self, source):
+        file_length = self.filelength(source);
+        return self.load(source, 0, file_length);
     
     def processSample(self, line, data, targets, labels, expressions):
         # Get expression from line
@@ -180,8 +220,37 @@ class GeneratedExpressionDataset(object):
         
         return data, targets, labels, expressions;
     
-#     def batch(self):
-#         
+    def batch(self, indices):
+        if (self.preloaded):
+            return self.train[indices], self.train_labels[indices], self.train_targets[indices], self.train_expressions[indices];
+        else:
+            start = indices[0];
+            end = indices[-1]+1;
+            return self.load(self.train_source, start, end);
+    
+    def get_test_batch(self):
+        """
+        Query this method for any remaining test batches.
+        """
+        if (self.preloaded):
+            return self.test, self.test_labels, self.test_targets, self.test_expressions;
+        else:
+            if (self.test_done):
+                # Reset testing settings
+                self.test_done = False;
+                self.test_location = 0;
+                return False;
+            else:
+                self.test_location += self.test_batch_size;
+                batch_size = self.test_batch_size;
+                if (self.test_location >= self.test_length):
+                    batch_size = self.test_length % self.test_batch_size;
+                    self.test_location = self.test_length;
+                    self.test_done = True;
+                return self.load(self.test_source, self.test_location - batch_size, self.test_location);
+    
+    def all(self):
+        return self.train, self.train_labels, self.train_targets;
     
     @staticmethod
     def operator_scores(expression, correct, operators, key_indices, op_scores):

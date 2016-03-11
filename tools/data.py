@@ -4,11 +4,11 @@ Created on 4 mrt. 2016
 @author: Robert-Jan
 '''
 
-def create_batches(data, parameters):
+def create_batches(dataset, parameters):
     if (parameters['max_training_size'] is not None):
         repetition_size = parameters['max_training_size'];
     else:
-        repetition_size = len(data);
+        repetition_size = dataset.data_size;
     indices_to_use = repetition_size * parameters['repetitions'];
     if (parameters['test_interval'] is not None):    
         batches = [];
