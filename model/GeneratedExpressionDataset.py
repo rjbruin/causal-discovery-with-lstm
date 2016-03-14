@@ -98,9 +98,9 @@ class GeneratedExpressionDataset(object):
         # Read in lines until end
         while i != end:
             data, targets, labels, expressions, count = self.processor(line, data, targets, labels, expressions);
+            i += 1;
             
             line = f.readline();
-            i += 1;
             # Skip empty lines and restart file at the end (if the end of file
             # is not also end of reading
             if (line == "" and i != end):
