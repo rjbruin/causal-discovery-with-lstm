@@ -86,7 +86,7 @@ class RecurrentNeuralNetwork(object):
         # digit at each step as X
         sentence_size = Y_1.shape[0];
         total_size = sentence_size + label.shape[0];
-        if (not single_digit and T.lt(sentence_size,total_size)):
+        if (not single_digit and T.lt(sentence_size,total_size) == 1):
             # Add predictions until EOS to Y
             [Ys, _], _ = theano.scan(fn=predict_function,
                                      # Inputs the last hidden layer and the last predicted symbol
@@ -96,12 +96,12 @@ class RecurrentNeuralNetwork(object):
                                      n_steps=24)
             # After predicting digits, check if we predicted the right amount of digits
             unfinished_sentence = T.join(0,Y_1,Ys);
-            sentence_size = unfinished_sentence.shape[0];
+            full_sentence_size = unfinished_sentence.shape[0];
             predicted_size = Ys.shape[0];
             
-            if (T.lt(sentence_size,total_size) == 1):
+            if (T.lt(full_sentence_size,total_size) == 1):
                 # We did not predict enough digits - add zero scores
-                zero_scores = T.zeros((total_size - sentence_size,self.output_dim));
+                zero_scores = T.zeros((total_size - full_sentence_size,self.output_dim));
                 sentence = T.join(0,Y_1,Ys,zero_scores);
                 branch = T.constant(1);
             else:
@@ -109,13 +109,23 @@ class RecurrentNeuralNetwork(object):
                 # The algorithm will be punished as the final symbol should be EOS
                 sentence = unfinished_sentence[:total_size];
                 branch = T.constant(0);
-            right_hand = sentence[-label.shape[0]:]
+        else:
+            # DEBUG
+            predicted_size = T.constant(1);
+            Ys = Y_1;
+            unfinished_sentence = Y_1;
+            branch = T.constant(1);
+            # KEEP THIS
+            sentence = Y_1;
+        
          
         if (single_digit):
             # We only predict on the final Y because for now we only predict the final digit in the expression
             prediction = T.argmax(Y_1[-1]);
             error = T.nnet.categorical_crossentropy(Y_1[-1].reshape((1,self.output_dim)), label)[0];
         else:
+            right_hand = sentence[-label.shape[0]:];
+            
             # We predict the final n symbols (all symbols predicted as output from input '=')
             prediction = T.argmax(right_hand, axis=1);
             error = T.mean(T.nnet.categorical_crossentropy(right_hand, label));
@@ -224,7 +234,7 @@ class RecurrentNeuralNetwork(object):
                 prediction = self.predict(data);
             else:
                 prediction, right_hand_size, full_right_hand, branch, total_size, sentence_size, sentence, unf_sentence, label_size = self.predict(data,label);
-                if (label.shape[0] != label_size):
+                if (label.shape[0] != label_size or label.shape[0] != right_hand_size):
                     _ = 2;
             
             # Statistics
@@ -244,7 +254,7 @@ class RecurrentNeuralNetwork(object):
                     f = open('temp_results.txt','a');
                     f.write("%d: full = %s / pred = %s / labels = %s / correct = %s / right_hand = %d / branch = %d / total = %d / pred_size = %d / sentence = %s / unf_sent = %s\n" % (j, str(full_right_hand), str(prediction), str(test_labels[j]), 
                                                                    str(np.array_equal(prediction,np.argmax(test_targets[j],axis=1))),
-                                                                   int(right_hand_size), int(branch), int(total_size), int(prediction_size),
+                                                                   int(right_hand_size), int(branch), int(total_size), int(sentence_size),
                                                                    str(sentence), str(unf_sentence)));
                     f.close();
                 elif (j == 1000):
