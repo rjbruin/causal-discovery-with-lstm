@@ -97,7 +97,7 @@ class GeneratedExpressionDataset(object):
         
         # Read in lines until end
         while i != end:
-            data, targets, labels, expressions = self.processor(line, data, targets, labels, expressions);
+            data, targets, labels, expressions, count = self.processor(line, data, targets, labels, expressions);
             
             line = f.readline();
             i += 1;
@@ -134,7 +134,7 @@ class GeneratedExpressionDataset(object):
         labels.append(self.oneHot[right_hand]);
         expressions.append(expression);
         
-        return data, targets, labels, expressions;
+        return data, targets, labels, expressions, 1;
     
     def processSampleSingleClass(self, line, data, targets, labels, expressions):
         # Get expression from line
@@ -145,7 +145,7 @@ class GeneratedExpressionDataset(object):
         if (right_hand >= self.digits_range):
             # If the right hand size has a value that we cannot encode, skip 
             # the sample
-            return data, targets, labels, expressions;
+            return data, targets, labels, expressions, 0;
         # Generate encodings for data and target
         X = np.zeros((len(left_hand),self.data_dim));
         for i, literal in enumerate(left_hand):
@@ -159,7 +159,7 @@ class GeneratedExpressionDataset(object):
         labels.append(self.oneHot[str(right_hand)]);
         expressions.append(expression);
         
-        return data, targets, labels, expressions;
+        return data, targets, labels, expressions, 1;
     
     def processSampleWithX(self, line, data, targets, labels, expressions):
         # Get expression from line
@@ -180,7 +180,7 @@ class GeneratedExpressionDataset(object):
             labels.append(self.oneHot[expression[i]]);
             expressions.append(expression);
         
-        return data, targets, labels, expressions;
+        return data, targets, labels, expressions, i+1;
     
     def processSampleMultiDigit(self, line, data, targets, labels, expressions):
         expression = line.strip();
@@ -205,7 +205,7 @@ class GeneratedExpressionDataset(object):
         targets.append(np.array(target));
         expressions.append(expression);
         
-        return data, targets, labels, expressions;
+        return data, targets, labels, expressions, 1;
     
     def processSampleBalanced(self, line, data, targets, labels, expressions):
         expression = line.strip();
@@ -218,7 +218,7 @@ class GeneratedExpressionDataset(object):
 #         targets.append(np.array(target));
 #         expressions.append(expression);
         
-        return data, targets, labels, expressions;
+        return data, targets, labels, expressions, 1;
     
     def batch(self, indices):
         if (self.preloaded):
