@@ -84,37 +84,38 @@ class RecurrentNeuralNetwork(object):
         # If X is shorter than Y we are testing and thus need to predict
         # multiple digits at the end by inputting the previously predicted
         # digit at each step as X
-        sentence_size = Y_1.shape[0];
+        sentence_size = X.shape[0];
         total_size = sentence_size + label.shape[0];
-        if (not single_digit and T.lt(sentence_size,total_size) == 1):
+        if (not single_digit):
             # Add predictions until EOS to Y
+            # The maximum number of digits to predict is:
+            n_max_digits = 24;
             [Ys, _], _ = theano.scan(fn=predict_function,
                                      # Inputs the last hidden layer and the last predicted symbol
                                      outputs_info=({'initial': Y_1[-1], 'taps': [-1]},
                                                    {'initial': hidden[-1], 'taps': [-1]}),
                                      non_sequences=EOS_symbol,
-                                     n_steps=24)
+                                     n_steps=n_max_digits)
             # After predicting digits, check if we predicted the right amount of digits
-            unfinished_sentence = T.join(0,Y_1,Ys);
-            full_sentence_size = unfinished_sentence.shape[0];
-            predicted_size = Ys.shape[0];
+            unfinished_sentence = T.join(0,Y_1,Ys); # DEBUG
+            #full_sentence_size = unfinished_sentence.shape[0]; # DEBUG
+            predicted_size = Ys.shape[0]; # DEBUG
             
-            if (T.lt(full_sentence_size,total_size) == 1):
-                # We did not predict enough digits - add zero scores
-                zero_scores = T.zeros((total_size - full_sentence_size,self.output_dim));
-                sentence = T.join(0,Y_1,Ys,zero_scores);
-                branch = T.constant(1);
-            else:
-                # We predicted too many digits - throw away digits we don't need
-                # The algorithm will be punished as the final symbol should be EOS
-                sentence = unfinished_sentence[:total_size];
-                branch = T.constant(0);
+            # Add zero scores to fill up the answer to the maximum size
+            zero_scores = T.zeros((n_max_digits - Ys.shape[0],self.output_dim));
+            full_right_hand = T.join(0,Ys,zero_scores);
+            
+            # Because we added zeros to pad the answer to be the maximum length
+            # we predicted too many digits - throw away digits we don't need
+            # The algorithm will be punished as the final symbol should be EOS
+            right_hand = full_right_hand[:label.shape[0]];
+            sentence = T.join(0,Y_1,right_hand);
+            sentence = sentence[:total_size];
         else:
             # DEBUG
             predicted_size = T.constant(1);
             Ys = Y_1;
             unfinished_sentence = Y_1;
-            branch = T.constant(2);
             # KEEP THIS
             sentence = Y_1;
         
@@ -124,8 +125,6 @@ class RecurrentNeuralNetwork(object):
             prediction = T.argmax(Y_1[-1]);
             error = T.nnet.categorical_crossentropy(Y_1[-1].reshape((1,self.output_dim)), label)[0];
         else:
-            right_hand = sentence[-label.shape[0]:];
-            
             # We predict the final n symbols (all symbols predicted as output from input '=')
             prediction = T.argmax(right_hand, axis=1);
             error = T.mean(T.nnet.categorical_crossentropy(right_hand, label));
@@ -138,9 +137,10 @@ class RecurrentNeuralNetwork(object):
             self.predict = theano.function([X], prediction);
         else:
             self.predict = theano.function([X, label], [prediction, predicted_size, T.argmax(Ys,axis=1), 
-                                                        branch, total_size, sentence_size, T.argmax(sentence,axis=1),
+                                                        total_size, sentence_size, T.argmax(sentence,axis=1),
                                                         T.argmax(unfinished_sentence,axis=1), label.shape[0],
-                                                        T.argmax(Y_1,axis=1), T.argmax(Ys,axis=1), T.lt(sentence_size,total_size)]);
+                                                        T.argmax(Y_1,axis=1), T.argmax(Ys,axis=1), T.lt(sentence_size,total_size),
+                                                        T.argmax(full_right_hand,axis=1)]);
         
         # Stochastic Gradient Descent
         learning_rate = T.dscalar('learning_rate');
@@ -234,13 +234,13 @@ class RecurrentNeuralNetwork(object):
             if (self.single_digit):
                 prediction = self.predict(data);
             else:
-                prediction, right_hand_size, full_right_hand, branch, total_size, sentence_size, sentence, unf_sentence, label_size, Y_1, Ys, lt = self.predict(data,label);
-                if (label.shape[0] != label_size or label.shape[0] != right_hand_size):
+                prediction, right_hand_size, predicted_right_hand, total_size, sentence_size, sentence, unf_sentence, label_size, Y_1, Ys, lt, full_right_hand = self.predict(data,label);
+                if (full_right_hand.shape[0] != 24):
+                    _ = 1;
+                if (label.shape[0] != label_size):
                     _ = 2;
-                if (branch == 1):
+                if (label.shape[0] != right_hand_size):
                     _ = 3;
-                if (branch == 0):
-                    _ = 4;
             
             # Statistics
             if (self.single_digit):
@@ -257,9 +257,10 @@ class RecurrentNeuralNetwork(object):
                 # TEMP
                 if (j < 1000):
                     f = open('temp_results.txt','a');
-                    f.write("%d: full = %s / pred = %s / labels = %s / correct = %s / right_hand = %d / branch = %d / total = %d / pred_size = %d / sentence = %s / unf_sent = %s\n" % (j, str(full_right_hand), str(prediction), str(test_labels[j]), 
+                    f.write("%d: pred = %s / full = %s / final_pred = %s / labels = %s / correct = %s / right_hand = %d / total = %d / pred_size = %d / sentence = %s / unf_sent = %s\n" % (j,
+                                                                   str(predicted_right_hand), str(full_right_hand), str(prediction), str(test_labels[j]), 
                                                                    str(np.array_equal(prediction,np.argmax(test_targets[j],axis=1))),
-                                                                   int(right_hand_size), int(branch), int(total_size), int(sentence_size),
+                                                                   int(right_hand_size), int(total_size), int(sentence_size),
                                                                    str(sentence), str(unf_sentence)));
                     f.close();
                 elif (j == 1000):
