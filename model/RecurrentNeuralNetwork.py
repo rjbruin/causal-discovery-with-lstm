@@ -114,7 +114,7 @@ class RecurrentNeuralNetwork(object):
             predicted_size = T.constant(1);
             Ys = Y_1;
             unfinished_sentence = Y_1;
-            branch = T.constant(1);
+            branch = T.constant(2);
             # KEEP THIS
             sentence = Y_1;
         
@@ -139,7 +139,8 @@ class RecurrentNeuralNetwork(object):
         else:
             self.predict = theano.function([X, label], [prediction, predicted_size, T.argmax(Ys,axis=1), 
                                                         branch, total_size, sentence_size, T.argmax(sentence,axis=1),
-                                                        T.argmax(unfinished_sentence,axis=1), label.shape[0]]);
+                                                        T.argmax(unfinished_sentence,axis=1), label.shape[0],
+                                                        T.argmax(Y_1,axis=1), T.argmax(Ys,axis=1), T.lt(sentence_size,total_size)]);
         
         # Stochastic Gradient Descent
         learning_rate = T.dscalar('learning_rate');
@@ -233,9 +234,13 @@ class RecurrentNeuralNetwork(object):
             if (self.single_digit):
                 prediction = self.predict(data);
             else:
-                prediction, right_hand_size, full_right_hand, branch, total_size, sentence_size, sentence, unf_sentence, label_size = self.predict(data,label);
+                prediction, right_hand_size, full_right_hand, branch, total_size, sentence_size, sentence, unf_sentence, label_size, Y_1, Ys, lt = self.predict(data,label);
                 if (label.shape[0] != label_size or label.shape[0] != right_hand_size):
                     _ = 2;
+                if (branch == 1):
+                    _ = 3;
+                if (branch == 0):
+                    _ = 4;
             
             # Statistics
             if (self.single_digit):
