@@ -132,7 +132,7 @@ class GeneratedExpressionDataset(object):
         # Set training variables
         data.append(X);
         targets.append(np.array([target]));
-        labels.append(self.oneHot[right_hand]);
+        labels.append(np.array(self.oneHot[right_hand]));
         expressions.append(expression);
         
         return data, targets, labels, expressions, 1;
@@ -202,8 +202,8 @@ class GeneratedExpressionDataset(object):
         
         # Append data
         data.append(X);
-        labels.append(right_hand_digits);
-        targets.append(np.array(target));
+        labels.append(np.array(right_hand_digits));
+        targets.append(target);
         expressions.append(expression);
         
         return data, targets, labels, expressions, 1;

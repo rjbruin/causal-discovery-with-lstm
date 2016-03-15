@@ -235,10 +235,9 @@ class RecurrentNeuralNetwork(object):
                 data = test_data[j];
                 
                 if (self.single_digit):
-                    label = test_labels;
+                    label = test_labels[j];
                 else:
-                    label = test_targets;
-                label = np.array(label);
+                    label = test_targets[j];
                 
                 if (self.single_digit):
                     prediction = self.predict(data);
