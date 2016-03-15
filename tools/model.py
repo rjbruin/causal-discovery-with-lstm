@@ -25,7 +25,7 @@ def train(model, dataset, batches, repetition_size, parameters, raw_results_file
             append_to_file(raw_results_filepath, "Batch %d of %d (repetition %d) (samples processed after batch: %d)" % (b+1,len(batches),current_repetition,(current_repetition-1)*repetition_size + end));
             
             # Get the part of the dataset for this batch
-            batch_train, batch_train_targets, batch_train_labels, _ = dataset.batch(batch);
+            batch_train, batch_train_labels, batch_train_targets, _ = dataset.batch(batch);
             if (targets):
                 batch_train_labels = batch_train_targets;
             

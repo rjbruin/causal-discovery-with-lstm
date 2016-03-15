@@ -56,9 +56,10 @@ class GeneratedExpressionDataset(object):
                 print("WARNING! PRELOADING DATASET WAS ATTEMPTED BUT FAILED!");
         else:
             self.preloaded = False;
-            # Set test batch settings
-            self.test_location = 0;
-            self.test_done = False;
+            
+        # Set test batch settings
+        self.test_location = 0;
+        self.test_done = False;
         # Get basic statistics from dataset
         self.train_length = self.filelength(self.train_source);
         self.test_length = self.filelength(self.test_source);
@@ -110,7 +111,7 @@ class GeneratedExpressionDataset(object):
                 line = f.readline();
         
         f.close();
-        return np.array(data), np.array(targets), np.array(labels), expressions;
+        return np.array(data), np.array(targets), np.array(labels), np.array(expressions);
     
     def loadFile(self, source):
         file_length = self.filelength(source);
@@ -232,22 +233,21 @@ class GeneratedExpressionDataset(object):
         """
         Query this method for any remaining test batches.
         """
+        if (self.test_done):
+            self.test_done = False;
+            self.test_location = 0;
+            return False;
         if (self.preloaded):
+            self.test_done = True;
             return self.test, self.test_labels, self.test_targets, self.test_expressions;
         else:
-            if (self.test_done):
-                # Reset testing settings
-                self.test_done = False;
-                self.test_location = 0;
-                return False;
-            else:
-                self.test_location += self.test_batch_size;
-                batch_size = self.test_batch_size;
-                if (self.test_location >= self.test_length):
-                    batch_size = self.test_length % self.test_batch_size;
-                    self.test_location = self.test_length;
-                    self.test_done = True;
-                return self.load(self.test_source, self.test_location - batch_size, self.test_location);
+            self.test_location += self.test_batch_size;
+            batch_size = self.test_batch_size;
+            if (self.test_location >= self.test_length):
+                batch_size = self.test_length % self.test_batch_size;
+                self.test_location = self.test_length;
+                self.test_done = True;
+            return self.load(self.test_source, self.test_location - batch_size, self.test_location);
     
     def all(self):
         return self.train, self.train_labels, self.train_targets;
