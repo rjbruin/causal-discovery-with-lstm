@@ -11,6 +11,9 @@ from tools.file import append_to_file;
 from tools.file import save_to_pickle;
 
 def train(model, dataset, batches, repetition_size, parameters, raw_results_filepath, key_indices, exp_name, start_time, saveModels=True, targets=False):
+    # Print settings headers to raw results file
+    append_to_file(raw_results_filepath, str(parameters) + "\n\n")
+    
     current_repetition = 1;
     if (parameters['test_interval'] is not None):
         for b, (begin, end) in enumerate(batches):
