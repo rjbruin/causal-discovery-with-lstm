@@ -1,0 +1,1 @@
+Same remark as for broken RNN models, though the drop-off occurred on batch 3 here. See the README there.
