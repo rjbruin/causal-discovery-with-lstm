@@ -1,0 +1,219 @@
+Batch 1 of 44 (repetition 1) (samples processed after batch: 100000)
+Duration: 5191 seconds
+Score: 4.06 percent
+Digit-based score: 48.46 percent
+
+Batch 2 of 44 (repetition 1) (samples processed after batch: 200000)
+Duration: 10294 seconds
+Score: 15.77 percent
+Digit-based score: 49.58 percent
+
+Batch 3 of 44 (repetition 1) (samples processed after batch: 400000)
+Duration: 15645 seconds
+Score: 16.43 percent
+Digit-based score: 52.90 percent
+
+Batch 4 of 44 (repetition 1) (samples processed after batch: 500000)
+Duration: 20765 seconds
+Score: 17.95 percent
+Digit-based score: 54.87 percent
+
+Batch 5 of 44 (repetition 1) (samples processed after batch: 700000)
+Duration: 26130 seconds
+Score: 18.34 percent
+Digit-based score: 56.14 percent
+
+Batch 6 of 44 (repetition 1) (samples processed after batch: 800000)
+Duration: 31249 seconds
+Score: 19.04 percent
+Digit-based score: 57.73 percent
+
+Batch 7 of 44 (repetition 1) (samples processed after batch: 1000000)
+Duration: 36613 seconds
+Score: 21.88 percent
+Digit-based score: 58.59 percent
+
+Batch 8 of 44 (repetition 1) (samples processed after batch: 1100000)
+Duration: 41733 seconds
+Score: 25.78 percent
+Digit-based score: 60.21 percent
+
+Batch 9 of 44 (repetition 1) (samples processed after batch: 1300000)
+Duration: 47097 seconds
+Score: 30.05 percent
+Digit-based score: 63.87 percent
+
+Batch 10 of 44 (repetition 1) (samples processed after batch: 1400000)
+Duration: 52216 seconds
+Score: 26.05 percent
+Digit-based score: 60.13 percent
+
+Batch 11 of 44 (repetition 1) (samples processed after batch: 1600000)
+Duration: 57583 seconds
+Score: 33.04 percent
+Digit-based score: 65.19 percent
+
+Batch 12 of 44 (repetition 1) (samples processed after batch: 1800000)
+Duration: 62947 seconds
+Score: 40.64 percent
+Digit-based score: 69.91 percent
+
+Batch 13 of 44 (repetition 1) (samples processed after batch: 1900000)
+Duration: 68068 seconds
+Score: 34.18 percent
+Digit-based score: 66.86 percent
+
+Batch 14 of 44 (repetition 1) (samples processed after batch: 2100000)
+Duration: 73431 seconds
+Score: 44.05 percent
+Digit-based score: 70.11 percent
+
+Batch 15 of 44 (repetition 1) (samples processed after batch: 2200000)
+Duration: 78557 seconds
+Score: 45.40 percent
+Digit-based score: 72.57 percent
+
+Batch 16 of 44 (repetition 1) (samples processed after batch: 2400000)
+Duration: 83921 seconds
+Score: 43.61 percent
+Digit-based score: 72.13 percent
+
+Batch 17 of 44 (repetition 1) (samples processed after batch: 2500000)
+Duration: 89040 seconds
+Score: 47.03 percent
+Digit-based score: 73.10 percent
+
+Batch 18 of 44 (repetition 1) (samples processed after batch: 2700000)
+Duration: 94404 seconds
+Score: 48.24 percent
+Digit-based score: 73.43 percent
+
+Batch 19 of 44 (repetition 1) (samples processed after batch: 2800000)
+Duration: 99524 seconds
+Score: 47.57 percent
+Digit-based score: 74.00 percent
+
+Batch 20 of 44 (repetition 1) (samples processed after batch: 3000000)
+Duration: 104889 seconds
+Score: 51.58 percent
+Digit-based score: 75.15 percent
+
+Batch 21 of 44 (repetition 1) (samples processed after batch: 3200000)
+Duration: 110256 seconds
+Score: 51.02 percent
+Digit-based score: 75.24 percent
+
+Batch 22 of 44 (repetition 1) (samples processed after batch: 3300000)
+Duration: 115375 seconds
+Score: 56.76 percent
+Digit-based score: 78.12 percent
+
+Batch 23 of 44 (repetition 1) (samples processed after batch: 3500000)
+Duration: 120738 seconds
+Score: 54.95 percent
+Digit-based score: 77.40 percent
+
+Batch 24 of 44 (repetition 1) (samples processed after batch: 3600000)
+Duration: 125857 seconds
+Score: 51.78 percent
+Digit-based score: 74.97 percent
+
+Batch 25 of 44 (repetition 1) (samples processed after batch: 3800000)
+Duration: 131226 seconds
+Score: 55.57 percent
+Digit-based score: 77.68 percent
+
+Batch 26 of 44 (repetition 1) (samples processed after batch: 3900000)
+Duration: 136345 seconds
+Score: 57.95 percent
+Digit-based score: 78.92 percent
+
+Batch 27 of 44 (repetition 1) (samples processed after batch: 4100000)
+Duration: 141708 seconds
+Score: 55.63 percent
+Digit-based score: 77.09 percent
+
+Batch 28 of 44 (repetition 1) (samples processed after batch: 4200000)
+Duration: 146828 seconds
+Score: 58.38 percent
+Digit-based score: 78.97 percent
+
+Batch 29 of 44 (repetition 1) (samples processed after batch: 4400000)
+Duration: 152192 seconds
+Score: 53.48 percent
+Digit-based score: 76.96 percent
+
+Batch 30 of 44 (repetition 1) (samples processed after batch: 4600000)
+Duration: 157556 seconds
+Score: 61.94 percent
+Digit-based score: 80.89 percent
+
+Batch 31 of 44 (repetition 1) (samples processed after batch: 4700000)
+Duration: 162676 seconds
+Score: 61.63 percent
+Digit-based score: 80.56 percent
+
+Batch 32 of 44 (repetition 1) (samples processed after batch: 4900000)
+Duration: 168040 seconds
+Score: 61.25 percent
+Digit-based score: 80.38 percent
+
+Batch 33 of 44 (repetition 1) (samples processed after batch: 5000000)
+Duration: 173167 seconds
+Score: 59.00 percent
+Digit-based score: 79.56 percent
+
+Batch 34 of 44 (repetition 1) (samples processed after batch: 5200000)
+Duration: 178532 seconds
+Score: 61.76 percent
+Digit-based score: 80.88 percent
+
+Batch 35 of 44 (repetition 1) (samples processed after batch: 5300000)
+Duration: 183657 seconds
+Score: 55.63 percent
+Digit-based score: 78.16 percent
+
+Batch 36 of 44 (repetition 1) (samples processed after batch: 5500000)
+Duration: 189026 seconds
+Score: 60.41 percent
+Digit-based score: 80.62 percent
+
+Batch 37 of 44 (repetition 1) (samples processed after batch: 5600000)
+Duration: 194148 seconds
+Score: 62.57 percent
+Digit-based score: 81.28 percent
+
+Batch 38 of 44 (repetition 1) (samples processed after batch: 5800000)
+Duration: 199517 seconds
+Score: 55.97 percent
+Digit-based score: 78.28 percent
+
+Batch 39 of 44 (repetition 1) (samples processed after batch: 5900000)
+Duration: 204642 seconds
+Score: 64.65 percent
+Digit-based score: 82.14 percent
+
+Batch 40 of 44 (repetition 1) (samples processed after batch: 6100000)
+Duration: 210010 seconds
+Score: 62.37 percent
+Digit-based score: 81.26 percent
+
+Batch 41 of 44 (repetition 1) (samples processed after batch: 6300000)
+Duration: 215385 seconds
+Score: 63.38 percent
+Digit-based score: 81.54 percent
+
+Batch 42 of 44 (repetition 1) (samples processed after batch: 6400000)
+Duration: 220513 seconds
+Score: 59.86 percent
+Digit-based score: 79.88 percent
+
+Batch 43 of 44 (repetition 1) (samples processed after batch: 6600000)
+Duration: 225887 seconds
+Score: 64.59 percent
+Digit-based score: 82.23 percent
+
+Batch 44 of 44 (repetition 1) (samples processed after batch: 6700000)
+Duration: 231011 seconds
+Score: 65.42 percent
+Digit-based score: 82.75 percent

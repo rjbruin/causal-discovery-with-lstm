@@ -1,0 +1,102 @@
+Batch 1 of 17 (repetition 1) (samples processed after batch: 100000)
+Duration: 11886 seconds
+Score: 28.25 percent
+Prediction histogram:   {0: 8074, 1: 10549, 2: 6618, 3: 279, 4: 1021, 5: 0, 6: 2974, 7: 0, 8: 1718, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 2 of 17 (repetition 1) (samples processed after batch: 200000)
+Duration: 23772 seconds
+Score: 33.63 percent
+Prediction histogram:   {0: 16174, 1: 3037, 2: 2096, 3: 517, 4: 783, 5: 4614, 6: 1384, 7: 1262, 8: 1311, 9: 55, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 3 of 17 (repetition 2) (samples processed after batch: 300000)
+Duration: 35642 seconds
+Score: 40.66 percent
+Prediction histogram:   {0: 12991, 1: 2825, 2: 2300, 3: 994, 4: 1334, 5: 4498, 6: 4009, 7: 236, 8: 1434, 9: 612, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 4 of 17 (repetition 2) (samples processed after batch: 400000)
+Duration: 47465 seconds
+Score: 44.88 percent
+Prediction histogram:   {0: 7930, 1: 677, 2: 7889, 3: 5846, 4: 2481, 5: 2782, 6: 953, 7: 497, 8: 1631, 9: 547, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 5 of 17 (repetition 2) (samples processed after batch: 500000)
+Duration: 59313 seconds
+Score: 49.64 percent
+Prediction histogram:   {0: 7311, 1: 4090, 2: 6956, 3: 3895, 4: 2203, 5: 1342, 6: 1486, 7: 476, 8: 2471, 9: 1003, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 6 of 17 (repetition 3) (samples processed after batch: 600000)
+Duration: 71174 seconds
+Score: 53.56 percent
+Prediction histogram:   {0: 9113, 1: 2842, 2: 2393, 3: 3018, 4: 2503, 5: 1431, 6: 2561, 7: 1546, 8: 4127, 9: 1699, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 7 of 17 (repetition 3) (samples processed after batch: 700000)
+Duration: 83028 seconds
+Score: 60.00 percent
+Prediction histogram:   {0: 9305, 1: 5209, 2: 3416, 3: 1127, 4: 2713, 5: 2203, 6: 2171, 7: 1611, 8: 2793, 9: 685, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 8 of 17 (repetition 3) (samples processed after batch: 800000)
+Duration: 94898 seconds
+Score: 74.12 percent
+Prediction histogram:   {0: 8543, 1: 2797, 2: 4012, 3: 1746, 4: 2998, 5: 2023, 6: 2743, 7: 2276, 8: 2101, 9: 1994, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 9 of 17 (repetition 4) (samples processed after batch: 900000)
+Duration: 106776 seconds
+Score: 80.58 percent
+Prediction histogram:   {0: 8737, 1: 4052, 2: 3670, 3: 1829, 4: 2454, 5: 2117, 6: 2914, 7: 1374, 8: 2596, 9: 1490, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 10 of 17 (repetition 4) (samples processed after batch: 1000000)
+Duration: 118646 seconds
+Score: 81.25 percent
+Prediction histogram:   {0: 7919, 1: 2542, 2: 3374, 3: 1669, 4: 3149, 5: 3268, 6: 2854, 7: 1524, 8: 3057, 9: 1877, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 11 of 17 (repetition 4) (samples processed after batch: 1100000)
+Duration: 130507 seconds
+Score: 85.62 percent
+Prediction histogram:   {0: 8267, 1: 2678, 2: 3414, 3: 1809, 4: 3374, 5: 2914, 6: 2767, 7: 1611, 8: 2739, 9: 1660, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 12 of 17 (repetition 5) (samples processed after batch: 1200000)
+Duration: 142392 seconds
+Score: 87.63 percent
+Prediction histogram:   {0: 8328, 1: 2477, 2: 3420, 3: 2537, 4: 3347, 5: 2110, 6: 2727, 7: 1813, 8: 2608, 9: 1866, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 13 of 17 (repetition 5) (samples processed after batch: 1300000)
+Duration: 154260 seconds
+Score: 89.62 percent
+Prediction histogram:   {0: 8434, 1: 2720, 2: 3539, 3: 2459, 4: 3020, 5: 2704, 6: 2962, 7: 1538, 8: 2535, 9: 1322, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 14 of 17 (repetition 5) (samples processed after batch: 1400000)
+Duration: 166129 seconds
+Score: 89.79 percent
+Prediction histogram:   {0: 8479, 1: 2428, 2: 3128, 3: 2049, 4: 2955, 5: 2491, 6: 3103, 7: 2073, 8: 2753, 9: 1774, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 15 of 17 (repetition 6) (samples processed after batch: 1500000)
+Duration: 178015 seconds
+Score: 89.18 percent
+Prediction histogram:   {0: 8289, 1: 2783, 2: 3590, 3: 2110, 4: 2979, 5: 2275, 6: 2903, 7: 1560, 8: 2792, 9: 1952, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 16 of 17 (repetition 6) (samples processed after batch: 1600000)
+Duration: 189892 seconds
+Score: 92.69 percent
+Prediction histogram:   {0: 8328, 1: 2719, 2: 3281, 3: 1945, 4: 3095, 5: 2353, 6: 3050, 7: 1684, 8: 2706, 9: 2072, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+
+Batch 17 of 17 (repetition 7) (samples processed after batch: 1881094)
+Duration: 222759 seconds
+Score: 93.79 percent
+Prediction histogram:   {0: 8367, 1: 2589, 2: 3253, 3: 2051, 4: 3113, 5: 2399, 6: 2947, 7: 1788, 8: 2796, 9: 1930, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+Ground truth histogram: {0: 8309, 1: 2624, 2: 3291, 3: 2268, 4: 3188, 5: 2474, 6: 2882, 7: 1789, 8: 2776, 9: 1632, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0}
+

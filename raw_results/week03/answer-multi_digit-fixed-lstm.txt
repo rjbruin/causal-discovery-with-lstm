@@ -1,0 +1,24 @@
+Batch 1 of 68 (repetition 1) (samples processed after batch: 100000)
+Duration: 16564 seconds
+Score: 16.08 percent
+Digit-based score: 54.11 percent
+
+Batch 2 of 68 (repetition 1) (samples processed after batch: 200000)
+Duration: 33114 seconds
+Score: 21.91 percent
+Digit-based score: 58.66 percent
+
+Batch 3 of 68 (repetition 1) (samples processed after batch: 400000)
+Duration: 50211 seconds
+Score: 31.68 percent
+Digit-based score: 64.38 percent
+
+Batch 4 of 68 (repetition 1) (samples processed after batch: 500000)
+Duration: 66751 seconds
+Score: 40.70 percent
+Digit-based score: 70.19 percent
+
+Batch 5 of 68 (repetition 1) (samples processed after batch: 700000)
+Duration: 83838 seconds
+Score: 45.46 percent
+Digit-based score: 72.01 percent

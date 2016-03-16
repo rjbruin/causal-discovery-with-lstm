@@ -1,0 +1,1 @@
+The single_class experiments run on the shallow dataset cannot be compared to the multi_digit runs on shallow since single_class works by limiting the dataset to only expressions it can encode. Therefore, the single class model has an easier task. Instead, compare the runs on the shallow_100 (which is shallow limited to expression with right hand < 100) dataset.
