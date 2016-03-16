@@ -9,32 +9,36 @@ import numpy as np;
 from tools.statistics import str_statistics;
 from tools.file import append_to_file;
 from tools.file import save_to_pickle;
+from tools.data import get_batch_statistics
 
-def train(model, dataset, batches, repetition_size, parameters, raw_results_filepath, key_indices, exp_name, start_time, saveModels=True, targets=False):
+def train(model, dataset, parameters, raw_results_filepath, key_indices, exp_name, start_time, saveModels=True, targets=False):
     # Print settings headers to raw results file
     append_to_file(raw_results_filepath, str(parameters) + "\n\n")
     
+    # Compute number of batches
+    batch_size, repetition_size, total_iterations_size = get_batch_statistics(dataset, parameters);
+    nrBatches = total_iterations_size / batch_size;
+    
     current_repetition = 1;
     if (parameters['test_interval'] is not None):
-        for b, (begin, end) in enumerate(batches):
-            begin = begin % repetition_size;
-            end = end % repetition_size;
-            batch = range(begin, end);
-            if (end <= begin):
-                batch = range(begin,repetition_size) + range(end);
+        for b in range(nrBatches):
+            # Increase repetition counter if the batch will wrap around the dataset
+            if (dataset.locations[dataset.TRAIN] + batch_size > dataset.lengths[dataset.TRAIN]):
                 current_repetition += 1;
             
-            print("Batch %d of %d (repetition %d) (samples processed after batch: %d)" % (b+1,len(batches),current_repetition,(current_repetition-1)*repetition_size + end));
-            append_to_file(raw_results_filepath, "Batch %d of %d (repetition %d) (samples processed after batch: %d)" % (b+1,len(batches),current_repetition,(current_repetition-1)*repetition_size + end));
+            # Print progress and save to raw results file
+            progress = "Batch %d of %d (repetition %d) (samples processed after batch: %d)" % (b+1,nrBatches,current_repetition,(b+1)*batch_size);
+            print(progress);
+            append_to_file(raw_results_filepath, progress);
             
             # Get the part of the dataset for this batch
-            batch_train, batch_train_labels, batch_train_targets, _ = dataset.batch(batch);
+            batch_train, batch_train_targets, batch_train_labels, _ = dataset.batch(batch_size);
             if (targets):
                 batch_train_labels = batch_train_targets;
             
             # Train 
             model.train(batch_train, batch_train_labels, parameters['learning_rate']);
-            if (b != len(batches)-1):
+            if (b != nrBatches-1):
                 # Intermediate testing if this was not the last iteration of training
                 test_and_save(model, dataset, parameters, raw_results_filepath, key_indices, start_time);
                 # Save weights to pickles
@@ -43,13 +47,13 @@ def train(model, dataset, batches, repetition_size, parameters, raw_results_file
                     save_to_pickle('saved_models/%s_%d.model' % (exp_name, b), saveVars, settings={'test': 'True'});
                     
     else:
-        batch_train, batch_train_labels, batch_train_targets, _ = dataset.all(batch);
+        batch_train, batch_train_targets, batch_train_labels, _ = dataset.all();
         if (targets):
             batch_train_labels = batch_train_targets;
         model.train(batch_train[np.array(range(repetition_size))], batch_train_labels[np.array(range(repetition_size))], parameters['learning_rate']);
 
 def test_and_save(model, dataset, parameters, raw_results_filepath, key_indices, start_time, show_prediction_conf_matrix=False):
-    stats = model.test(dataset, key_indices)
+    stats = model.test(dataset, key_indices);
     if (parameters['single_digit']):
         score, prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, _ = stats;
         if (show_prediction_conf_matrix):

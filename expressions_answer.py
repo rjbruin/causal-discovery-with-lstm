@@ -12,7 +12,6 @@ import model.GeneratedExpressionDataset as ge_dataset;
 
 from tools.file import save_to_pickle;
 from tools.arguments import processCommandLineArguments;
-from tools.data import create_batches;
 from tools.model import train, test_and_save;
 
 #theano.config.mode = 'FAST_COMPILE'
@@ -45,15 +44,13 @@ if (__name__ == '__main__'):
     
     ### From here the experiment should be the same every time
     
-    # Create batches
-    batches, repetition_size = create_batches(dataset, parameters);
     # Set up statistics
     start = time.clock();
     key_indices = {k: i for (i,k) in enumerate(dataset.operators)};
     # Train
-    train(rnn, dataset, batches, repetition_size, parameters, raw_results_filepath, key_indices, name, start, saveModels=saveModels, targets=not parameters['single_digit']);
+    train(rnn, dataset, parameters, raw_results_filepath, key_indices, name, start, saveModels=saveModels, targets=not parameters['single_digit']);
     # Final test
-    test_and_save(rnn, dataset, dataset.test, dataset.test_targets, dataset.test_labels, parameters, raw_results_filepath, key_indices, start, show_prediction_conf_matrix=False);
+    test_and_save(rnn, dataset, parameters, raw_results_filepath, key_indices, start, show_prediction_conf_matrix=False);
     # Save weights to pickles
     if (saveModels):
         saveVars = rnn.vars.items();

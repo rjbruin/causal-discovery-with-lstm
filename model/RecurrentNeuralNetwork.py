@@ -203,7 +203,7 @@ class RecurrentNeuralNetwork(object):
         """
         print("Testing...");
         
-        total = dataset.test_length;
+        total = dataset.lengths[dataset.TEST];
         printing_interval = 1000;
         if (max_testing_size is not None):
             total = max_testing_size;
@@ -228,9 +228,9 @@ class RecurrentNeuralNetwork(object):
         # Predict
         batch = dataset.get_test_batch();
         while (batch != False):
-            test_data, test_labels, test_targets, test_expressions = batch;
+            test_data, test_targets, test_labels, test_expressions = batch;
             for j in range(len(test_data)):
-                if (j % printing_interval == 0):
+                if (prediction_size % printing_interval == 0):
                     print("# %d / %d" % (prediction_size, total));
                 data = test_data[j];
                 
