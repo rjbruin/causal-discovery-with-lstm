@@ -1,0 +1,1 @@
+LSTM, multi_digit, deep - otherwise default.
