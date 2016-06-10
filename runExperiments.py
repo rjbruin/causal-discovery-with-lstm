@@ -7,7 +7,7 @@ Created on 16 feb. 2016
 import subprocess;
 from subprocess import PIPE, STDOUT;
 import os, sys;
-import json;
+import json, time;
 
 if __name__ == '__main__':
     experiments_file = 'choose';
@@ -21,16 +21,18 @@ if __name__ == '__main__':
     f.close();
     
     # Check if values can be stored
+    experiment_outputPaths = [];
     for exp in experiments:
         name = exp['name'];
-        outputPath = './raw_results/' + name + '.txt';
+        outputPath = './raw_results/%s-%s.txt' % (name, time.strftime("%d-%m-%Y_%H-%M-%S"));
         # http://stackoverflow.com/questions/273192/in-python-check-if-a-directory-exists-and-create-it-if-necessary
         if (os.path.exists(outputPath)):
-            raise ValueError("Experiment already exists!");
+            name = name + '-';
+        experiment_outputPaths.append(outputPath);
     
     # Run experiments    
-    for exp in experiments:
-        outputPath = './raw_results/' + name + '.txt';
+    for i,exp in enumerate(experiments):
+        outputPath = experiment_outputPaths[i];
         name = exp['name'];
         args = ['python',exp['script']];
         for key,value in exp.items():
