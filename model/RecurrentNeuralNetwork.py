@@ -18,7 +18,7 @@ class RecurrentNeuralNetwork(object):
 
     def __init__(self, data_dim, hidden_dim, output_dim, lstm=False, weight_values={}, single_digit=True, EOS_symbol_index=None):
         '''
-        Constructor
+        Initialize all Theano models.
         '''
         self.single_digit = single_digit;
         
