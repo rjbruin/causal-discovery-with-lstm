@@ -50,6 +50,7 @@ class RecurrentNeuralNetwork(object):
             varSettings.append(('XWo',self.data_dim,self.hidden_dim));
             varSettings.append(('hWY',self.hidden_dim,self.output_dim));
         
+        # Contruct variables
         self.vars = {};
         for (varName,dim1,dim2) in varSettings:
             # Get value for shared variable from constructor if present
@@ -84,9 +85,18 @@ class RecurrentNeuralNetwork(object):
         # If X is shorter than Y we are testing and thus need to predict
         # multiple digits at the end by inputting the previously predicted
         # digit at each step as X
-        sentence_size = X.shape[0];
-        total_size = sentence_size + label.shape[0];
-        if (not single_digit):
+        if (single_digit):
+            # DEBUG
+            predicted_size = T.constant(1);
+            Ys = Y_1;
+            unfinished_sentence = Y_1;
+            # KEEP THIS
+            sentence = Y_1;
+            
+            # We only predict on the final Y because for now we only predict the final digit in the expression
+            prediction = T.argmax(Y_1[-1]);
+            error = T.nnet.categorical_crossentropy(Y_1[-1].reshape((1,self.output_dim)), label)[0];
+        else:
             # Add predictions until EOS to Y
             # The maximum number of digits to predict is:
             n_max_digits = 24;
@@ -108,23 +118,12 @@ class RecurrentNeuralNetwork(object):
             # Because we added zeros to pad the answer to be the maximum length
             # we predicted too many digits - throw away digits we don't need
             # The algorithm will be punished as the final symbol should be EOS
+            sentence_size = X.shape[0];
+            total_size = sentence_size + label.shape[0];
             right_hand = full_right_hand[:label.shape[0]];
             sentence = T.join(0,Y_1,right_hand);
             sentence = sentence[:total_size];
-        else:
-            # DEBUG
-            predicted_size = T.constant(1);
-            Ys = Y_1;
-            unfinished_sentence = Y_1;
-            # KEEP THIS
-            sentence = Y_1;
-        
-         
-        if (single_digit):
-            # We only predict on the final Y because for now we only predict the final digit in the expression
-            prediction = T.argmax(Y_1[-1]);
-            error = T.nnet.categorical_crossentropy(Y_1[-1].reshape((1,self.output_dim)), label)[0];
-        else:
+            
             # We predict the final n symbols (all symbols predicted as output from input '=')
             prediction = T.argmax(right_hand, axis=1);
             error = T.mean(T.nnet.categorical_crossentropy(right_hand, label));
@@ -144,17 +143,21 @@ class RecurrentNeuralNetwork(object):
         
         # Stochastic Gradient Descent
         learning_rate = T.dscalar('learning_rate');
+        # Always perform updates for all vars in self.vars
         updates = [(var,var-learning_rate*der) for (var,der) in zip(self.vars.values(),derivatives)];
         self.sgd = theano.function([X, label, learning_rate], [], 
                                    updates=updates,
                                    allow_input_downcast=True)
         
-        # Sequence repairing
-        missing_X = T.iscalar();
-        dX = T.grad(error, X);
-        self.find_x_gradient = theano.function([X, label, missing_X], [dX[missing_X]]);
-        missing_X_digit = T.argmin(dX[missing_X]);
-        self.find_x = theano.function([X, label, missing_X], [missing_X_digit]);
+        # Sequence repairing - disabled until we find the bug in regular 
+        # prediction
+#         missing_X = T.iscalar();
+#         dX = T.grad(error, X);
+#         self.find_x_gradient = theano.function([X, label, missing_X], [dX[missing_X]]);
+#         missing_X_digit = T.argmin(dX[missing_X]);
+#         self.find_x = theano.function([X, label, missing_X], [missing_X_digit]);
+    
+    # PREDICTION FUNCTIONS
     
     def rnn_predict_single(self, current_X, previous_hidden):
         hidden = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWh']) + current_X.dot(self.vars['XWh']));
@@ -179,12 +182,16 @@ class RecurrentNeuralNetwork(object):
         Y_output, hidden = self.lstm_predict_single(current_X, previous_hidden);
         return [Y_output, hidden], {}, theano.scan_module.until(T.eq(T.argmax(Y_output),EOS_symbol));
     
+    # END OF INITIALIZATION
+    
     def train(self, training_data, training_labels, learning_rate):
+        # Set printing interval
         total = len(training_data);
         printing_interval = 1000;
         if (total <= printing_interval * 10):
             printing_interval = total / 10;
         
+        # Train model per datapoint
         for k in range(total):
             data = np.array(training_data[k]);
             label = np.array(training_labels[k]);

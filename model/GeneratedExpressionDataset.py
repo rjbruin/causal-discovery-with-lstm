@@ -15,6 +15,7 @@ class GeneratedExpressionDataset(object):
         self.sources = [sourceFolder + '/train.txt', sourceFolder + '/test.txt']
         self.test_batch_size = test_batch_size;
         
+        # Set the method that should process the lines of the dataset
         self.processor = self.processSample;
         if (add_x):
             self.processor = self.processSampleWithX;
@@ -48,7 +49,10 @@ class GeneratedExpressionDataset(object):
         # Data dimension = number of symbols + optional EOS
         self.data_dim = self.digits_range + len(symbols);
         if (not single_digit):
+            # Add EOS
             self.data_dim += 1;
+        # We predict the same symbols as we have as input, so input and data
+        # dimension are equal
         self.output_dim = self.data_dim;
         self.EOS_symbol_index = self.data_dim-1;
         
@@ -67,8 +71,14 @@ class GeneratedExpressionDataset(object):
     
     def preload(self):
         try:
-            self.train, self.train_targets, self.train_labels, self.train_expressions = self.loadFile(self.sources[self.TRAIN], location_index=self.TRAIN);
-            self.test, self.test_targets, self.test_labels, self.test_expressions = self.loadFile(self.sources[self.TEST], location_index=self.TEST);
+            self.train, self.train_targets, self.train_labels, self.train_expressions = \
+                self.loadFile(self.sources[self.TRAIN], 
+                              location_index=self.TRAIN, 
+                              file_length=self.lengths[self.TRAIN]);
+            self.test, self.test_targets, self.test_labels, self.test_expressions = \
+                self.loadFile(self.sources[self.TEST], 
+                              location_index=self.TEST, 
+                              file_length=self.lengths[self.TEST]);
         except Exception:
             return False;
         return True;
@@ -120,8 +130,9 @@ class GeneratedExpressionDataset(object):
         f.close();
         return np.array(data), np.array(targets), np.array(labels), np.array(expressions);
     
-    def loadFile(self, source, location_index=0):
-        file_length = self.filelength(source);
+    def loadFile(self, source, location_index=0, file_length=None):
+        if (file_length is None):
+            file_length = self.filelength(source);
         return self.load(source, file_length, location_index=location_index);
     
     def processSample(self, line, data, targets, labels, expressions):
