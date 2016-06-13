@@ -8,8 +8,12 @@ import subprocess;
 from subprocess import PIPE, STDOUT;
 import os, sys;
 import json, time;
+import requests;
 
 if __name__ == '__main__':
+    # Settings
+    report_to_tracker_criteria = [lambda s: s[0] != '#'];
+    
     experiments_file = 'choose';
     if (len(sys.argv) > 1):
         experiments_file = sys.argv[1];
@@ -48,6 +52,8 @@ if __name__ == '__main__':
             out = p.stdout.readline().strip();
             if (len(out) > 0):
                 print(out);
+                if (all(map(lambda f: f(out), report_to_tracker_criteria))):
+                    requests.post("http://rjbruin.nl/experimenttracker/api/post.php", {'exp': exp['name'], 'msg': out});
                 if (out != '' and out[0] != '#'):
                     # Write to file
                     f = open(outputPath,'a');
