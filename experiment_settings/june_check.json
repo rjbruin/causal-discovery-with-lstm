@@ -7,7 +7,7 @@
         "repetitions": "24",
         "hidden_dim": "128",
         "learning_rate": "0.01",
-        "model": "lstm",
+        "lstm": "True",
 		"preload": "True"
     }
 ]

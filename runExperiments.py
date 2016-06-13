@@ -16,6 +16,10 @@ if __name__ == '__main__':
     if (experiments_file  == 'choose'):
         experiments_file = raw_input("Please provide the name of the experiment settings JSON file:\n");
 
+    # Append json extension if not present
+    if (experiments_file[-5:-1] != '.json'):
+        experiments_file += '.json';
+
     f = open("./experiment_settings/" + experiments_file,'r');
     experiments = json.load(f);
     f.close();
