@@ -33,18 +33,20 @@ class Test(unittest.TestCase):
         dataset = GeneratedExpressionDataset(self.sourceFolder, single_digit=self.single_digit, preload=preload);
         
         # Basic variable checks
-        self.assertEqual(self.oneHot, dataset.oneHot, "(preload)oneHot encoding mismatch!");
-        self.assertEqual(self.data_dim, dataset.data_dim, "(preload)data_dim size mismatch!");
+        self.assertEqual(self.oneHot, dataset.oneHot, "(preload) oneHot encoding mismatch!");
+        self.assertEqual(self.data_dim, dataset.data_dim, "(preload) data_dim size mismatch!");
         
         # Checking size of importing datasets
         train_length = dataset.filelength(dataset.sources[dataset.TRAIN]);
-        self.assertEqual(train_length, len(dataset.train), "(preload)dataset.train length mismatch!");
+        self.assertEqual(train_length, len(dataset.train), "(preload) dataset.train length mismatch!");
+        self.assertEqual(train_length, dataset.lengths[dataset.TRAIN], "(preload) Dataset train length and actual length mismatch!");
         test_length = dataset.filelength(dataset.sources[dataset.TEST]);
-        self.assertEqual(test_length, len(dataset.test), "(preload)dataset.test length mismatch!");
+        self.assertEqual(test_length, len(dataset.test), "(preload) dataset.test length mismatch!");
+        self.assertEqual(test_length, dataset.lengths[dataset.TEST], "(preload) Dataset test length and actual length mismatch!");
         
         print("(preload) Imported train = %d, test = %d" % (train_length, test_length));
         
-    def testBatchImporting(self):
+    def testTrainBatchImporting(self):
         """
         Checks if all expressions get imported using batched importing.
         """
@@ -61,6 +63,7 @@ class Test(unittest.TestCase):
         
         # Checking batches
         train_length = dataset.filelength(dataset.sources[dataset.TRAIN]);
+        self.assertEqual(train_length, dataset.lengths[dataset.TRAIN], "(batch) Dataset train length and actual length mismatch!");
         print("(batch) Training size = %d" % (train_length));
         iterations = int(train_length/batch_size);
         # Running twice the amount of iterations that fit in the training 
@@ -70,6 +73,61 @@ class Test(unittest.TestCase):
             self.assertEqual(batch_size,len(train),"(batch) Iteration %d: training batch returned is not of size batch_size!" % (i));
             self.assertEqual(True,all(map(lambda i: len(i) == len(train), [t_targets, t_labels, t_expressions])), "(batch) Iteration %d: not all variables by batching are the same size!" % (i));
 
+    def testTestBatch(self):
+        """
+        Checks if test batching goes right.
+        """
+        # Settings
+        preload = False;
+        batch_size = 1000;
+        
+        # Construct
+        dataset = GeneratedExpressionDataset(self.sourceFolder, single_digit=self.single_digit, preload=preload, test_batch_size=batch_size);
+        
+        # Basic variable checks
+        self.assertEqual(self.oneHot, dataset.oneHot, "(test) oneHot encoding mismatch!");
+        self.assertEqual(self.data_dim, dataset.data_dim, "(test) data_dim size mismatch!");
+        self.assertEqual(dataset.preloaded, False, "(test) preloaded should be False!")
+        
+        # Check batches
+        test_length = dataset.filelength(dataset.sources[dataset.TEST]);
+        leftover = test_length % batch_size;
+        self.assertEqual(test_length, dataset.lengths[dataset.TEST], "(test) Dataset test length and actual length mismatch!");
+        print("(test) Test size = %d" % (test_length));
+        iterations = int(test_length/batch_size);
+        # Running twice the amount of iterations that fit in the test 
+        # dataset guerantees we can train the overflowing of the dataset
+        finished = False;
+        i = 0;
+        while not finished:
+            results = dataset.get_test_batch();
+            if (not results):
+                finished = True;
+                print("(test) Final batch = %d" % (i));
+                # Assert that variables have been reset
+                self.assertEqual(dataset.locations[dataset.TEST],0,"(test) Dataset location is not reset correctly after test is done!");
+                self.assertEqual(dataset.test_done,False,"(test) Dataset test_done is not reset correctly after test is done!");
+                continue;
+            else:
+                test, t_targets, t_labels, t_expressions = results;
+            
+            # Basic checks
+            self.assertEqual(True,all(map(lambda i: len(i) == len(test), [t_targets, t_labels, t_expressions])), "(test) Iteration %d: not all variables by batching are the same size!" % (i));
+            
+            # Internal variable checks
+            if (leftover > 0 and i == iterations) or (leftover == 0 and i == iterations-1):
+                # This is the final iteration
+                if (leftover > 0):
+                    self.assertLessEqual(leftover, len(test), "(test) Final batch size is too large!");
+                    self.assertGreaterEqual(leftover, len(test), "(test) Final batch size is too small!");
+                self.assertEqual(dataset.test_done, True, "(test) Test is not marked as done after final batch!");
+            else:
+                # As this is not the final iteration, the size of the test 
+                # batch should be equal to batch_size
+                self.assertEqual(batch_size,len(test),"(test) Iteration %d: test batch returned is not of size batch_size!" % (i));
+                self.assertEqual(dataset.locations[dataset.TEST] % batch_size, 0, "(test) Location is not updated correctly: leftover = %d" % (dataset.locations[dataset.TEST] % batch_size));
+            
+            i += 1;
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testProcessing']

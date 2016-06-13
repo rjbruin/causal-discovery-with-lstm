@@ -262,14 +262,16 @@ class GeneratedExpressionDataset(object):
             self.test_done = True;
             return self.test, self.test_targets, self.test_labels, self.test_expressions;
         else:
+            # Set batch size to end of file if necessary 
             batch_size = self.test_batch_size;
             if (self.locations[self.TEST]+batch_size >= self.lengths[self.TEST]):
                 batch_size = self.lengths[self.TEST] % self.test_batch_size;
             
             results = self.load(self.sources[self.TEST], batch_size, location_index=self.TEST);
             
-            self.locations[self.TEST] += self.test_batch_size;
-            if (self.locations[self.TEST] >= self.lengths[self.TEST]):
+            # Updating location manually is not necessary as that is already 
+            # done by load()
+            if (self.locations[self.TEST] >= self.lengths[self.TEST] or self.locations[self.TEST] == 0):
                 self.locations[self.TEST] = self.lengths[self.TEST];
                 self.test_done = True;
             
