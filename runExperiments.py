@@ -33,19 +33,19 @@ if __name__ == '__main__':
     # Run experiments    
     for i,exp in enumerate(experiments):
         outputPath = experiment_outputPaths[i];
-        name = exp['name'];
         args = ['python',exp['script']];
         for key,value in exp.items():
             if (key not in ['script','name']):
                 args.append("--" + key);
                 args.append(value);
-        print(" ".join(args));
+        print("Command string: %s" % (" ".join(args)));
         p = subprocess.Popen(" ".join(args),stdout=PIPE,stderr=STDOUT,shell=True);
         while (p.poll() == None):
-            out = p.stdout.readline();
-            print(out.strip());
-            if (out != '' and out[0] != '#'):
-                # Write to file
-                f = open(outputPath,'a');
-                f.write(out.strip() + "\n");
-                f.close();
+            out = p.stdout.readline().strip();
+            if (len(out) > 0):
+                print(out);
+                if (out != '' and out[0] != '#'):
+                    # Write to file
+                    f = open(outputPath,'a');
+                    f.write(out.strip() + "\n");
+                    f.close();
