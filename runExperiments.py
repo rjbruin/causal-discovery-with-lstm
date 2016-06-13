@@ -13,6 +13,9 @@ import requests;
 if __name__ == '__main__':
     # Settings
     report_to_tracker_criteria = [lambda s: s[0] != '#'];
+    api_key = os.environ.get('TCDL_API_KEY');
+    if (api_key is None):
+        raise ValueError("No API key present for reporting to tracker!");
     
     experiments_file = 'choose';
     if (len(sys.argv) > 1):
@@ -53,7 +56,7 @@ if __name__ == '__main__':
             if (len(out) > 0):
                 print(out);
                 if (all(map(lambda f: f(out), report_to_tracker_criteria))):
-                    requests.post("http://rjbruin.nl/experimenttracker/api/post.php", {'exp': exp['name'], 'msg': out});
+                    requests.post("http://rjbruin.nl/experimenttracker/api/post.php", {'exp': exp['name'], 'msg': out, 'key': api_key});
                 if (out != '' and out[0] != '#'):
                     # Write to file
                     f = open(outputPath,'a');
