@@ -1,0 +1,47 @@
+[
+    {
+        "name": "test_single-digit",
+        "report_to_tracker": false,
+        "script": "expressions_answer.py",
+        "dataset": "./data/expressions_one_digit_answer_shallow",
+        "single_digit": "True",
+        "repetitions": "2",
+        "hidden_dim": "32",
+        "learning_rate": "0.01",
+        "lstm": "True",
+        "max_training_size": 1000,
+        "max_testing_size": 1000,
+        "test_batch_size": 500,
+        "train_batch_size": 500
+    }, 
+    {
+        "name": "test_multi-digit",
+        "report_to_tracker": false,
+        "script": "expressions_answer.py",
+        "dataset": "./data/expressions_positive_integer_answer_shallow",
+        "single_digit": "False",
+        "repetitions": "2",
+        "hidden_dim": "32",
+        "learning_rate": "0.01",
+        "lstm": "True",
+        "max_training_size": 1000,
+        "max_testing_size": 1000,
+        "test_batch_size": 500,
+        "train_batch_size": 500
+    },
+    {
+        "name": "test_multi-digit_rnn",
+        "report_to_tracker": false,
+        "script": "expressions_answer.py",
+        "dataset": "./data/expressions_positive_integer_answer_shallow",
+        "single_digit": "False",
+        "repetitions": "2",
+        "hidden_dim": "32",
+        "learning_rate": "0.01",
+        "lstm": "False",
+        "max_training_size": 1000,
+        "max_testing_size": 1000,
+        "test_batch_size": 500,
+        "train_batch_size": 500
+    }
+]
