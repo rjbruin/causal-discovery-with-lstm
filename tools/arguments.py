@@ -23,7 +23,9 @@ def processFalseOrInt(val):
 
 
 
-argumentProcessors = {'dataset': processString,
+argumentProcessors = {'name': processString,
+                      'report_to_tracker': processBool,
+                      'dataset': processString,
                       'single_digit': processBool,
                       'single_class': processFalseOrInt,
                       'find_x': processBool,
@@ -32,13 +34,15 @@ argumentProcessors = {'dataset': processString,
                       'learning_rate': processFloat,
                       'lstm': processBool,
                       'max_training_size': processFalseOrInt,
-                      'test_interval': processFalseOrInt,
-                      'name': processString,
+                      'max_testing_size': processFalseOrInt,
                       'save_models': processBool,
                       'preload': processBool,
-                      'test_batch_size': processInt
+                      'test_batch_size': processInt,
+                      'train_batch_size': processFalseOrInt,
+                      'test_interval': processFloat
                       }
-defaults = {'dataset': './data/expressions_positive_integer_answer_shallow',
+defaults = {'report_to_tracker': True,
+            'dataset': './data/expressions_positive_integer_answer_shallow',
             'single_digit': False,
             'single_class': False,
             'find_x': False,
@@ -47,10 +51,12 @@ defaults = {'dataset': './data/expressions_positive_integer_answer_shallow',
             'learning_rate': 0.01,
             'lstm': True,
             'max_training_size': None,
-            'test_interval': 100000,
+            'max_testing_size': None,
             'save_models': True,
             'preload': True,
-            'test_batch_size': 100000
+            'test_batch_size': 100000,
+            'train_batch_size': 100000,
+            'test_interval': 1.0
             }
 
 def processKeyValue(key,value):

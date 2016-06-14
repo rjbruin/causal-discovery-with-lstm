@@ -185,6 +185,10 @@ class RecurrentNeuralNetwork(object):
     # END OF INITIALIZATION
     
     def train(self, training_data, training_labels, learning_rate):
+        """
+        Takes data and trains the model with it. DOES NOT handle batching or 
+        any other project-like structures.
+        """
         # Set printing interval
         total = len(training_data);
         printing_interval = 1000;
@@ -203,78 +207,76 @@ class RecurrentNeuralNetwork(object):
             if (k % printing_interval == 0):
                 print("# %d / %d" % (k, total));
         
-    def test(self, dataset, key_indices, max_testing_size=None):
+    def test(self, test_data, test_labels, test_targets, test_expressions, dataset, stats):
         """
         Run test data through model. Output percentage of correctly predicted
-        test instances.
+        test instances. DOES NOT handle batching. DOES output testing 
+        statistics.
         """
-        print("Testing...");
-        
-        total = dataset.lengths[dataset.TEST];
+        # Set printing interval
+        total = len(test_data);
         printing_interval = 1000;
-        if (max_testing_size is not None):
-            total = max_testing_size;
-        if (total < printing_interval * 10):
+        if (total <= printing_interval * 10):
             printing_interval = total / 10;
         
-        # Set up statistics
-        correct = 0.0;
-        prediction_size = 0;
-        digit_correct = 0.0;
-        digit_prediction_size = 0;
-        if (self.single_digit):
-            prediction_histogram = {k: 0 for k in range(self.output_dim)};
-            groundtruth_histogram = {k: 0 for k in range(self.output_dim)};
-            # First dimension is actual class, second dimension is predicted dimension
-            prediction_confusion_matrix = np.zeros((dataset.output_dim,dataset.output_dim));
-            # For each non-digit symbol keep correct and total predictions
-            operator_scores = np.zeros((len(key_indices),2));
-        else:
-            prediction_size_histogram = {k: 0 for k in range(60)};
-        
-        # Predict
-        batch = dataset.get_test_batch();
-        while (batch != False):
-            test_data, test_targets, test_labels, test_expressions = batch;
-            for j in range(len(test_data)):
-                if (prediction_size % printing_interval == 0):
-                    print("# %d / %d" % (prediction_size, total));
-                data = test_data[j];
-                
-                if (self.single_digit):
-                    label = test_labels[j];
-                else:
-                    label = test_targets[j];
-                
-                if (self.single_digit):
-                    prediction = self.predict(data);
-                else:
-                    prediction, right_hand_size, predicted_right_hand, total_size, sentence_size, sentence, unf_sentence, label_size, Y_1, Ys, lt, full_right_hand = self.predict(data,label);
-                
-                # Statistics
-                if (self.single_digit):
-                    if (prediction == test_labels[j]):
-                        correct += 1;
-                else:
-                    if (np.array_equal(prediction,np.argmax(test_targets[j],axis=1))):
-                        correct += 1.0;
-                    for k,digit in enumerate(prediction):
-                        if (digit == np.argmax(test_targets[j][k])):
-                            digit_correct += 1.0;
-                        digit_prediction_size += 1;
-                        
-                if (self.single_digit):
-                    prediction_histogram[int(prediction)] += 1;
-                    groundtruth_histogram[test_labels[j]] += 1;
-                    prediction_confusion_matrix[test_labels[j],int(prediction)] += 1;
-                    operator_scores = dataset.operator_scores(test_expressions[j],int(prediction)==test_labels[j],dataset.operators,key_indices,operator_scores);
-                else:
-                    prediction_size_histogram[int(right_hand_size)] += 1;
-                prediction_size += 1;
+        for j in range(len(test_data)):
+            data = test_data[j];
             
-            batch = dataset.get_test_batch();
+            if (self.single_digit):
+                prediction = self.predict(data);
+            else:
+                prediction, right_hand_size, predicted_right_hand,\
+                total_size, sentence_size, sentence, unf_sentence,\
+                label_size, Y_1, Ys, lt, full_right_hand = \
+                    self.predict(data,test_targets[j]);
+            
+            # Statistics
+            if (self.single_digit):
+                if (prediction == test_labels[j]):
+                    stats['correct'] += 1;
+            else:
+                if (np.array_equal(prediction,np.argmax(test_targets[j],axis=1))):
+                    stats['correct'] += 1.0;
+                for k,digit in enumerate(prediction):
+                    if (digit == np.argmax(test_targets[j][k])):
+                        stats['digit_correct'] += 1.0;
+                    stats['digit_prediction_size'] += 1;
+                    
+            if (self.single_digit):
+                stats['prediction_histogram'][int(prediction)] += 1;
+                stats['groundtruth_histogram'][test_labels[j]] += 1;
+                stats['prediction_confusion_matrix']\
+                    [test_labels[j],int(prediction)] += 1;
+                stats['operator_scores'] = \
+                    self.operator_scores(test_expressions[j], 
+                                         int(prediction)==test_labels[j],
+                                         dataset.operators,
+                                         dataset.key_indices,
+                                         stats['operator_scores']);
+            else:
+                stats['prediction_size_histogram'][int(right_hand_size)] += 1;
+            stats['prediction_size'] += 1;
+            
+            if (stats['prediction_size'] % printing_interval == 0):
+                print("# %d / %d" % (stats['prediction_size'], total));
         
-        if (self.single_digit):
-            return (correct / float(prediction_size), prediction_histogram, groundtruth_histogram, prediction_confusion_matrix, operator_scores);
-        else:
-            return correct / float(prediction_size), digit_correct / float(digit_prediction_size), prediction_size_histogram;
+        stats['score'] = stats['correct'] / float(stats['prediction_size']);
+        if (not self.single_digit):
+            stats['digit_score'] = stats['digit_correct'] / float(stats['digit_prediction_size']);
+        
+        return stats;
+    
+    @staticmethod
+    def operator_scores(expression, correct, operators, 
+                        key_indices, op_scores):
+        # Find operators in expression
+        ops_in_expression = [];
+        for literal in expression:
+            if (literal in operators):
+                ops_in_expression.append(literal);
+        # For each operator, update statistics
+        for op in set(ops_in_expression):
+            if (correct):
+                op_scores[key_indices[op],0] += 1;
+            op_scores[key_indices[op],1] += 1;
+        return op_scores;

@@ -11,9 +11,15 @@ class GeneratedExpressionDataset(object):
     TRAIN = 0;
     TEST = 1;
     
-    def __init__(self, sourceFolder, preload=True, add_x=False, single_digit=False, single_class=False, balanced=False, test_batch_size=10000):
+    def __init__(self, sourceFolder, preload=True, add_x=False, 
+                 single_digit=False, single_class=False, balanced=False, 
+                 test_batch_size=10000, train_batch_size=10000,
+                 max_training_size=None, max_testing_size=None):
         self.sources = [sourceFolder + '/train.txt', sourceFolder + '/test.txt']
         self.test_batch_size = test_batch_size;
+        self.train_batch_size = train_batch_size;
+        self.max_training_size = max_training_size;
+        self.max_testing_size = max_testing_size;
         
         # Set the method that should process the lines of the dataset
         self.processor = self.processSample;
@@ -45,6 +51,7 @@ class GeneratedExpressionDataset(object):
         
         self.operators = self.oneHot.keys();
         self.findSymbol = {v: k for (k,v) in self.oneHot.items()};
+        self.key_indices = {k: i for (i,k) in enumerate(self.operators)};
         
         # Data dimension = number of symbols + optional EOS
         self.data_dim = self.digits_range + len(symbols);
@@ -58,7 +65,8 @@ class GeneratedExpressionDataset(object):
         
         # Store locations and sizes for both train and testing
         self.locations = [0, 0];
-        self.lengths = [self.filelength(self.sources[self.TRAIN]), self.filelength(self.sources[self.TEST])];
+        self.lengths = [self.filelength(self.sources[self.TRAIN]),
+                        self.filelength(self.sources[self.TEST])];
         # Set test batch settings
         self.test_done = False;
         
@@ -239,12 +247,19 @@ class GeneratedExpressionDataset(object):
         
         return data, targets, labels, expressions, 1;
     
-    def batch(self, size):
+    def get_train_batch(self, size):
+        """
+        Loads and returns the next training batch based on the size indicated 
+        by the caller of the method. On overflow the dataset wraps around.
+        """
         if (self.preloaded):
+            # Determine the range of dataset to use for this iteration
             if (self.locations[self.TRAIN] + size > self.lengths[self.TRAIN]):
+                # If this iteration will overflow make it resume from the beginning of the dataset
                 indices = range(self.locations[self.TRAIN],self.lengths[self.TRAIN]) + range(0,size - (self.lengths[self.TRAIN] - self.locations[self.TRAIN]));
             else:
                 indices = range(self.locations[self.TRAIN],self.locations[self.TRAIN]+size);
+            # Update the location of the pointer of the dataset
             self.locations[self.TRAIN] = (self.locations[self.TRAIN] + size) % self.lengths[self.TRAIN];
             return self.train[indices], self.train_targets[indices], self.train_labels[indices], self.train_expressions[indices];
         else:
@@ -252,44 +267,49 @@ class GeneratedExpressionDataset(object):
     
     def get_test_batch(self):
         """
-        Query this method for any remaining test batches.
+        Computes, loads and returns the next training batch. On overflow the
+        dataset returns the final batch which may be smaller than the regular
+        batch size. After this, calling the method returns False and the 
+        dataset prepares itself for a new testing iteration.
         """
+        # Limit part of dataset used to max_testing_size if necessary
+        length = self.lengths[self.TEST];
+        if (self.max_testing_size is not None and self.max_testing_size < length):
+            length = self.max_testing_size;
+        
         if (self.test_done):
+            # If we have marked this test iteration as being completed, return
+            # False and reset interal pointers for test batching
             self.test_done = False;
             self.locations[self.TEST] = 0;
             return False;
         if (self.preloaded):
+            # If we have preloaded the test data, return the test data and mark
+            # this iteration immediately as done
             self.test_done = True;
-            return self.test, self.test_targets, self.test_labels, self.test_expressions;
+            return self.test[:length], self.test_targets[:length], self.test_labels[:length], self.test_expressions[:length];
         else:
-            # Set batch size to end of file if necessary 
+            # Else, compute the batch size. Truncate the batch to be maximally 
+            # the remaining part of the dataset  
             batch_size = self.test_batch_size;
-            if (self.locations[self.TEST]+batch_size >= self.lengths[self.TEST]):
-                batch_size = self.lengths[self.TEST] % self.test_batch_size;
+            if (self.locations[self.TEST]+batch_size >= length):
+                batch_size = length % self.test_batch_size;
             
+            # Load the relevant part of the dataset
             results = self.load(self.sources[self.TEST], batch_size, location_index=self.TEST);
             
             # Updating location manually is not necessary as that is already 
             # done by load()
-            if (self.locations[self.TEST] >= self.lengths[self.TEST] or self.locations[self.TEST] == 0):
-                self.locations[self.TEST] = self.lengths[self.TEST];
+            if (self.locations[self.TEST] >= length or self.locations[self.TEST] == 0):
+                # If the location of the pointer is end the end of file or at 
+                # the beginning (indicating overflow has taken place) mark this
+                # test as done
                 self.test_done = True;
             
             return results;
     
-    def all(self):
+    def get_train_all(self):
+        """
+        Returns all preloaded test data.
+        """
         return self.train, self.train_targets, self.train_labels, self.train_expressions;
-    
-    @staticmethod
-    def operator_scores(expression, correct, operators, key_indices, op_scores):
-        # Find operators in expression
-        ops_in_expression = [];
-        for literal in expression:
-            if (literal in operators):
-                ops_in_expression.append(literal);
-        # For each operator, update statistics
-        for op in set(ops_in_expression):
-            if (correct):
-                op_scores[key_indices[op],0] += 1;
-            op_scores[key_indices[op],1] += 1;
-        return op_scores;

@@ -43,20 +43,30 @@ if __name__ == '__main__':
     
     # Run experiments    
     for i,exp in enumerate(experiments):
+        report = True;
+        if ('report_to_tracker' in exp):
+            report = exp['report_to_tracker'] == 'True';
+        if (report):
+            requests.post("http://rjbruin.nl/experimenttracker/api/postExperiment.php", {'exp': exp['name'], 'key': api_key});
+            
         outputPath = experiment_outputPaths[i];
         args = ['python',exp['script']];
         for key,value in exp.items():
             if (key not in ['script','name']):
                 args.append("--" + key);
-                args.append(value);
+                args.append(str(value));
         print("Command string: %s" % (" ".join(args)));
         p = subprocess.Popen(" ".join(args),stdout=PIPE,stderr=STDOUT,shell=True);
+        
+        currentBatch = 1;
         while (p.poll() == None):
             out = p.stdout.readline().strip();
             if (len(out) > 0):
                 print(out);
-                if (all(map(lambda f: f(out), report_to_tracker_criteria))):
-                    requests.post("http://rjbruin.nl/experimenttracker/api/post.php", {'exp': exp['name'], 'msg': out, 'key': api_key});
+                if (out[:5] == 'Batch'):
+                    currentBatch = int(out.split(" ")[1]);
+                if (report and all(map(lambda f: f(out), report_to_tracker_criteria))):
+                    requests.post("http://rjbruin.nl/experimenttracker/api/post.php", {'exp': exp['name'], 'msg': out, 'atProgress': currentBatch, 'key': api_key});
                 if (out != '' and out[0] != '#'):
                     # Write to file
                     f = open(outputPath,'a');

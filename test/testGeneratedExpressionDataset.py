@@ -69,7 +69,7 @@ class Test(unittest.TestCase):
         # Running twice the amount of iterations that fit in the training 
         # dataset guerantees we can train the overflowing of the dataset
         for i in range(iterations*2): 
-            train, t_targets, t_labels, t_expressions = dataset.batch(batch_size);
+            train, t_targets, t_labels, t_expressions = dataset.get_train_batch(batch_size);
             self.assertEqual(batch_size,len(train),"(batch) Iteration %d: training batch returned is not of size batch_size!" % (i));
             self.assertEqual(True,all(map(lambda i: len(i) == len(train), [t_targets, t_labels, t_expressions])), "(batch) Iteration %d: not all variables by batching are the same size!" % (i));
 
