@@ -60,14 +60,7 @@ def test_and_save(model, dataset, parameters, raw_results_filepath, start_time, 
         printing_interval = total / 10;
     
     # Set up statistics
-    stats = {'correct': 0.0, 'prediction_size': 0, 'digit_correct': 0.0, 'digit_prediction_size': 0,
-             'prediction_histogram': {k: 0 for k in range(dataset.output_dim)},
-             'groundtruth_histogram': {k: 0 for k in range(dataset.output_dim)},
-             # First dimension is actual class, second dimension is predicted dimension
-             'prediction_confusion_matrix': np.zeros((dataset.output_dim,dataset.output_dim)),
-             # For each non-digit symbol keep correct and total predictions
-             'operator_scores': np.zeros((len(dataset.key_indices),2)),
-             'prediction_size_histogram': {k: 0 for k in range(60)}};
+    stats = set_up_statistics(dataset.output_dim, dataset.key_indices);
     
     # Predict
     batch = dataset.get_test_batch();
@@ -101,3 +94,13 @@ def test_and_save(model, dataset, parameters, raw_results_filepath, start_time, 
     
     # Save statistics to file
     append_to_file(raw_results_filepath, stats_str);
+
+def set_up_statistics(output_dim, key_indices):
+    return {'correct': 0.0, 'prediction_size': 0, 'digit_correct': 0.0, 'digit_prediction_size': 0,
+            'on_histogram': {k: 0 for k in range(output_dim)},
+            'groundtruth_histogram': {k: 0 for k in range(output_dim)},
+            # First dimension is actual class, second dimension is predicted dimension
+            'prediction_confusion_matrix': np.zeros((output_dim,output_dim)),
+            # For each non-digit symbol keep correct and total predictions
+            'operator_scores': np.zeros((len(key_indices),2)),
+            'prediction_size_histogram': {k: 0 for k in range(60)}};

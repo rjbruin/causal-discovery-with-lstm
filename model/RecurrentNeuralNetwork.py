@@ -193,7 +193,8 @@ class RecurrentNeuralNetwork(object):
         total = len(training_data);
         printing_interval = 1000;
         if (total <= printing_interval * 10):
-            printing_interval = total / 10;
+            # Make printing interval always at least one
+            printing_interval = max(total / 10,1);
         
         # Train model per datapoint
         for k in range(total):
@@ -207,7 +208,7 @@ class RecurrentNeuralNetwork(object):
             if (k % printing_interval == 0):
                 print("# %d / %d" % (k, total));
         
-    def test(self, test_data, test_labels, test_targets, test_expressions, dataset, stats):
+    def test(self, test_data, test_labels, test_targets, test_expressions, dataset, stats, excludeStats=None):
         """
         Run test data through model. Output percentage of correctly predicted
         test instances. DOES NOT handle batching. DOES output testing 
@@ -217,7 +218,8 @@ class RecurrentNeuralNetwork(object):
         total = len(test_data);
         printing_interval = 1000;
         if (total <= printing_interval * 10):
-            printing_interval = total / 10;
+            # Make printing interval always at least one
+            printing_interval = max(total / 10,1);
         
         for j in range(len(test_data)):
             data = test_data[j];
@@ -247,12 +249,13 @@ class RecurrentNeuralNetwork(object):
                 stats['groundtruth_histogram'][test_labels[j]] += 1;
                 stats['prediction_confusion_matrix']\
                     [test_labels[j],int(prediction)] += 1;
-                stats['operator_scores'] = \
-                    self.operator_scores(test_expressions[j], 
-                                         int(prediction)==test_labels[j],
-                                         dataset.operators,
-                                         dataset.key_indices,
-                                         stats['operator_scores']);
+                if ('operator_scores' not in excludeStats):
+                    stats['operator_scores'] = \
+                        self.operator_scores(test_expressions[j], 
+                                             int(prediction)==test_labels[j],
+                                             dataset.operators,
+                                             dataset.key_indices,
+                                             stats['operator_scores']);
             else:
                 stats['prediction_size_histogram'][int(right_hand_size)] += 1;
             stats['prediction_size'] += 1;
