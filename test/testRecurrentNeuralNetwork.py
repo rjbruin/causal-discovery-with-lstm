@@ -16,10 +16,12 @@ class Test(unittest.TestCase):
     def testRecurrentNeuralNetwork(self):
         experiment_repetitions = 3;
         for _ in range(experiment_repetitions):
-            self.runTest(True);
-            self.runTest(False);
+            #self.runTest(True,False);
+            self.runTest(False,False);
+            #self.runTest(True,True);
+            #self.runTest(False,True);
 
-    def runTest(self, lstm=True):
+    def runTest(self, single_digit=False, lstm=True):
         # Testcase settings
         learning_rate = 0.1;
         repetitions = 1000;
@@ -28,36 +30,51 @@ class Test(unittest.TestCase):
         data_dim = 4;
         hidden_dim = 4;
         output_dim = 4;
-        single_digit = False;
+        single_digit = single_digit;
+        minibatch_size = 4;
         
         # Model initialization
         rnn = RecurrentNeuralNetwork(data_dim, hidden_dim, output_dim, 
+                                     minibatch_size,
                                      single_digit=single_digit, lstm=lstm);
         
         # Data generation
-        training_data = [np.array([[1.0,0.0,0.0,0.0],[1.0,0.0,0.0,0.0]]),
+        training_data = np.array([np.array([[1.0,0.0,0.0,0.0],[1.0,0.0,0.0,0.0]]),
                          np.array([[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0]]),
                          np.array([[0.0,1.0,0.0,0.0],[1.0,0.0,0.0,0.0]]),
-                         np.array([[0.0,1.0,0.0,0.0],[0.0,1.0,0.0,0.0]])];
-        training_targets = [np.array([[1.0,0.0,0.0,0.0]]),
-                            np.array([[0.0,1.0,0.0,0.0]]),
-                            np.array([[0.0,0.0,1.0,0.0]]),
-                            np.array([[0.0,0.0,0.0,1.0]])];
-        training_labels = np.array([[0],[1],[2],[3]]);
+                         np.array([[0.0,1.0,0.0,0.0],[0.0,1.0,0.0,0.0]])]);
+        training_targets = np.array([np.array([1.0,0.0,0.0,0.0]),
+                                         np.array([0.0,1.0,0.0,0.0]),
+                                         np.array([0.0,0.0,1.0,0.0]),
+                                         np.array([0.0,0.0,0.0,1.0])]);
+        training_targets_multi_digit = np.array([np.array([[1.0,0.0,0.0,0.0]]),
+                                        np.array([[0.0,1.0,0.0,0.0]]),
+                                        np.array([[0.0,0.0,1.0,0.0]]),
+                                        np.array([[0.0,0.0,0.0,1.0]])]);
+        training_labels = np.array([0,1,2,3]);
+        training_labels_multi_digit = np.array([[0],[1],[2],[3]]);
         
         # Train using n repetitions
         for _ in range(repetitions):
             # We pass the targets as labels if we are doing multi-digit 
             # prediction
-            if (not single_digit):
+            batch_indices = np.random.random_integers(0,len(training_data)-1,4);
+            
+            if (single_digit):
                 training_labels = training_targets;
-            rnn.train(training_data, training_labels, learning_rate);
+            else:
+                training_labels = training_targets_multi_digit;
+            rnn.train(training_data[batch_indices], training_labels[batch_indices], learning_rate);
         
         # Test
         stats = model.set_up_statistics(output_dim,[None]);
         test_data = training_data;
-        test_labels = training_labels;
-        test_targets = training_targets;
+        if (single_digit):
+            test_labels = training_labels;
+            test_targets = training_targets;
+        else:
+            test_labels = training_labels_multi_digit;
+            test_targets = training_targets_multi_digit;
         test_expressions = map(lambda e: "".join(map(lambda es: str(np.argmax(es)),e)), training_data);
         # We need to exclude statistic operator_scores to prevent usage of 
         # dataset

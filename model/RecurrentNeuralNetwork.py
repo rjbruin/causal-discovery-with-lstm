@@ -16,7 +16,7 @@ class RecurrentNeuralNetwork(object):
     '''
 
 
-    def __init__(self, data_dim, hidden_dim, output_dim, lstm=False, weight_values={}, single_digit=True, EOS_symbol_index=None):
+    def __init__(self, data_dim, hidden_dim, output_dim, minibatch_size, lstm=False, weight_values={}, single_digit=True, EOS_symbol_index=None):
         '''
         Initialize all Theano models.
         '''
@@ -26,6 +26,7 @@ class RecurrentNeuralNetwork(object):
         self.data_dim = data_dim;
         self.hidden_dim = hidden_dim;
         self.output_dim = output_dim;
+        self.minibatch_size = minibatch_size;
         
         if (not single_digit):
             if (EOS_symbol_index is None):
@@ -60,15 +61,15 @@ class RecurrentNeuralNetwork(object):
             self.vars[varName] = theano.shared(name=varName, value=value);
         
         # Forward pass
-        # X is 2-dimensional: 1) index in sentence, 2) dimensionality of data 
-        X = T.dmatrix('X');
+        # X is 3-dimensional: 1) index in sentence, 2) datapoint, 3) dimensionality of data 
+        X = T.dtensor3('X');
         
         if (single_digit):
-            # targets is 1-dimensional: 1) label for each answer
-            label = T.ivector('label');
+            # targets is 2-dimensional: 1) datapoint, 2) label for each answer
+            label = T.imatrix('label');
         else:
-            # targets is 2-dimensional: 1) answers, 2) encodings
-            label = T.dmatrix('label');
+            # targets is 3-dimensional: 1) index in sentence, 2) datapoint, 3) encodings
+            label = T.dtensor3('label');
         
         if (lstm):
             recurrence_function = self.lstm_predict_single;
@@ -80,22 +81,25 @@ class RecurrentNeuralNetwork(object):
         [Y_1, hidden], _ = theano.scan(fn=recurrence_function,
                                 sequences=X,
                                 # Input a zero hidden layer
-                                outputs_info=(None,np.zeros(self.hidden_dim)))
+                                outputs_info=(None,np.zeros((minibatch_size,self.hidden_dim))))
         
         # If X is shorter than Y we are testing and thus need to predict
         # multiple digits at the end by inputting the previously predicted
         # digit at each step as X
         if (single_digit):
             # DEBUG
-            predicted_size = T.constant(1);
-            Ys = Y_1;
-            unfinished_sentence = Y_1;
+#             predicted_size = T.constant(1);
+#             Ys = Y_1;
+#             unfinished_sentence = Y_1;
             # KEEP THIS
             sentence = Y_1;
             
             # We only predict on the final Y because for now we only predict the final digit in the expression
-            prediction = T.argmax(Y_1[-1]);
-            error = T.nnet.categorical_crossentropy(Y_1[-1].reshape((1,self.output_dim)), label)[0];
+            # Takes the argmax over the last dimension, resulting in a vector of predictions
+            prediction = T.argmax(Y_1[-1], 1);
+            #error = T.nnet.categorical_crossentropy(Y_1[-1].reshape((1,minibatch_size)), label);
+            # Perform crossentropy calculation for each datapoint and take the mean
+            error = T.mean(T.nnet.categorical_crossentropy(Y_1[-1], label));
         else:
             # Add predictions until EOS to Y
             # The maximum number of digits to predict is:
@@ -107,26 +111,35 @@ class RecurrentNeuralNetwork(object):
                                      non_sequences=EOS_symbol,
                                      n_steps=n_max_digits)
             # After predicting digits, check if we predicted the right amount of digits
-            unfinished_sentence = T.join(0,Y_1,Ys); # DEBUG
+            #unfinished_sentence = T.join(1,Y_1,Ys); # DEBUG
             #full_sentence_size = unfinished_sentence.shape[0]; # DEBUG
-            predicted_size = Ys.shape[0]; # DEBUG
+            #predicted_size = Ys.shape[0]; # DEBUG
             
             # Add zero scores to fill up the answer to the maximum size
-            zero_scores = T.zeros((n_max_digits - Ys.shape[0],self.output_dim));
-            full_right_hand = T.join(0,Ys,zero_scores);
+            # No longer necessary as we removed the stopping condition
+            # Instead of stopping early we now compute the maximum amount of
+            # digits for all datapoints and cut them off at their first EOS
+#             zero_scores = T.zeros((n_max_digits - Ys.shape[0],self.output_dim));
+#             full_right_hand = T.join(0,Ys,zero_scores);
             
             # Because we added zeros to pad the answer to be the maximum length
             # we predicted too many digits - throw away digits we don't need
             # The algorithm will be punished as the final symbol should be EOS
-            sentence_size = X.shape[0];
-            total_size = sentence_size + label.shape[0];
-            right_hand = full_right_hand[:label.shape[0]];
-            sentence = T.join(0,Y_1,right_hand);
-            sentence = sentence[:total_size];
+            # UPDATE - we are going to try this without throwing away any 
+            # digits because we cannot truncate an ndarray over an axis for    
+            # just one index
+            right_hand = Ys;
+            #sentence = T.join(1,Y_1,right_hand);
             
             # We predict the final n symbols (all symbols predicted as output from input '=')
             prediction = T.argmax(right_hand, axis=1);
-            error = T.mean(T.nnet.categorical_crossentropy(right_hand, label));
+            padded_label = T.join(0, label, T.zeros((n_max_digits - label.shape[1],minibatch_size,self.output_dim)));
+            accumulator = T.constant(0., dtype='float64');
+            summed_error, _ = theano.scan(fn=self.crossentropy_2d,
+                                       sequences=(right_hand,padded_label),
+                                       outputs_info=accumulator)
+            #denominator = T.cast(n_max_digits, 'float64');
+            error = summed_error[-1] / T.constant(float(n_max_digits), dtype='float64');
           
         # Backward pass: gradients    
         derivatives = T.grad(error, self.vars.values());
@@ -135,11 +148,14 @@ class RecurrentNeuralNetwork(object):
         if (single_digit):
             self.predict = theano.function([X], prediction);
         else:
-            self.predict = theano.function([X, label], [prediction, predicted_size, T.argmax(Ys,axis=1), 
-                                                        total_size, sentence_size, T.argmax(sentence,axis=1),
-                                                        T.argmax(unfinished_sentence,axis=1), label.shape[0],
-                                                        T.argmax(Y_1,axis=1), T.argmax(Ys,axis=1), T.lt(sentence_size,total_size),
-                                                        T.argmax(full_right_hand,axis=1)]);
+#             self.predict = theano.function([X, label], [prediction, predicted_size, T.argmax(Ys,axis=1), 
+#                                                         total_size, sentence_size, T.argmax(sentence,axis=1),
+#                                                         T.argmax(unfinished_sentence,axis=1), label.shape[0],
+#                                                         T.argmax(Y_1,axis=1), T.argmax(Ys,axis=1), T.lt(sentence_size,total_size),
+#                                                         T.argmax(full_right_hand,axis=1)]);
+            right_hand_symbol_indices = T.argmax(right_hand,axis=2);
+            self.predict = theano.function([X], [prediction, 
+                                                 right_hand_symbol_indices]);
         
         # Stochastic Gradient Descent
         learning_rate = T.dscalar('learning_rate');
@@ -157,16 +173,20 @@ class RecurrentNeuralNetwork(object):
 #         missing_X_digit = T.argmin(dX[missing_X]);
 #         self.find_x = theano.function([X, label, missing_X], [missing_X_digit]);
     
+    def crossentropy_2d(self, coding_dist, true_dist, accumulated_score):
+        return accumulated_score + T.mean(T.nnet.categorical_crossentropy(coding_dist, true_dist));
+    
     # PREDICTION FUNCTIONS
     
     def rnn_predict_single(self, current_X, previous_hidden):
         hidden = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWh']) + current_X.dot(self.vars['XWh']));
         Ys = T.nnet.softmax(hidden.dot(self.vars['hWo']));
-        return Ys.flatten(ndim=1), hidden;
+        return Ys, hidden;
     
     def rnn_predict_sequence(self, current_X, previous_hidden, EOS_symbol):
         Ys, hidden = self.rnn_predict_single(current_X, previous_hidden);
-        return [Ys, hidden], {}, theano.scan_module.until(T.eq(T.argmax(Ys),EOS_symbol));
+        #return [Ys, hidden], {}, theano.scan_module.until(T.eq(T.argmax(Ys),EOS_symbol));
+        return [Ys, hidden];
     
     def lstm_predict_single(self, current_X, previous_hidden):
         forget_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWf']) + current_X.dot(self.vars['XWf']));
@@ -176,11 +196,12 @@ class RecurrentNeuralNetwork(object):
         output_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWo']) + current_X.dot(self.vars['XWo']));
         hidden = output_gate * cell;
         Y_output = T.nnet.softmax(hidden.dot(self.vars['hWY']));
-        return Y_output.flatten(ndim=1), hidden;
+        return Y_output, hidden;
      
     def lstm_predict_sequence(self, current_X, previous_hidden, EOS_symbol):
         Y_output, hidden = self.lstm_predict_single(current_X, previous_hidden);
-        return [Y_output, hidden], {}, theano.scan_module.until(T.eq(T.argmax(Y_output),EOS_symbol));
+        #return [Y_output, hidden], {}, theano.scan_module.until(T.eq(T.argmax(Y_output),EOS_symbol));
+        return [Y_output, hidden];
     
     # END OF INITIALIZATION
     
@@ -189,6 +210,9 @@ class RecurrentNeuralNetwork(object):
         Takes data and trains the model with it. DOES NOT handle batching or 
         any other project-like structures.
         """
+        if (len(training_data) % self.minibatch_size != 0):
+            raise ValueError("Minibatch size does not match training data size!");
+        
         # Set printing interval
         total = len(training_data);
         printing_interval = 1000;
@@ -196,12 +220,15 @@ class RecurrentNeuralNetwork(object):
             # Make printing interval always at least one
             printing_interval = max(total / 10,1);
         
-        # Train model per datapoint
-        for k in range(total):
-            data = np.array(training_data[k]);
-            label = np.array(training_labels[k]);
-            if (self.single_digit):
-                label = np.array([label]);
+        # Train model per minibatch
+        for k in range(0,total,self.minibatch_size):
+            data = training_data[k:k+self.minibatch_size];
+            label = training_labels[k:k+self.minibatch_size];
+#             if (self.single_digit):
+#                 label = np.array([label]);
+            # Swap axes of index in sentence and datapoint for Theano purposes
+            data = np.swapaxes(data, 0, 1);
+            label = np.swapaxes(label, 0, 1);
             # Run training
             self.sgd(data, label, learning_rate);
             
@@ -221,44 +248,58 @@ class RecurrentNeuralNetwork(object):
             # Make printing interval always at least one
             printing_interval = max(total / 10,1);
         
-        for j in range(len(test_data)):
-            data = test_data[j];
+        for j in range(0,len(test_data),self.minibatch_size):
+            data = test_data[j:j+self.minibatch_size];
+            targets = test_targets[j:j+self.minibatch_size];
+            labels = test_labels[j:j+self.minibatch_size];
             
             if (self.single_digit):
-                prediction = self.predict(data);
+                # Swap axes of index in sentence and datapoint for Theano purposes
+                prediction = self.predict(np.swapaxes(data, 0, 1));
             else:
-                prediction, right_hand_size, predicted_right_hand,\
-                total_size, sentence_size, sentence, unf_sentence,\
-                label_size, Y_1, Ys, lt, full_right_hand = \
-                    self.predict(data,test_targets[j]);
+                prediction, right_hand_symbol_indices = \
+                    self.predict(np.swapaxes(data, 0, 1));
+            
+            prediction = np.swapaxes(prediction, 0, 1);
             
             # Statistics
-            if (self.single_digit):
-                if (prediction == test_labels[j]):
-                    stats['correct'] += 1;
-            else:
-                if (np.array_equal(prediction,np.argmax(test_targets[j],axis=1))):
-                    stats['correct'] += 1.0;
-                for k,digit in enumerate(prediction):
-                    if (digit == np.argmax(test_targets[j][k])):
-                        stats['digit_correct'] += 1.0;
-                    stats['digit_prediction_size'] += 1;
-                    
-            if (self.single_digit):
-                stats['prediction_histogram'][int(prediction)] += 1;
-                stats['groundtruth_histogram'][test_labels[j]] += 1;
-                stats['prediction_confusion_matrix']\
-                    [test_labels[j],int(prediction)] += 1;
-                if ('operator_scores' not in excludeStats):
-                    stats['operator_scores'] = \
-                        self.operator_scores(test_expressions[j], 
-                                             int(prediction)==test_labels[j],
-                                             dataset.operators,
-                                             dataset.key_indices,
-                                             stats['operator_scores']);
-            else:
-                stats['prediction_size_histogram'][int(right_hand_size)] += 1;
-            stats['prediction_size'] += 1;
+            for js in range(j,j+self.minibatch_size):
+                if (self.single_digit):
+                    if (prediction[js-j] == np.argmax(labels[js-j])):
+                        stats['correct'] += 1;
+                else:
+                    argmax_target = np.argmax(targets[js-j],axis=1);
+                    if (np.array_equal(prediction[js-j][:len(argmax_target)],argmax_target)):
+                        stats['correct'] += 1.0;
+                    for k,digit in enumerate(prediction[js-j][:len(argmax_target)]):
+                        if (digit == np.argmax(targets[js-j][k])):
+                            stats['digit_correct'] += 1.0;
+                        stats['digit_prediction_size'] += 1;
+                        
+                if (self.single_digit):
+                    stats['prediction_histogram'][int(prediction[js-j])] += 1;
+                    stats['groundtruth_histogram'][np.argmax(labels[js-j])] += 1;
+                    stats['prediction_confusion_matrix']\
+                        [np.argmax(labels[js-j]),int(prediction[js-j])] += 1;
+                    if ('operator_scores' not in excludeStats):
+                        stats['operator_scores'] = \
+                            self.operator_scores(test_expressions[j], 
+                                                 int(prediction[js-j])==np.argmax(labels[js-j]),
+                                                 dataset.operators,
+                                                 dataset.key_indices,
+                                                 stats['operator_scores']);
+                else:
+                    # Swap sentence index and datapoints back
+                    right_hand_symbol_indices = np.swapaxes(right_hand_symbol_indices, 0, 1);
+                    # Taking argmax over symbols for each sentence returns 
+                    # the location of the highest index, which is the first 
+                    # EOS symbol
+                    eos_locations = np.argmax(right_hand_symbol_indices,1);
+                    for loc in eos_locations:
+                        # We know the size of the right hand by the location 
+                        # of the EOS symbol
+                        stats['prediction_size_histogram'][int(loc)] += 1;
+                stats['prediction_size'] += 1;
             
             if (stats['prediction_size'] % printing_interval == 0):
                 print("# %d / %d" % (stats['prediction_size'], total));
