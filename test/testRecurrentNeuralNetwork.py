@@ -24,14 +24,14 @@ class Test(unittest.TestCase):
     def runTest(self, single_digit=False, lstm=True):
         # Testcase settings
         learning_rate = 0.1;
-        repetitions = 1000;
+        repetitions = 20000;
         
         # Model settings
-        data_dim = 4;
-        hidden_dim = 4;
-        output_dim = 4;
+        data_dim = 5;
+        hidden_dim = 5;
+        output_dim = 5;
         single_digit = single_digit;
-        minibatch_size = 4;
+        minibatch_size = 5;
         
         # Model initialization
         rnn = RecurrentNeuralNetwork(data_dim, hidden_dim, output_dim, 
@@ -39,26 +39,29 @@ class Test(unittest.TestCase):
                                      single_digit=single_digit, lstm=lstm);
         
         # Data generation
-        training_data = np.array([np.array([[1.0,0.0,0.0,0.0],[1.0,0.0,0.0,0.0]]),
-                         np.array([[1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0]]),
-                         np.array([[0.0,1.0,0.0,0.0],[1.0,0.0,0.0,0.0]]),
-                         np.array([[0.0,1.0,0.0,0.0],[0.0,1.0,0.0,0.0]])]);
-        training_targets = np.array([np.array([1.0,0.0,0.0,0.0]),
-                                         np.array([0.0,1.0,0.0,0.0]),
-                                         np.array([0.0,0.0,1.0,0.0]),
-                                         np.array([0.0,0.0,0.0,1.0])]);
-        training_targets_multi_digit = np.array([np.array([[1.0,0.0,0.0,0.0]]),
-                                        np.array([[0.0,1.0,0.0,0.0]]),
-                                        np.array([[0.0,0.0,1.0,0.0]]),
-                                        np.array([[0.0,0.0,0.0,1.0]])]);
-        training_labels = np.array([0,1,2,3]);
-        training_labels_multi_digit = np.array([[0],[1],[2],[3]]);
+        training_data = np.array([np.array([[1.0,0.0,0.0,0.0,0.0],[1.0,0.0,0.0,0.0,0.0]]),
+                                  np.array([[1.0,0.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0,0.0]]),
+                                  np.array([[0.0,1.0,0.0,0.0,0.0],[1.0,0.0,0.0,0.0,0.0]]),
+                                  np.array([[0.0,1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0,0.0]]),
+                                  np.array([[0.0,1.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0,0.0]])]);
+        training_targets = np.array([np.array([1.0,0.0,0.0,0.0,0.0]),
+                                         np.array([0.0,1.0,0.0,0.0,0.0]),
+                                         np.array([0.0,0.0,1.0,0.0,0.0]),
+                                         np.array([0.0,0.0,0.0,1.0,0.0]),
+                                         np.array([0.0,0.0,0.0,1.0,0.0])]);
+        training_targets_multi_digit = np.array([np.array([[1.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,1.0]]),
+                                        np.array([[0.0,1.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,1.0]]),
+                                        np.array([[0.0,0.0,1.0,0.0,0.0],[0.0,0.0,0.0,0.0,1.0]]),
+                                        np.array([[0.0,0.0,0.0,1.0,0.0],[0.0,0.0,0.0,0.0,1.0]]),
+                                        np.array([[0.0,0.0,0.0,1.0,0.0],[0.0,0.0,0.0,0.0,1.0]])]);
+        training_labels = np.array([0,1,2,3,3]);
+        training_labels_multi_digit = np.array([[0],[1],[2],[3],[3]]);
         
         # Train using n repetitions
         for _ in range(repetitions):
             # We pass the targets as labels if we are doing multi-digit 
             # prediction
-            batch_indices = np.random.random_integers(0,len(training_data)-1,4);
+            batch_indices = np.random.random_integers(0,len(training_data)-1,5);
             
             if (single_digit):
                 training_labels = training_targets;
@@ -82,7 +85,10 @@ class Test(unittest.TestCase):
         
         print("Score: %.2f percent" % (stats['score'] * 100));
         
-        self.assertEqual(stats['score'],1.0,"One of the {0} experiments did not get a 100% score:\n{1}".format('lstm' if lstm else 'rnn',str(stats)));
+        self.assertEqual(stats['score'],1.0,
+                         "One of the {0} experiments did not get a 100% score:\n{1}".format(\
+                            'lstm' if lstm else 'rnn',
+                            str(stats)));
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testRecurrentNeuralNetwork']

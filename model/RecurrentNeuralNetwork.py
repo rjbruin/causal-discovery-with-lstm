@@ -110,35 +110,20 @@ class RecurrentNeuralNetwork(object):
                                                    {'initial': hidden[-1], 'taps': [-1]}),
                                      non_sequences=EOS_symbol,
                                      n_steps=n_max_digits)
-            # After predicting digits, check if we predicted the right amount of digits
-            #unfinished_sentence = T.join(1,Y_1,Ys); # DEBUG
-            #full_sentence_size = unfinished_sentence.shape[0]; # DEBUG
-            #predicted_size = Ys.shape[0]; # DEBUG
             
-            # Add zero scores to fill up the answer to the maximum size
-            # No longer necessary as we removed the stopping condition
-            # Instead of stopping early we now compute the maximum amount of
-            # digits for all datapoints and cut them off at their first EOS
-#             zero_scores = T.zeros((n_max_digits - Ys.shape[0],self.output_dim));
-#             full_right_hand = T.join(0,Ys,zero_scores);
-            
-            # Because we added zeros to pad the answer to be the maximum length
-            # we predicted too many digits - throw away digits we don't need
-            # The algorithm will be punished as the final symbol should be EOS
-            # UPDATE - we are going to try this without throwing away any 
-            # digits because we cannot truncate an ndarray over an axis for    
-            # just one index
-            right_hand = Ys;
-            #sentence = T.join(1,Y_1,right_hand);
+            # The right hand is now the last output of the recurrence function
+            # joined with the sequential output of the prediction function
+            right_hand = T.join(0,Y_1[-1].reshape((1,self.minibatch_size,self.output_dim)),Ys);
             
             # We predict the final n symbols (all symbols predicted as output from input '=')
-            prediction = T.argmax(right_hand, axis=1);
-            padded_label = T.join(0, label, T.zeros((n_max_digits - label.shape[1],minibatch_size,self.output_dim)));
-            accumulator = T.constant(0., dtype='float64');
+            prediction = T.argmax(right_hand, axis=2);
+            padded_label = T.join(0, label, T.zeros((n_max_digits - label.shape[0],minibatch_size,self.output_dim)));
+            # Add EOS's after label
+            padded_label = T.set_subtensor(padded_label[label.shape[0]:,:,-1],1.0);
+            accumulator = theano.shared(np.float64(0.), name='accumulatedError');
             summed_error, _ = theano.scan(fn=self.crossentropy_2d,
                                        sequences=(right_hand,padded_label),
-                                       outputs_info=accumulator)
-            #denominator = T.cast(n_max_digits, 'float64');
+                                       outputs_info={'initial': accumulator, 'taps': [-1]})
             error = summed_error[-1] / T.constant(float(n_max_digits), dtype='float64');
           
         # Backward pass: gradients    
@@ -154,8 +139,11 @@ class RecurrentNeuralNetwork(object):
 #                                                         T.argmax(Y_1,axis=1), T.argmax(Ys,axis=1), T.lt(sentence_size,total_size),
 #                                                         T.argmax(full_right_hand,axis=1)]);
             right_hand_symbol_indices = T.argmax(right_hand,axis=2);
-            self.predict = theano.function([X], [prediction, 
-                                                 right_hand_symbol_indices]);
+            self.predict = theano.function([X, label], [prediction, 
+                                                 right_hand_symbol_indices,
+                                                 right_hand,
+                                                 padded_label,
+                                                 summed_error]);
         
         # Stochastic Gradient Descent
         learning_rate = T.dscalar('learning_rate');
@@ -257,8 +245,8 @@ class RecurrentNeuralNetwork(object):
                 # Swap axes of index in sentence and datapoint for Theano purposes
                 prediction = self.predict(np.swapaxes(data, 0, 1));
             else:
-                prediction, right_hand_symbol_indices = \
-                    self.predict(np.swapaxes(data, 0, 1));
+                prediction, right_hand_symbol_indices, right_hand, padded_label, summed_error = \
+                    self.predict(np.swapaxes(data, 0, 1), np.swapaxes(targets, 0, 1));
             
             prediction = np.swapaxes(prediction, 0, 1);
             
@@ -299,6 +287,8 @@ class RecurrentNeuralNetwork(object):
                         # We know the size of the right hand by the location 
                         # of the EOS symbol
                         stats['prediction_size_histogram'][int(loc)] += 1;
+                    for digit_prediction in prediction[js-j]:
+                        stats['prediction_histogram'][int(digit_prediction)] += 1;
                 stats['prediction_size'] += 1;
             
             if (stats['prediction_size'] % printing_interval == 0):
