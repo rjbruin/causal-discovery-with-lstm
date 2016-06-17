@@ -97,7 +97,7 @@ def test_and_save(model, dataset, parameters, raw_results_filepath, start_time, 
 
 def set_up_statistics(output_dim, key_indices):
     return {'correct': 0.0, 'prediction_size': 0, 'digit_correct': 0.0, 'digit_prediction_size': 0,
-            'predicton_histogram': {k: 0 for k in range(output_dim)},
+            'prediction_histogram': {k: 0 for k in range(output_dim)},
             'groundtruth_histogram': {k: 0 for k in range(output_dim)},
             # First dimension is actual class, second dimension is predicted dimension
             'prediction_confusion_matrix': np.zeros((output_dim,output_dim)),
