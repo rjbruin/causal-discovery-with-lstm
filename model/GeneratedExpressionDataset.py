@@ -136,7 +136,21 @@ class GeneratedExpressionDataset(object):
         self.locations[location_index] = line_number;
         
         f.close();
-        return np.array(data), np.array(targets), np.array(labels), np.array(expressions);
+        
+        # Convert list of ndarrays to a proper ndarray so minibatching will work later
+        data = self.fill_ndarray(data, 1);
+        targets = self.fill_ndarray(targets, 1);
+        
+        return data, targets, np.array(labels), np.array(expressions);
+    
+    def fill_ndarray(self, data, axis):
+        if (axis <= 0):
+            raise ValueError("Max length axis cannot be the first axis!");
+        max_length = max(map(lambda a: a.shape[axis-1], data));
+        nd_data = np.zeros((len(data), max_length, self.data_dim));
+        for i,datapoint in enumerate(data):
+            nd_data[i,:datapoint.shape[0]] = datapoint;
+        return nd_data;
     
     def loadFile(self, source, location_index=0, file_length=None):
         if (file_length is None):

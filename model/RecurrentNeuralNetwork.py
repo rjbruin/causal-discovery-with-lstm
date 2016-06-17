@@ -29,6 +29,7 @@ class RecurrentNeuralNetwork(object):
         self.hidden_dim = hidden_dim;
         self.output_dim = output_dim;
         self.minibatch_size = minibatch_size;
+        self.n_max_digits = n_max_digits;
         
         if (not single_digit):
             if (EOS_symbol_index is None):
@@ -110,7 +111,7 @@ class RecurrentNeuralNetwork(object):
                                      outputs_info=({'initial': Y_1[-1], 'taps': [-1]},
                                                    {'initial': hidden[-1], 'taps': [-1]}),
                                      non_sequences=EOS_symbol,
-                                     n_steps=n_max_digits)
+                                     n_steps=self.n_max_digits)
             
             # The right hand is now the last output of the recurrence function
             # joined with the sequential output of the prediction function
@@ -118,14 +119,14 @@ class RecurrentNeuralNetwork(object):
             
             # We predict the final n symbols (all symbols predicted as output from input '=')
             prediction = T.argmax(right_hand, axis=2);
-            padded_label = T.join(0, label, T.zeros((n_max_digits - label.shape[0],minibatch_size,self.output_dim)));
+            padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],minibatch_size,self.output_dim)));
             # Add EOS's after label
             #padded_label = T.set_subtensor(padded_label[label.shape[0]:,:,-1],1.0);
             accumulator = theano.shared(np.float64(0.), name='accumulatedError');
             summed_error, _ = theano.scan(fn=self.crossentropy_2d,
                                        sequences=(right_hand,padded_label),
                                        outputs_info={'initial': accumulator, 'taps': [-1]})
-            error = summed_error[-1] / T.constant(float(n_max_digits), dtype='float64');
+            error = summed_error[-1] / T.constant(float(self.n_max_digits), dtype='float64');
           
         # Backward pass: gradients    
         derivatives = T.grad(error, self.vars.values());
@@ -199,6 +200,10 @@ class RecurrentNeuralNetwork(object):
         Takes data and trains the model with it. DOES NOT handle batching or 
         any other project-like structures.
         """
+        # Sanity checks
+        if (training_labels.shape[1] > self.n_max_digits):
+            raise ValueError("n_max_digits too small! Increase to %d" % training_labels.shape[1]);
+        
         # Set printing interval
         total = len(training_data);
         printing_interval = 1000;
