@@ -14,17 +14,24 @@ class Test(unittest.TestCase):
 
 
     def testRecurrentNeuralNetwork(self):
-        experiment_repetitions = 3;
-        for _ in range(experiment_repetitions):
-            #self.runTest(True,False);
-            self.runTest(False,False);
-            #self.runTest(True,True);
-            #self.runTest(False,True);
+        experiment_repetitions = 3;        
+        experiments_to_run = [(False,False,3)]
+        
+        for e, (single_digit, lstm, n_max_digits) in enumerate(experiments_to_run):
+            scores = [];
+            for j in range(experiment_repetitions):
+                stats = self.runTest(single_digit,lstm,n_max_digits);
+                scores.append(stats['score']);
+                print("Iteration %d: %.2f percent" % (j, stats['score'] * 100));
+            mean_score = np.mean(scores);
+            print("Average score: %.2f" % (mean_score));
+            self.assertGreaterEqual(mean_score, 0.9, 
+                                    "Experiment %d: mean score is too low: %.2f" % (e, mean_score * 100));
 
-    def runTest(self, single_digit=False, lstm=True):
+    def runTest(self, single_digit=False, lstm=True, n_max_digits=24):
         # Testcase settings
         learning_rate = 0.1;
-        repetitions = 20000;
+        repetitions = 3000;
         
         # Model settings
         data_dim = 5;
@@ -36,7 +43,8 @@ class Test(unittest.TestCase):
         # Model initialization
         rnn = RecurrentNeuralNetwork(data_dim, hidden_dim, output_dim, 
                                      minibatch_size,
-                                     single_digit=single_digit, lstm=lstm);
+                                     single_digit=single_digit, lstm=lstm,
+                                     n_max_digits=n_max_digits);
         
         # Data generation
         training_data = np.array([np.array([[1.0,0.0,0.0,0.0,0.0],[1.0,0.0,0.0,0.0,0.0]]),
@@ -58,7 +66,10 @@ class Test(unittest.TestCase):
         training_labels_multi_digit = np.array([[0],[1],[2],[3],[3]]);
         
         # Train using n repetitions
-        for _ in range(repetitions):
+        for k in range(repetitions):
+            if (k % 1000) == 0:
+                print("# %d / %d" % (k, repetitions));
+            
             # We pass the targets as labels if we are doing multi-digit 
             # prediction
             batch_indices = np.random.random_integers(0,len(training_data)-1,5);
@@ -67,7 +78,7 @@ class Test(unittest.TestCase):
                 training_labels = training_targets;
             else:
                 training_labels = training_targets_multi_digit;
-            rnn.train(training_data[batch_indices], training_labels[batch_indices], learning_rate);
+            rnn.train(training_data[batch_indices], training_labels[batch_indices], learning_rate, no_print=True);
         
         # Test
         stats = model.set_up_statistics(output_dim,[None]);
@@ -83,12 +94,7 @@ class Test(unittest.TestCase):
         # dataset
         stats = rnn.test(test_data, test_labels, test_targets, test_expressions, None, stats, ['operator_scores']);
         
-        print("Score: %.2f percent" % (stats['score'] * 100));
-        
-        self.assertEqual(stats['score'],1.0,
-                         "One of the {0} experiments did not get a 100% score:\n{1}".format(\
-                            'lstm' if lstm else 'rnn',
-                            str(stats)));
+        return stats;
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testRecurrentNeuralNetwork']

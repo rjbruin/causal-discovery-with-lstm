@@ -16,7 +16,9 @@ class RecurrentNeuralNetwork(object):
     '''
 
 
-    def __init__(self, data_dim, hidden_dim, output_dim, minibatch_size, lstm=False, weight_values={}, single_digit=True, EOS_symbol_index=None):
+    def __init__(self, data_dim, hidden_dim, output_dim, minibatch_size, 
+                 lstm=False, weight_values={}, single_digit=True, EOS_symbol_index=None,
+                 n_max_digits=24):
         '''
         Initialize all Theano models.
         '''
@@ -102,8 +104,7 @@ class RecurrentNeuralNetwork(object):
             error = T.mean(T.nnet.categorical_crossentropy(Y_1[-1], label));
         else:
             # Add predictions until EOS to Y
-            # The maximum number of digits to predict is:
-            n_max_digits = 24;
+            # The maximum number of digits to predict is n_max_digits
             [Ys, _], _ = theano.scan(fn=predict_function,
                                      # Inputs the last hidden layer and the last predicted symbol
                                      outputs_info=({'initial': Y_1[-1], 'taps': [-1]},
@@ -193,7 +194,7 @@ class RecurrentNeuralNetwork(object):
     
     # END OF INITIALIZATION
     
-    def train(self, training_data, training_labels, learning_rate):
+    def train(self, training_data, training_labels, learning_rate, no_print=False):
         """
         Takes data and trains the model with it. DOES NOT handle batching or 
         any other project-like structures.
@@ -220,7 +221,7 @@ class RecurrentNeuralNetwork(object):
             # Run training
             self.sgd(data, label, learning_rate);
             
-            if (k % printing_interval == 0):
+            if (not no_print and k % printing_interval == 0):
                 print("# %d / %d" % (k, total));
         
     def test(self, test_data, test_labels, test_targets, test_expressions, dataset, stats, excludeStats=None):
