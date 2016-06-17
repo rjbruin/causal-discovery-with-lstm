@@ -120,7 +120,7 @@ class RecurrentNeuralNetwork(object):
             prediction = T.argmax(right_hand, axis=2);
             padded_label = T.join(0, label, T.zeros((n_max_digits - label.shape[0],minibatch_size,self.output_dim)));
             # Add EOS's after label
-            padded_label = T.set_subtensor(padded_label[label.shape[0]:,:,-1],1.0);
+            #padded_label = T.set_subtensor(padded_label[label.shape[0]:,:,-1],1.0);
             accumulator = theano.shared(np.float64(0.), name='accumulatedError');
             summed_error, _ = theano.scan(fn=self.crossentropy_2d,
                                        sequences=(right_hand,padded_label),

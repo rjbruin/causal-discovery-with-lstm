@@ -15,7 +15,7 @@ class Test(unittest.TestCase):
 
     def testRecurrentNeuralNetwork(self):
         experiment_repetitions = 3;        
-        experiments_to_run = [(False,False,3)]
+        experiments_to_run = [(False,False,2)]
         
         for e, (single_digit, lstm, n_max_digits) in enumerate(experiments_to_run):
             scores = [];
@@ -25,13 +25,14 @@ class Test(unittest.TestCase):
                 print("Iteration %d: %.2f percent" % (j, stats['score'] * 100));
             mean_score = np.mean(scores);
             print("Average score: %.2f" % (mean_score));
-            self.assertGreaterEqual(mean_score, 0.9, 
-                                    "Experiment %d: mean score is too low: %.2f" % (e, mean_score * 100));
+            self.assertGreaterEqual(mean_score, 1.0, 
+                                    "Experiment %d: mean score is not perfect: %.2f percent" % (e, mean_score * 100));
 
     def runTest(self, single_digit=False, lstm=True, n_max_digits=24):
         # Testcase settings
         learning_rate = 0.1;
         repetitions = 3000;
+        reporting_interval = 500;
         
         # Model settings
         data_dim = 5;
@@ -67,7 +68,7 @@ class Test(unittest.TestCase):
         
         # Train using n repetitions
         for k in range(repetitions):
-            if (k % 1000) == 0:
+            if (k % reporting_interval) == 0:
                 print("# %d / %d" % (k, repetitions));
             
             # We pass the targets as labels if we are doing multi-digit 
