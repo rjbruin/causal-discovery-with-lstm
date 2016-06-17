@@ -75,7 +75,7 @@ class Test(unittest.TestCase):
             
             # We pass the targets as labels if we are doing multi-digit 
             # prediction
-            batch_indices = np.random.random_integers(0,len(training_data)-1,5);
+            batch_indices = np.random.random_integers(0,len(training_data)-1,11);
             
             if (single_digit):
                 training_labels = training_targets;
@@ -86,16 +86,19 @@ class Test(unittest.TestCase):
         # Test
         stats = model.set_up_statistics(output_dim,[None]);
         test_data = training_data;
+        batch_indices = np.random.random_integers(0,len(test_data)-1,100);
         if (single_digit):
             test_labels = training_labels;
             test_targets = training_targets;
         else:
             test_labels = training_labels_multi_digit;
             test_targets = training_targets_multi_digit;
-        test_expressions = map(lambda e: "".join(map(lambda es: str(np.argmax(es)),e)), training_data);
+        test_expressions = np.array(map(lambda e: "".join(map(lambda es: str(np.argmax(es)),e)), training_data));
         # We need to exclude statistic operator_scores to prevent usage of 
         # dataset
-        stats = rnn.test(test_data, test_labels, test_targets, test_expressions, None, stats, ['operator_scores']);
+        stats = rnn.test(test_data[batch_indices], test_labels[batch_indices], 
+                         test_targets[batch_indices], test_expressions[batch_indices], 
+                         None, stats, ['operator_scores'], no_print=True);
         
         return stats;
 

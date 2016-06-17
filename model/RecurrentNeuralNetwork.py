@@ -199,9 +199,6 @@ class RecurrentNeuralNetwork(object):
         Takes data and trains the model with it. DOES NOT handle batching or 
         any other project-like structures.
         """
-        if (len(training_data) % self.minibatch_size != 0):
-            raise ValueError("Minibatch size does not match training data size!");
-        
         # Set printing interval
         total = len(training_data);
         printing_interval = 1000;
@@ -213,8 +210,10 @@ class RecurrentNeuralNetwork(object):
         for k in range(0,total,self.minibatch_size):
             data = training_data[k:k+self.minibatch_size];
             label = training_labels[k:k+self.minibatch_size];
-#             if (self.single_digit):
-#                 label = np.array([label]);
+            if (len(data) < self.minibatch_size):
+                missing_datapoints = self.minibatch_size - data.shape[0];
+                data = np.concatenate((data,np.zeros((missing_datapoints, training_data.shape[1], training_data.shape[2]))), axis=0);
+                label = np.concatenate((label,np.zeros((missing_datapoints, training_labels.shape[1], training_labels.shape[2]))), axis=0);
             # Swap axes of index in sentence and datapoint for Theano purposes
             data = np.swapaxes(data, 0, 1);
             label = np.swapaxes(label, 0, 1);
@@ -224,7 +223,7 @@ class RecurrentNeuralNetwork(object):
             if (not no_print and k % printing_interval == 0):
                 print("# %d / %d" % (k, total));
         
-    def test(self, test_data, test_labels, test_targets, test_expressions, dataset, stats, excludeStats=None):
+    def test(self, test_data, test_labels, test_targets, test_expressions, dataset, stats, excludeStats=None, no_print=False):
         """
         Run test data through model. Output percentage of correctly predicted
         test instances. DOES NOT handle batching. DOES output testing 
@@ -241,6 +240,14 @@ class RecurrentNeuralNetwork(object):
             data = test_data[j:j+self.minibatch_size];
             targets = test_targets[j:j+self.minibatch_size];
             labels = test_labels[j:j+self.minibatch_size];
+            test_n = self.minibatch_size;
+            
+            # Add zeros to minibatch if the batch is too small
+            if (len(data) < self.minibatch_size):
+                test_n = data.shape[0];
+                missing_datapoints = self.minibatch_size - test_n;
+                data = np.concatenate((data,np.zeros((missing_datapoints, test_data.shape[1], test_data.shape[2]))), axis=0);
+                targets = np.concatenate((targets,np.zeros((missing_datapoints, test_targets.shape[1], test_targets.shape[2]))), axis=0);
             
             if (self.single_digit):
                 # Swap axes of index in sentence and datapoint for Theano purposes
@@ -252,7 +259,7 @@ class RecurrentNeuralNetwork(object):
             prediction = np.swapaxes(prediction, 0, 1);
             
             # Statistics
-            for js in range(j,j+self.minibatch_size):
+            for js in range(j,j+test_n):
                 if (self.single_digit):
                     if (prediction[js-j] == np.argmax(labels[js-j])):
                         stats['correct'] += 1;
@@ -292,7 +299,7 @@ class RecurrentNeuralNetwork(object):
                         stats['prediction_histogram'][int(digit_prediction)] += 1;
                 stats['prediction_size'] += 1;
             
-            if (stats['prediction_size'] % printing_interval == 0):
+            if (not no_print and stats['prediction_size'] % printing_interval == 0):
                 print("# %d / %d" % (stats['prediction_size'], total));
         
         stats['score'] = stats['correct'] / float(stats['prediction_size']);
