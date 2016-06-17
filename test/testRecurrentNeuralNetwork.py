@@ -14,7 +14,7 @@ class Test(unittest.TestCase):
 
 
     def testRecurrentNeuralNetwork(self):
-        experiment_repetitions = 3;        
+        experiment_repetitions = 5;        
         experiments_to_run = [(False,False,2)]
         
         for e, (single_digit, lstm, n_max_digits) in enumerate(experiments_to_run):
@@ -22,7 +22,7 @@ class Test(unittest.TestCase):
             for j in range(experiment_repetitions):
                 stats = self.runTest(single_digit,lstm,n_max_digits);
                 scores.append(stats['score']);
-                print("Iteration %d: %.2f percent" % (j, stats['score'] * 100));
+                print("Iteration %d: %.2f percent" % (j+1, stats['score'] * 100));
             mean_score = np.mean(scores);
             print("Average score: %.2f" % (mean_score));
             self.assertGreaterEqual(mean_score, 1.0, 
