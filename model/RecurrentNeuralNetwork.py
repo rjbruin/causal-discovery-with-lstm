@@ -271,8 +271,18 @@ class RecurrentNeuralNetwork(object):
                     if (prediction[js-j] == np.argmax(labels[js-j])):
                         stats['correct'] += 1;
                 else:
+                    # Get the labels
                     argmax_target = np.argmax(targets[js-j],axis=1);
-                    if (np.array_equal(prediction[js-j][:len(argmax_target)],argmax_target)):
+                    # Compute the length of the target answer
+                    target_length = np.argmax(argmax_target);
+                    if (target_length == 0):
+                        # If no EOS is found, the target is the entire length
+                        target_length = targets[js-j].shape[1];
+                    # Compute the length of the prediction answer
+                    prediction_length = np.argmax(prediction[js-j]);
+                    if (prediction_length == target_length and np.array_equal(prediction[js-j][:target_length],argmax_target[:target_length])):
+                        # Correct if prediction and target length match and 
+                        # prediction and target up to target length are the same
                         stats['correct'] += 1.0;
                     for k,digit in enumerate(prediction[js-j][:len(argmax_target)]):
                         if (digit == np.argmax(targets[js-j][k])):
