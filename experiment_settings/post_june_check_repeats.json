@@ -22,7 +22,7 @@
         "name": "post_june_single_class",
         "script": "expressions_answer.py",
         "dataset": "./expressions_positive_integer_answer_deep_max100",
-        "single_class": "True",
+        "single_class": "100",
         "repetitions": "24",
         "hidden_dim": "128",
         "learning_rate": "0.01",
