@@ -201,7 +201,7 @@ class RecurrentNeuralNetwork(object):
         any other project-like structures.
         """
         # Sanity checks
-        if (training_labels.shape[1] > self.n_max_digits):
+        if (not self.single_digit and training_labels.shape[1] > self.n_max_digits):
             raise ValueError("n_max_digits too small! Increase to %d" % training_labels.shape[1]);
         
         # Set printing interval
