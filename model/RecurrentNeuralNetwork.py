@@ -262,6 +262,8 @@ class RecurrentNeuralNetwork(object):
                     self.predict(np.swapaxes(data, 0, 1), np.swapaxes(targets, 0, 1));
             
             prediction = np.swapaxes(prediction, 0, 1);
+            # Swap sentence index and datapoints back
+            right_hand_symbol_indices = np.swapaxes(right_hand_symbol_indices, 0, 1);
             
             # Statistics
             for js in range(j,j+test_n):
@@ -290,16 +292,13 @@ class RecurrentNeuralNetwork(object):
                                                  dataset.key_indices,
                                                  stats['operator_scores']);
                 else:
-                    # Swap sentence index and datapoints back
-                    right_hand_symbol_indices = np.swapaxes(right_hand_symbol_indices, 0, 1);
                     # Taking argmax over symbols for each sentence returns 
                     # the location of the highest index, which is the first 
                     # EOS symbol
-                    eos_locations = np.argmax(right_hand_symbol_indices,1);
-                    for loc in eos_locations:
-                        # We know the size of the right hand by the location 
-                        # of the EOS symbol
-                        stats['prediction_size_histogram'][int(loc)] += 1;
+                    eos_location = np.argmax(right_hand_symbol_indices[js-j]);
+                    stats['prediction_size_histogram'][int(eos_location)] += 1;
+                    if (int(eos_location) > self.n_max_digits):
+                        print('score');
                     for digit_prediction in prediction[js-j]:
                         stats['prediction_histogram'][int(digit_prediction)] += 1;
                 stats['prediction_size'] += 1;
