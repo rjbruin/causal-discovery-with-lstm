@@ -2,7 +2,7 @@
     {
         "name": "post_june_find_x",
         "script": "expressions_answer.py",
-        "dataset": "./expressions_positive_integer_answer_shallow",
+        "dataset": "./data/expressions_positive_integer_answer_shallow",
         "find_x": "True",
         "repetitions": "24",
         "hidden_dim": "128",
@@ -12,7 +12,7 @@
     {
         "name": "post_june_multi_digit",
         "script": "expressions_answer.py",
-        "dataset": "./expressions_positive_integer_answer_deep_max100",
+        "dataset": "./data/expressions_positive_integer_answer_deep_max100",
         "repetitions": "24",
         "hidden_dim": "128",
         "learning_rate": "0.01",
@@ -21,7 +21,7 @@
     {
         "name": "post_june_single_class",
         "script": "expressions_answer.py",
-        "dataset": "./expressions_positive_integer_answer_deep_max100",
+        "dataset": "./data/expressions_positive_integer_answer_deep_max100",
         "single_class": "100",
         "repetitions": "24",
         "hidden_dim": "128",
