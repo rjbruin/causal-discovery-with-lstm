@@ -157,6 +157,73 @@ class GeneratedExpressionDataset(object):
             file_length = self.filelength(source);
         return self.load(source, file_length, location_index=location_index);
     
+    def get_train_batch(self, size):
+        """
+        Loads and returns the next training batch based on the size indicated 
+        by the caller of the method. On overflow the dataset wraps around.
+        """
+        if (self.preloaded):
+            # Determine the range of dataset to use for this iteration
+            if (self.locations[self.TRAIN] + size > self.lengths[self.TRAIN]):
+                # If this iteration will overflow make it resume from the beginning of the dataset
+                indices = range(self.locations[self.TRAIN],self.lengths[self.TRAIN]) + range(0,size - (self.lengths[self.TRAIN] - self.locations[self.TRAIN]));
+            else:
+                indices = range(self.locations[self.TRAIN],self.locations[self.TRAIN]+size);
+            # Update the location of the pointer of the dataset
+            self.locations[self.TRAIN] = (self.locations[self.TRAIN] + size) % self.lengths[self.TRAIN];
+            return self.train[indices], self.train_targets[indices], self.train_labels[indices], self.train_expressions[indices];
+        else:
+            return self.load(self.sources[self.TRAIN], size, location_index=self.TRAIN);
+    
+    def get_test_batch(self):
+        """
+        Computes, loads and returns the next training batch. On overflow the
+        dataset returns the final batch which may be smaller than the regular
+        batch size. After this, calling the method returns False and the 
+        dataset prepares itself for a new testing iteration.
+        """
+        # Limit part of dataset used to max_testing_size if necessary
+        length = self.lengths[self.TEST];
+        if (self.max_testing_size is not None and self.max_testing_size < length):
+            length = self.max_testing_size;
+        
+        if (self.test_done):
+            # If we have marked this test iteration as being completed, return
+            # False and reset interal pointers for test batching
+            self.test_done = False;
+            self.locations[self.TEST] = 0;
+            return False;
+        if (self.preloaded):
+            # If we have preloaded the test data, return the test data and mark
+            # this iteration immediately as done
+            self.test_done = True;
+            return self.test[:length], self.test_targets[:length], self.test_labels[:length], self.test_expressions[:length];
+        else:
+            # Else, compute the batch size. Truncate the batch to be maximally 
+            # the remaining part of the dataset  
+            batch_size = self.test_batch_size;
+            if (self.locations[self.TEST]+batch_size >= length):
+                batch_size = length % self.test_batch_size;
+            
+            # Load the relevant part of the dataset
+            results = self.load(self.sources[self.TEST], batch_size, location_index=self.TEST);
+            
+            # Updating location manually is not necessary as that is already 
+            # done by load()
+            if (self.locations[self.TEST] >= length or self.locations[self.TEST] == 0):
+                # If the location of the pointer is end the end of file or at 
+                # the beginning (indicating overflow has taken place) mark this
+                # test as done
+                self.test_done = True;
+            
+            return results;
+    
+    def get_train_all(self):
+        """
+        Returns all preloaded test data.
+        """
+        return self.train, self.train_targets, self.train_labels, self.train_expressions;
+    
     def processSample(self, line, data, targets, labels, expressions):
         # Get expression from line
         expression = line.strip();
@@ -260,70 +327,3 @@ class GeneratedExpressionDataset(object):
 #         expressions.append(expression);
         
         return data, targets, labels, expressions, 1;
-    
-    def get_train_batch(self, size):
-        """
-        Loads and returns the next training batch based on the size indicated 
-        by the caller of the method. On overflow the dataset wraps around.
-        """
-        if (self.preloaded):
-            # Determine the range of dataset to use for this iteration
-            if (self.locations[self.TRAIN] + size > self.lengths[self.TRAIN]):
-                # If this iteration will overflow make it resume from the beginning of the dataset
-                indices = range(self.locations[self.TRAIN],self.lengths[self.TRAIN]) + range(0,size - (self.lengths[self.TRAIN] - self.locations[self.TRAIN]));
-            else:
-                indices = range(self.locations[self.TRAIN],self.locations[self.TRAIN]+size);
-            # Update the location of the pointer of the dataset
-            self.locations[self.TRAIN] = (self.locations[self.TRAIN] + size) % self.lengths[self.TRAIN];
-            return self.train[indices], self.train_targets[indices], self.train_labels[indices], self.train_expressions[indices];
-        else:
-            return self.load(self.sources[self.TRAIN], size, location_index=self.TRAIN);
-    
-    def get_test_batch(self):
-        """
-        Computes, loads and returns the next training batch. On overflow the
-        dataset returns the final batch which may be smaller than the regular
-        batch size. After this, calling the method returns False and the 
-        dataset prepares itself for a new testing iteration.
-        """
-        # Limit part of dataset used to max_testing_size if necessary
-        length = self.lengths[self.TEST];
-        if (self.max_testing_size is not None and self.max_testing_size < length):
-            length = self.max_testing_size;
-        
-        if (self.test_done):
-            # If we have marked this test iteration as being completed, return
-            # False and reset interal pointers for test batching
-            self.test_done = False;
-            self.locations[self.TEST] = 0;
-            return False;
-        if (self.preloaded):
-            # If we have preloaded the test data, return the test data and mark
-            # this iteration immediately as done
-            self.test_done = True;
-            return self.test[:length], self.test_targets[:length], self.test_labels[:length], self.test_expressions[:length];
-        else:
-            # Else, compute the batch size. Truncate the batch to be maximally 
-            # the remaining part of the dataset  
-            batch_size = self.test_batch_size;
-            if (self.locations[self.TEST]+batch_size >= length):
-                batch_size = length % self.test_batch_size;
-            
-            # Load the relevant part of the dataset
-            results = self.load(self.sources[self.TEST], batch_size, location_index=self.TEST);
-            
-            # Updating location manually is not necessary as that is already 
-            # done by load()
-            if (self.locations[self.TEST] >= length or self.locations[self.TEST] == 0):
-                # If the location of the pointer is end the end of file or at 
-                # the beginning (indicating overflow has taken place) mark this
-                # test as done
-                self.test_done = True;
-            
-            return results;
-    
-    def get_train_all(self):
-        """
-        Returns all preloaded test data.
-        """
-        return self.train, self.train_targets, self.train_labels, self.train_expressions;

@@ -29,6 +29,9 @@ def get_batch_statistics(dataset, parameters):
     else:
         batch_size = dataset.lengths[dataset.TRAIN];
     
+    if (batch_size > repetition_size):
+        batch_size = repetition_size;
+    
     total_iterations_size = repetition_size * parameters['repetitions'];
     nrBatches = int(total_iterations_size / batch_size);
     if (total_iterations_size % batch_size > 0):
