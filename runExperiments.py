@@ -23,6 +23,11 @@ if __name__ == '__main__':
     if (experiments_file  == 'choose'):
         experiments_file = raw_input("Please provide the name of the experiment settings JSON file:\n");
 
+    if (len(sys.argv) > 2):
+        gpu = sys.argv[2] == 'gpu';
+    else:
+        gpu = raw_input("Use GPU? (y/n)") == 'y';
+
     # Append json extension if not present
     if (experiments_file[-5:] != '.json'):
         experiments_file += '.json';
@@ -55,8 +60,11 @@ if __name__ == '__main__':
             if (key not in ['script','name']):
                 args.append("--" + key);
                 args.append(str(value));
-        print("Command string: %s" % (" ".join(args)));
-        p = subprocess.Popen(" ".join(args),stdout=PIPE,stderr=STDOUT,shell=True);
+        joined_args = " ".join(args);
+        if (gpu):
+            joined_args = "THEANO_FLAGS=device=gpu " + joined_args;
+        print("Command string: %s" % (joined_args));
+        p = subprocess.Popen(joined_args,stdout=PIPE,stderr=STDOUT,shell=True);
         
         currentBatch = 1;
         while (p.poll() == None):

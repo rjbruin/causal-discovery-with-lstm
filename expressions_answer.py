@@ -13,6 +13,7 @@ import model.GeneratedExpressionDataset as ge_dataset;
 from tools.file import save_to_pickle;
 from tools.arguments import processCommandLineArguments;
 from tools.model import train, test_and_save;
+from tools.gpu import using_gpu;
 
 #theano.config.mode = 'FAST_COMPILE'
 
@@ -28,9 +29,11 @@ if (__name__ == '__main__'):
     # Process parameters
     parameters = processCommandLineArguments(sys.argv);
      
-    # Debug settings
+    # Warn for unusual parameters
     if (parameters['max_training_size'] is not None):
         print("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!");
+    if (not using_gpu()):
+        print("WARNING! RUNNING WITHOUT GPU USAGE!");
     
     # Construct models
     dataset = ge_dataset.GeneratedExpressionDataset(parameters['dataset'], 
