@@ -41,7 +41,8 @@ if (__name__ == '__main__'):
                                                     test_batch_size=parameters['test_batch_size'],
                                                     train_batch_size=parameters['train_batch_size'],
                                                     max_training_size=parameters['max_training_size'],
-                                                    max_testing_size=parameters['max_testing_size']);
+                                                    max_testing_size=parameters['max_testing_size'],
+                                                    sample_testing_size=parameters['sample_testing_size']);
     rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
                                      lstm=parameters['lstm'], single_digit=parameters['single_digit']);
     
