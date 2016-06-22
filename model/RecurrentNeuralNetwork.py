@@ -6,7 +6,6 @@ Created on 22 feb. 2016
 
 import theano;
 import theano.tensor as T;
-import theano.scan_module;
 import numpy as np;
 
 class RecurrentNeuralNetwork(object):
@@ -30,6 +29,11 @@ class RecurrentNeuralNetwork(object):
         self.output_dim = output_dim;
         self.minibatch_size = minibatch_size;
         self.n_max_digits = n_max_digits;
+        
+        self.fake_minibatch = False;
+        if (self.minibatch_size == 1):
+            self.fake_minibatch = True;
+            self.minibatch_size = 2;
         
         if (not single_digit):
             if (EOS_symbol_index is None):
@@ -64,7 +68,7 @@ class RecurrentNeuralNetwork(object):
             self.vars[varName] = theano.shared(name=varName, value=value);
         
         # Forward pass
-        # X is 3-dimensional: 1) index in sentence, 2) datapoint, 3) dimensionality of data 
+        # X is 3-dimensional: 1) index in sentence, 2) datapoint, 3) dimensionality of data
         X = T.dtensor3('X');
         
         if (single_digit):
@@ -81,10 +85,11 @@ class RecurrentNeuralNetwork(object):
             recurrence_function = self.rnn_predict_single;
             predict_function = self.rnn_predict_sequence;
         
+        first_hidden = np.zeros((self.minibatch_size,self.hidden_dim));
         [Y_1, hidden], _ = theano.scan(fn=recurrence_function,
                                 sequences=X,
                                 # Input a zero hidden layer
-                                outputs_info=(None,np.zeros((minibatch_size,self.hidden_dim))))
+                                outputs_info=(None,first_hidden))
         
         # If X is shorter than Y we are testing and thus need to predict
         # multiple digits at the end by inputting the previously predicted
@@ -94,13 +99,11 @@ class RecurrentNeuralNetwork(object):
 #             predicted_size = T.constant(1);
 #             Ys = Y_1;
 #             unfinished_sentence = Y_1;
-            # KEEP THIS
-            sentence = Y_1;
-            
+             
             # We only predict on the final Y because for now we only predict the final digit in the expression
             # Takes the argmax over the last dimension, resulting in a vector of predictions
             prediction = T.argmax(Y_1[-1], 1);
-            #error = T.nnet.categorical_crossentropy(Y_1[-1].reshape((1,minibatch_size)), label);
+            #error = T.nnet.categorical_crossentropy(Y_1[-1].reshape((1,self.minibatch_size)), label);
             # Perform crossentropy calculation for each datapoint and take the mean
             error = T.mean(T.nnet.categorical_crossentropy(Y_1[-1], label));
         else:
@@ -112,34 +115,26 @@ class RecurrentNeuralNetwork(object):
                                                    {'initial': hidden[-1], 'taps': [-1]}),
                                      non_sequences=EOS_symbol,
                                      n_steps=self.n_max_digits)
-            
+             
             # The right hand is now the last output of the recurrence function
             # joined with the sequential output of the prediction function
+            accumulator = theano.shared(np.float64(0.), name='accumulatedError');
             right_hand = T.join(0,Y_1[-1].reshape((1,self.minibatch_size,self.output_dim)),Ys);
-            
             # We predict the final n symbols (all symbols predicted as output from input '=')
             prediction = T.argmax(right_hand, axis=2);
-            padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],minibatch_size,self.output_dim)));
-            # Add EOS's after label
-            #padded_label = T.set_subtensor(padded_label[label.shape[0]:,:,-1],1.0);
-            accumulator = theano.shared(np.float64(0.), name='accumulatedError');
+            padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.output_dim)));
             summed_error, _ = theano.scan(fn=self.crossentropy_2d,
-                                       sequences=(right_hand,padded_label),
-                                       outputs_info={'initial': accumulator, 'taps': [-1]})
+                                          sequences=(right_hand,padded_label),
+                                          outputs_info={'initial': accumulator, 'taps': [-1]})
             error = summed_error[-1] / T.constant(float(self.n_max_digits), dtype='float64');
           
         # Backward pass: gradients    
         derivatives = T.grad(error, self.vars.values());
-          
+           
         # Functions
         if (single_digit):
             self.predict = theano.function([X], prediction);
         else:
-#             self.predict = theano.function([X, label], [prediction, predicted_size, T.argmax(Ys,axis=1), 
-#                                                         total_size, sentence_size, T.argmax(sentence,axis=1),
-#                                                         T.argmax(unfinished_sentence,axis=1), label.shape[0],
-#                                                         T.argmax(Y_1,axis=1), T.argmax(Ys,axis=1), T.lt(sentence_size,total_size),
-#                                                         T.argmax(full_right_hand,axis=1)]);
             right_hand_symbol_indices = T.argmax(right_hand,axis=2);
             self.predict = theano.function([X, label], [prediction, 
                                                  right_hand_symbol_indices,
@@ -212,9 +207,17 @@ class RecurrentNeuralNetwork(object):
             printing_interval = max(total / 10,1);
         
         # Train model per minibatch
-        for k in range(0,total,self.minibatch_size):
+        batch_range = range(0,total,self.minibatch_size);
+        if (self.fake_minibatch):
+            batch_range = range(0,total);
+        for k in batch_range:
             data = training_data[k:k+self.minibatch_size];
             label = training_labels[k:k+self.minibatch_size];
+            
+            if (self.fake_minibatch):
+                data = training_data[k:k+1];
+                label = training_labels[k:k+1];
+            
             if (len(data) < self.minibatch_size):
                 missing_datapoints = self.minibatch_size - data.shape[0];
                 data = np.concatenate((data,np.zeros((missing_datapoints, training_data.shape[1], training_data.shape[2]))), axis=0);
@@ -241,11 +244,20 @@ class RecurrentNeuralNetwork(object):
             # Make printing interval always at least one
             printing_interval = max(total / 10,1);
         
-        for j in range(0,len(test_data),self.minibatch_size):
+        batch_range = range(0,len(test_data),self.minibatch_size);
+        if (self.fake_minibatch):
+            batch_range = range(0,len(test_data));
+        for j in batch_range:
             data = test_data[j:j+self.minibatch_size];
             targets = test_targets[j:j+self.minibatch_size];
             labels = test_labels[j:j+self.minibatch_size];
             test_n = self.minibatch_size;
+            
+            if (self.fake_minibatch):
+                data = test_data[j:j+1];
+                targets = test_targets[j:j+1];
+                labels = test_labels[j:j+1];
+                test_n = 1;
             
             # Add zeros to minibatch if the batch is too small
             if (len(data) < self.minibatch_size):

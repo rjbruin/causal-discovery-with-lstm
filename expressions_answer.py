@@ -14,7 +14,8 @@ from tools.file import save_to_pickle;
 from tools.arguments import processCommandLineArguments;
 from tools.model import train, test_and_save;
 
-#theano.config.mode = 'FAST_COMPILE'
+import theano;
+theano.config.mode = 'FAST_COMPILE'
 
 if (__name__ == '__main__'):
     # Specific settings - default name is time of experiment
