@@ -7,13 +7,12 @@ Created on 4 mrt. 2016
 import numpy as np;
 
 from tools.statistics import str_statistics;
-from tools.file import append_to_file;
 from tools.file import save_to_pickle;
 from tools.data import get_batch_statistics
 
-def train(model, dataset, parameters, raw_results_filepath, exp_name, start_time, saveModels=True, targets=False):
+def train(model, dataset, parameters, exp_name, start_time, saveModels=True, targets=False):
     # Print settings headers to raw results file
-    append_to_file(raw_results_filepath, str(parameters) + "\n\n")
+    print(str(parameters));
     
     # Compute number of batches
     batch_size, repetition_size, _, nrBatches = get_batch_statistics(dataset, parameters);
@@ -24,7 +23,6 @@ def train(model, dataset, parameters, raw_results_filepath, exp_name, start_time
         # Print progress and save to raw results file
         progress = "Batch %d of %d (repetition %d) (samples processed after batch: %d)" % (b+1,nrBatches,int(total_datapoints_processed/repetition_size)+1,total_datapoints_processed+batch_size);
         print(progress);
-        append_to_file(raw_results_filepath, progress);
         
         # Get the part of the dataset for this batch
         batch_train, batch_train_targets, batch_train_labels, _ = dataset.get_train_batch(batch_size);
@@ -41,14 +39,14 @@ def train(model, dataset, parameters, raw_results_filepath, exp_name, start_time
         # and we have passed the testing threshold
         if (b != nrBatches-1):
             if (total_datapoints_processed >= next_testing_threshold):
-                test_and_save(model, dataset, parameters, raw_results_filepath, start_time);
+                test_and_save(model, dataset, parameters, start_time);
                 # Save weights to pickles
                 if (saveModels):
                     saveVars = model.vars.items();
                     save_to_pickle('saved_models/%s_%d.model' % (exp_name, b), saveVars, settings={'test': 'True'});
                 next_testing_threshold += parameters['test_interval'] * repetition_size;
 
-def test_and_save(model, dataset, parameters, raw_results_filepath, start_time, show_prediction_conf_matrix=False):
+def test_and_save(model, dataset, parameters, start_time, show_prediction_conf_matrix=False):
     # Test
     print("Testing...");
         
@@ -91,9 +89,6 @@ def test_and_save(model, dataset, parameters, raw_results_filepath, start_time, 
                                    prediction_size_histogram=\
                                     stats['prediction_size_histogram']);
     print(stats_str);
-    
-    # Save statistics to file
-    append_to_file(raw_results_filepath, stats_str);
 
 def set_up_statistics(output_dim, key_indices):
     return {'correct': 0.0, 'prediction_size': 0, 'digit_correct': 0.0, 'digit_prediction_size': 0,
