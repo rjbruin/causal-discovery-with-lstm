@@ -52,7 +52,12 @@ if __name__ == '__main__':
         if ('report_to_tracker' in exp):
             report = exp['report_to_tracker'] == 'True';
         if (report):
-            requests.post("http://rjbruin.nl/experimenttracker/api/postExperiment.php", {'exp': exp['name'], 'key': api_key});
+            r = requests.post("http://rjbruin.nl/experimenttracker/api/postExperiment.php", {'exp': exp['name'], 'key': api_key});
+            if (r.json() != "false"):
+                experimentId = r.json()['id'];
+            else:
+                print("WARNING! Experiment could not be posted to tracker!");
+                experimentId = -1;
             
         outputPath = experiment_outputPaths[i];
         args = ['python',exp['script']];
@@ -74,7 +79,7 @@ if __name__ == '__main__':
                 if (out[:5] == 'Batch'):
                     currentBatch = int(out.split(" ")[1]);
                 if (report and all(map(lambda f: f(out), report_to_tracker_criteria))):
-                    requests.post("http://rjbruin.nl/experimenttracker/api/post.php", {'exp': exp['name'], 'msg': out, 'atProgress': currentBatch, 'key': api_key});
+                    requests.post("http://rjbruin.nl/experimenttracker/api/post.php", {'exp': experimentId, 'msg': out, 'atProgress': currentBatch, 'key': api_key});
                 if (out != '' and out[0] != '#'):
                     # Write to file
                     f = open(outputPath,'a');
