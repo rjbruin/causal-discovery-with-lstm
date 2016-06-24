@@ -60,7 +60,7 @@ defaults = {'report_to_tracker': True,
             'test_batch_size': 100000,
             'train_batch_size': 100000,
             'test_interval': 1.0,
-            'minibatch_size': 100,
+            'minibatch_size': 10,
             'sample_testing_size': None,
             'time_training_batch': False
             }
