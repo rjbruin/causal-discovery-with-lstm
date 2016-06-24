@@ -41,7 +41,8 @@ argumentProcessors = {'name': processString,
                       'train_batch_size': processFalseOrInt,
                       'test_interval': processFloat,
                       'sample_testing_size': processFalseOrInt,
-                      'time_training_batch': processBool
+                      'time_training_batch': processBool,
+                      'random_baseline': processBool
                       }
 defaults = {'report_to_tracker': True,
             'dataset': './data/expressions_positive_integer_answer_shallow',
@@ -60,7 +61,8 @@ defaults = {'report_to_tracker': True,
             'train_batch_size': 100000,
             'test_interval': 1.0,
             'sample_testing_size': None,
-            'time_training_batch': False
+            'time_training_batch': False,
+            'random_baseline': False
             }
 
 def processKeyValue(key,value):
