@@ -7,6 +7,7 @@ Created on 22 feb. 2016
 import theano;
 import theano.tensor as T;
 import numpy as np;
+import time;
 
 class RecurrentNeuralNetwork(object):
     '''
@@ -17,18 +18,19 @@ class RecurrentNeuralNetwork(object):
 
     def __init__(self, data_dim, hidden_dim, output_dim, minibatch_size, 
                  lstm=False, weight_values={}, single_digit=True, EOS_symbol_index=None,
-                 n_max_digits=24):
+                 n_max_digits=24, time_training_batch=False):
         '''
         Initialize all Theano models.
         '''
         self.single_digit = single_digit;
         
-        # Store dimensions        
+        # Store settings        
         self.data_dim = data_dim;
         self.hidden_dim = hidden_dim;
         self.output_dim = output_dim;
         self.minibatch_size = minibatch_size;
         self.n_max_digits = n_max_digits;
+        self.time_training_batch = time_training_batch;
         
         self.fake_minibatch = False;
         if (self.minibatch_size == 1):
@@ -211,6 +213,9 @@ class RecurrentNeuralNetwork(object):
         if (self.fake_minibatch):
             batch_range = range(0,total);
         for k in batch_range:
+            if (self.time_training_batch):
+                start = time.clock();
+            
             data = training_data[k:k+self.minibatch_size];
             label = training_labels[k:k+self.minibatch_size];
             
@@ -228,8 +233,13 @@ class RecurrentNeuralNetwork(object):
             # Run training
             self.sgd(data, label, learning_rate);
             
+            if (self.time_training_batch):
+                duration = time.clock() - start;
+            
             if (not no_print and k % printing_interval == 0):
                 print("# %d / %d" % (k, total));
+                if (self.time_training_batch):
+                    print("%d seconds" % duration);
         
     def test(self, test_data, test_labels, test_targets, test_expressions, dataset, stats, excludeStats=None, no_print=False):
         """

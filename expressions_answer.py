@@ -46,7 +46,8 @@ if (__name__ == '__main__'):
     rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
                                      lstm=parameters['lstm'], single_digit=parameters['single_digit'], 
                                      minibatch_size=parameters['minibatch_size'],
-                                     n_max_digits=5);
+                                     n_max_digits=5,
+                                     time_training_batch=parameters['time_training_batch']);
     
     ### From here the experiment should be the same every time
     
