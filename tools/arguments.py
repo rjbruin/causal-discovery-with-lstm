@@ -41,6 +41,7 @@ argumentProcessors = {'name': processString,
                       'train_batch_size': processFalseOrInt,
                       'test_interval': processFloat,
                       'minibatch_size': processInt,
+                      'sample_testing_size': processFalseOrInt,
                       'time_training_batch': processBool
                       }
 defaults = {'report_to_tracker': True,
@@ -60,6 +61,7 @@ defaults = {'report_to_tracker': True,
             'train_batch_size': 100000,
             'test_interval': 1.0,
             'minibatch_size': 100,
+            'sample_testing_size': None,
             'time_training_batch': False
             }
 

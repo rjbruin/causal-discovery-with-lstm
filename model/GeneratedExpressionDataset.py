@@ -14,12 +14,14 @@ class GeneratedExpressionDataset(object):
     def __init__(self, sourceFolder, preload=True, add_x=False, 
                  single_digit=False, single_class=False, balanced=False, 
                  test_batch_size=10000, train_batch_size=10000,
-                 max_training_size=None, max_testing_size=None):
+                 max_training_size=None, max_testing_size=None,
+                 sample_testing_size=None):
         self.sources = [sourceFolder + '/train.txt', sourceFolder + '/test.txt']
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
         self.max_training_size = max_training_size;
         self.max_testing_size = max_testing_size;
+        self.sample_testing_size = sample_testing_size;
         
         # Set the method that should process the lines of the dataset
         self.processor = self.processSample;
@@ -101,7 +103,7 @@ class GeneratedExpressionDataset(object):
         
         return length;
     
-    def load(self, source, size, location_index=0):
+    def load(self, source, size, location):
         f = open(source,'r');
         
         # Prepare data storage 
@@ -111,7 +113,7 @@ class GeneratedExpressionDataset(object):
         expressions = [];
         
         # Skip all lines until start of batch
-        for j in range(self.locations[location_index]+1):
+        for j in range(location+1):
             line = f.readline();
         
         # Read in lines until we match the size asked for
@@ -132,16 +134,14 @@ class GeneratedExpressionDataset(object):
                 line_number = 0;
                 line = f.readline();
         
-        # Update location where to start next training batch from
-        self.locations[location_index] = line_number;
-        
         f.close();
         
         # Convert list of ndarrays to a proper ndarray so minibatching will work later
         data = self.fill_ndarray(data, 1);
         targets = self.fill_ndarray(targets, 1);
         
-        return data, targets, np.array(labels), np.array(expressions);
+        # Return (data, new location)
+        return (data, targets, np.array(labels), np.array(expressions)), line_number;
     
     def fill_ndarray(self, data, axis):
         if (axis <= 0):
@@ -155,7 +155,9 @@ class GeneratedExpressionDataset(object):
     def loadFile(self, source, location_index=0, file_length=None):
         if (file_length is None):
             file_length = self.filelength(source);
-        return self.load(source, file_length, location_index=location_index);
+        data, loc = self.load(source, file_length, self.locations[location_index]);
+        self.locations[location_index] = loc;
+        return data;
     
     def get_train_batch(self, size):
         """
@@ -173,7 +175,9 @@ class GeneratedExpressionDataset(object):
             self.locations[self.TRAIN] = (self.locations[self.TRAIN] + size) % self.lengths[self.TRAIN];
             return self.train[indices], self.train_targets[indices], self.train_labels[indices], self.train_expressions[indices];
         else:
-            return self.load(self.sources[self.TRAIN], size, location_index=self.TRAIN);
+            data, loc = self.load(self.sources[self.TRAIN], size, self.locations[self.TRAIN]);
+            self.locations[self.TRAIN] = loc;
+            return data;
     
     def get_test_batch(self):
         """
@@ -187,34 +191,53 @@ class GeneratedExpressionDataset(object):
         if (self.max_testing_size is not None and self.max_testing_size < length):
             length = self.max_testing_size;
         
+        # Terminate this batching iteration if the test is marked as done
         if (self.test_done):
             # If we have marked this test iteration as being completed, return
-            # False and reset interal pointers for test batching
+            # False and reset internal pointers for test batching
             self.test_done = False;
             self.locations[self.TEST] = 0;
             return False;
+        
+        # Set up batching range
+        if (self.sample_testing_size is not None):
+            startingIndex = np.random.randint(0,length-self.sample_testing_size);
+            testingRange = (startingIndex,startingIndex+self.sample_testing_size);
+        else:
+            testingRange = (0,length);
+         
+        # Load batch
         if (self.preloaded):
             # If we have preloaded the test data, return the test data and mark
             # this iteration immediately as done
             self.test_done = True;
-            return self.test[:length], self.test_targets[:length], self.test_labels[:length], self.test_expressions[:length];
+            return self.test[testingRange[0]:testingRange[1]], \
+                    self.test_targets[testingRange[0]:testingRange[1]], \
+                    self.test_labels[testingRange[0]:testingRange[1]], \
+                    self.test_expressions[testingRange[0]:testingRange[1]];
         else:
-            # Else, compute the batch size. Truncate the batch to be maximally 
-            # the remaining part of the dataset  
-            batch_size = self.test_batch_size;
-            if (self.locations[self.TEST]+batch_size >= length):
-                batch_size = length % self.test_batch_size;
-            
-            # Load the relevant part of the dataset
-            results = self.load(self.sources[self.TEST], batch_size, location_index=self.TEST);
-            
-            # Updating location manually is not necessary as that is already 
-            # done by load()
-            if (self.locations[self.TEST] >= length or self.locations[self.TEST] == 0):
-                # If the location of the pointer is end the end of file or at 
-                # the beginning (indicating overflow has taken place) mark this
-                # test as done
+            if (self.sample_testing_size is not None):
+                # Load in the relevant part and return
+                results, _ = self.load(self.sources[self.TEST], self.sample_testing_size, testingRange[0]);
                 self.test_done = True;
+            else:
+                # Else, compute the batch size. Truncate the batch to be maximally 
+                # the remaining part of the dataset  
+                batch_size = self.test_batch_size;
+                if (self.locations[self.TEST]+batch_size >= length):
+                    batch_size = length % self.test_batch_size;
+                
+                # Load the relevant part of the dataset
+                results, loc = self.load(self.sources[self.TEST], batch_size, self.locations[self.TEST]);
+                self.locations[self.TEST] = loc;
+                
+                # Updating location manually is not necessary as that is already 
+                # done by load()
+                if (self.locations[self.TEST] >= length or self.locations[self.TEST] == 0):
+                    # If the location of the pointer is end the end of file or at 
+                    # the beginning (indicating overflow has taken place) mark this
+                    # test as done
+                    self.test_done = True;
             
             return results;
     

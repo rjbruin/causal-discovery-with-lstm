@@ -206,7 +206,7 @@ class RecurrentNeuralNetwork(object):
         printing_interval = 1000;
         if (total <= printing_interval * 10):
             # Make printing interval always at least one
-            printing_interval = max(total / 10,1);
+            printing_interval = max(total / 5,1);
         
         # Train model per minibatch
         batch_range = range(0,total,self.minibatch_size);
@@ -233,12 +233,10 @@ class RecurrentNeuralNetwork(object):
             # Run training
             self.sgd(data, label, learning_rate);
             
-            if (self.time_training_batch):
-                duration = time.clock() - start;
-            
             if (not no_print and k % printing_interval == 0):
                 print("# %d / %d" % (k, total));
                 if (self.time_training_batch):
+                    duration = time.clock() - start;
                     print("%d seconds" % duration);
         
     def test(self, test_data, test_labels, test_targets, test_expressions, dataset, stats, excludeStats=None, no_print=False):
