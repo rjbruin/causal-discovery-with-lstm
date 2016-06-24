@@ -44,7 +44,8 @@ if (__name__ == '__main__'):
                                                     max_testing_size=parameters['max_testing_size'],
                                                     sample_testing_size=parameters['sample_testing_size']);
     rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
-                                     lstm=parameters['lstm'], single_digit=parameters['single_digit']);
+                                     lstm=parameters['lstm'], single_digit=parameters['single_digit'],
+                                     time_training_batch=parameters['time_training_batch']);
     
     ### From here the experiment should be the same every time
     

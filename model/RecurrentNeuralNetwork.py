@@ -8,6 +8,7 @@ import theano;
 import theano.tensor as T;
 import theano.scan_module;
 import numpy as np;
+import time;
 
 class RecurrentNeuralNetwork(object):
     '''
@@ -16,7 +17,8 @@ class RecurrentNeuralNetwork(object):
     '''
 
 
-    def __init__(self, data_dim, hidden_dim, output_dim, lstm=False, weight_values={}, single_digit=True, EOS_symbol_index=None):
+    def __init__(self, data_dim, hidden_dim, output_dim, lstm=False, weight_values={}, single_digit=True, EOS_symbol_index=None,
+                 time_training_batch=False):
         '''
         Initialize all Theano models.
         '''
@@ -26,6 +28,7 @@ class RecurrentNeuralNetwork(object):
         self.data_dim = data_dim;
         self.hidden_dim = hidden_dim;
         self.output_dim = output_dim;
+        self.time_training_batch = time_training_batch;
         
         if (not single_digit):
             if (EOS_symbol_index is None):
@@ -194,9 +197,11 @@ class RecurrentNeuralNetwork(object):
         printing_interval = 1000;
         if (total <= printing_interval * 10):
             # Make printing interval always at least one
-            printing_interval = max(total / 10,1);
+            printing_interval = max(total / 5,1);
         
         # Train model per datapoint
+        if (self.time_training_batch):
+            start = time.clock();
         for k in range(total):
             data = np.array(training_data[k]);
             label = np.array(training_labels[k]);
@@ -207,6 +212,10 @@ class RecurrentNeuralNetwork(object):
             
             if (k % printing_interval == 0):
                 print("# %d / %d" % (k, total));
+                if (self.time_training_batch):
+                    duration = time.clock() - start;
+                    print("%d seconds" % duration);
+                    start = time.clock();
         
     def test(self, test_data, test_labels, test_targets, test_expressions, dataset, stats, excludeStats=None):
         """
