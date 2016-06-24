@@ -8,6 +8,7 @@
         "hidden_dim": "128",
         "learning_rate": "0.01",
         "lstm": "True",
-        "minibatch_size": "10"
+        "minibatch_size": "10",
+        "sample_testing_size": "10000"
     }
 ]
