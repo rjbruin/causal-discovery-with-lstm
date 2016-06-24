@@ -1,0 +1,14 @@
+[
+    {
+        "name": "compare_minibatch_1",
+        "script": "expressions_answer.py",
+        "dataset": "./data/expressions_positive_integer_answer_shallow",
+        "single_digit": "False",
+        "repetitions": "24",
+        "hidden_dim": "128",
+        "learning_rate": "0.01",
+        "lstm": "True",
+        "minibatch_size": "1",
+        "sample_testing_size": "10000"
+    }
+]
