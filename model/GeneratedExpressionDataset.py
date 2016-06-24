@@ -187,7 +187,12 @@ class GeneratedExpressionDataset(object):
         
         # Set up batching range
         if (self.sample_testing_size is not None):
-            startingIndex = np.random.randint(0,length-self.sample_testing_size);
+            if (length-self.sample_testing_size < 0):
+                raise ValueError("sample_testing_size is larger than testing set!");
+            elif (length-self.sample_testing_size == 0):
+                startingIndex = 0;
+            else:
+                startingIndex = np.random.randint(0,length-self.sample_testing_size);
             testingRange = (startingIndex,startingIndex+self.sample_testing_size);
         else:
             testingRange = (0,length);
