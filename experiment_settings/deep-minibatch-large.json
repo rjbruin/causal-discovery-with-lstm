@@ -9,6 +9,7 @@
         "learning_rate": "0.01",
         "lstm": "True",
         "minibatch_size": "10",
-        "sample_testing_size": "10000"
+        "sample_testing_size": "10000",
+        "n_max_digits": "7"
     }
 ]
