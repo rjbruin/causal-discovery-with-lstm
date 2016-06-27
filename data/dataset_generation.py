@@ -218,9 +218,9 @@ def writeToFiles(expressions,baseFilePath,test_percentage,isList=False):
 
 if __name__ == '__main__':
     # Settings
-    folder = 'data/expressions_positive_integer_answer_deep';
+    folder = 'expressions_positive_integer_answer_deep_large';
     test_size = 0.10;
-    n = 1000000;
+    n = 5000000;
     currentRecursionDepth = 0;
     minRecursionDepth = 1;
     maxRecursionDepth = 3;
