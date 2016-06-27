@@ -128,7 +128,8 @@ class RecurrentNeuralNetwork(object):
             summed_error, _ = theano.scan(fn=self.crossentropy_2d,
                                           sequences=(right_hand,padded_label),
                                           outputs_info={'initial': accumulator, 'taps': [-1]})
-            error = summed_error[-1] / T.constant(float(self.n_max_digits), dtype='float64');
+            #error = summed_error[-1] / T.constant(float(self.n_max_digits), dtype='float64');
+            error = summed_error[-1];
           
         # Backward pass: gradients    
         derivatives = T.grad(error, self.vars.values());
