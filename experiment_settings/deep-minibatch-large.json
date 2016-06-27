@@ -10,6 +10,7 @@
         "lstm": "True",
         "minibatch_size": "10",
         "sample_testing_size": "10000",
-        "n_max_digits": "7"
+        "n_max_digits": "7",
+        "preload": "False"
     }
 ]
