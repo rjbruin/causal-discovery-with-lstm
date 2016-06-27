@@ -9,6 +9,7 @@ import sys;
 
 import model.RecurrentNeuralNetwork as rnn;
 import model.GeneratedExpressionDataset as ge_dataset;
+import model.RandomBaseline as rb;
 
 from tools.file import save_to_pickle;
 from tools.arguments import processCommandLineArguments;
@@ -26,7 +27,11 @@ if (__name__ == '__main__'):
     
     # Process parameters
     parameters = processCommandLineArguments(sys.argv);
-     
+    
+    # Ask for seed if running random baseline
+    if (parameters['random_baseline']):
+        seed = int(raw_input("Please provide an integer seed for the random number generation: ")); 
+    
     # Warn for unusual parameters
     if (parameters['max_training_size'] is not None):
         print("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!");
@@ -44,11 +49,14 @@ if (__name__ == '__main__'):
                                                     max_training_size=parameters['max_training_size'],
                                                     max_testing_size=parameters['max_testing_size'],
                                                     sample_testing_size=parameters['sample_testing_size']);
-    rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
-                                     lstm=parameters['lstm'], single_digit=parameters['single_digit'], 
-                                     minibatch_size=parameters['minibatch_size'],
-                                     n_max_digits=5,
-                                     time_training_batch=parameters['time_training_batch']);
+    if (parameters['random_baseline']):
+        rnn = rb.RandomBaseline(parameters['single_digit'], seed);
+    else:
+        rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
+                                         lstm=parameters['lstm'], single_digit=parameters['single_digit'],
+                                         minibatch_size=parameters['minibatch_size'],
+                                         n_max_digits=5,
+                                         time_training_batch=parameters['time_training_batch']);
     
     ### From here the experiment should be the same every time
     
