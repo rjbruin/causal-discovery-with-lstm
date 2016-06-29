@@ -12,7 +12,8 @@ class GeneratedExpressionDataset(object):
     TEST = 1;
     
     def __init__(self, sourceFolder, preload=True, add_x=False, 
-                 single_digit=False, single_class=False, balanced=False, 
+                 single_digit=False, single_class=False, balanced=False,
+                 correction=False, 
                  test_batch_size=10000, train_batch_size=10000,
                  max_training_size=None, max_testing_size=None,
                  sample_testing_size=None):
@@ -29,6 +30,8 @@ class GeneratedExpressionDataset(object):
             self.processor = self.processSampleWithX;
         elif (single_class):
             self.processor = self.processSampleSingleClass;
+        elif (correction):
+            self.processor = self.processSampleCorrection;
         elif (not single_digit):
             self.processor = self.processSampleMultiDigit;
         elif (balanced):
@@ -80,17 +83,17 @@ class GeneratedExpressionDataset(object):
             self.preloaded = False;
     
     def preload(self):
-        try:
-            self.train, self.train_targets, self.train_labels, self.train_expressions = \
-                self.loadFile(self.sources[self.TRAIN], 
-                              location_index=self.TRAIN, 
-                              file_length=self.lengths[self.TRAIN]);
-            self.test, self.test_targets, self.test_labels, self.test_expressions = \
-                self.loadFile(self.sources[self.TEST], 
-                              location_index=self.TEST, 
-                              file_length=self.lengths[self.TEST]);
-        except Exception:
-            return False;
+#         try:
+        self.train, self.train_targets, self.train_labels, self.train_expressions = \
+            self.loadFile(self.sources[self.TRAIN], 
+                          location_index=self.TRAIN, 
+                          file_length=self.lengths[self.TRAIN]);
+        self.test, self.test_targets, self.test_labels, self.test_expressions = \
+            self.loadFile(self.sources[self.TEST], 
+                          location_index=self.TEST, 
+                          file_length=self.lengths[self.TEST]);
+#         except Exception:
+#             return False;
         return True;
     
     def filelength(self, source):
@@ -353,5 +356,31 @@ class GeneratedExpressionDataset(object):
 #         labels.append(right_hand_digits);
 #         targets.append(np.array(target));
 #         expressions.append(expression);
+
+        return data, targets, labels, expressions, 1;
+    
+    def processSampleCorrection(self, line, data, targets, labels, expressions):
+        line = line.strip();
+        old_expression, new_expression = line.split(";");
+        
+        # Old expression = data
+        old_expression_embeddings = np.zeros((len(old_expression)+1,self.data_dim));
+        for i, literal in enumerate(old_expression):
+            old_expression_embeddings[i,self.oneHot[literal]] = 1.0;
+        
+        # New expression = label/target
+        new_expression_embeddings = np.zeros((len(new_expression)+1,self.data_dim));
+        for i, literal in enumerate(new_expression):
+            new_expression_embeddings[i,self.oneHot[literal]] = 1.0;
+        
+        # Add EOS's
+        old_expression_embeddings[-1,self.EOS_symbol_index] = 1.0;
+        new_expression_embeddings[-1,self.EOS_symbol_index] = 1.0;
+        
+        # Append data
+        data.append(old_expression_embeddings);
+        labels.append(np.argmax(new_expression_embeddings, axis=1));
+        targets.append(new_expression_embeddings);
+        expressions.append(old_expression);
         
         return data, targets, labels, expressions, 1;

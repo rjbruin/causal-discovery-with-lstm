@@ -45,7 +45,9 @@ argumentProcessors = {'name': processString,
                       'time_training_batch': processBool,
                       'random_baseline': processBool,
                       'n_max_digits': processInt,
-                      'decoder': processBool
+                      'decoder': processBool,
+                      'correction': processBool,
+                      'print_sample': processBool
                       }
 defaults = {'report_to_tracker': True,
             'dataset': './data/expressions_positive_integer_answer_shallow',
@@ -68,7 +70,9 @@ defaults = {'report_to_tracker': True,
             'time_training_batch': False,
             'random_baseline': False,
             'n_max_digits': 5,
-            'decoder': False
+            'decoder': False,
+            'correction': False,
+            'print_sample': False
             }
 
 def processKeyValue(key,value):

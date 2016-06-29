@@ -43,6 +43,7 @@ if (__name__ == '__main__'):
                                                     add_x=parameters['find_x'],
                                                     single_digit=parameters['single_digit'], 
                                                     single_class=parameters['single_class'],
+                                                    correction=parameters['correction'],
                                                     preload=parameters['preload'],
                                                     test_batch_size=parameters['test_batch_size'],
                                                     train_batch_size=parameters['train_batch_size'],

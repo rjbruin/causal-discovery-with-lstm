@@ -67,7 +67,7 @@ def test_and_save(model, dataset, parameters, start_time, show_prediction_conf_m
         test_data, test_targets, test_labels, test_expressions = batch;
         
         # Test and retrieve updated stats
-        stats = model.test(test_data, test_labels, test_targets, test_expressions, dataset, stats);
+        stats = model.test(test_data, test_labels, test_targets, test_expressions, dataset, stats, print_sample=parameters['print_sample']);
         
         # Get new batch
         batch = dataset.get_test_batch();

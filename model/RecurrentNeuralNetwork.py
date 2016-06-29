@@ -276,7 +276,8 @@ class RecurrentNeuralNetwork(object):
                     duration = time.clock() - start;
                     print("%d seconds" % duration);
         
-    def test(self, test_data, test_labels, test_targets, test_expressions, dataset, stats, excludeStats=None, no_print=False):
+    def test(self, test_data, test_labels, test_targets, test_expressions, 
+             dataset, stats, excludeStats=None, no_print_progress=False, print_sample=True):
         """
         Run test data through model. Output percentage of correctly predicted
         test instances. DOES NOT handle batching. DOES output testing 
@@ -363,14 +364,24 @@ class RecurrentNeuralNetwork(object):
                     # the location of the highest index, which is the first 
                     # EOS symbol
                     eos_location = np.argmax(right_hand_symbol_indices[js-j]);
-                    stats['prediction_size_histogram'][int(eos_location)] += 1;
+                    # Check for edge case where no EOS was found and zero was returned
+                    if (right_hand_symbol_indices[js-j,eos_location] != dataset.EOS_symbol_index):
+                        stats['prediction_size_histogram'][right_hand_symbol_indices[js-j].shape[0]] += 1;
+                    else:
+                        stats['prediction_size_histogram'][int(eos_location)] += 1;
                     if (int(eos_location) > self.n_max_digits):
                         print('score');
                     for digit_prediction in prediction[js-j]:
                         stats['prediction_histogram'][int(digit_prediction)] += 1;
                 stats['prediction_size'] += 1;
+                
+                # Sample print of testing
+                if (print_sample and j == batch_range[-1] and js == j+test_n-1):
+                    print("# SAMPLE Data: %s" % (str(np.argmax(data[js-j], axis=1))));
+                    print("# SAMPLE Label: %s" % (str(labels[js-j])));
+                    print("# SAMPLE Prediction: %s" % (str(prediction[js-j])));
             
-            if (not no_print and stats['prediction_size'] % printing_interval == 0):
+            if (not no_print_progress and stats['prediction_size'] % printing_interval == 0):
                 print("# %d / %d" % (stats['prediction_size'], total));
         
         stats['score'] = stats['correct'] / float(stats['prediction_size']);
