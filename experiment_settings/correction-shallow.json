@@ -1,0 +1,13 @@
+[
+    {
+        "name": "correction-shallow",
+        "script": "expressions_answer.py",
+        "dataset": "./data/correction_positive_integer_answer_shallow",
+        "correction": "True",
+        "repetitions": "24",
+        "hidden_dim": "128",
+        "learning_rate": "0.01",
+        "lstm": "True",
+        "sample_testing_size": "10000"
+    }
+]
