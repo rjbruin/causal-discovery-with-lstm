@@ -8,6 +8,7 @@ import theano;
 import theano.tensor as T;
 import numpy as np;
 import time;
+from pandas.computation.ops import UndefinedVariableError
 
 class RecurrentNeuralNetwork(object):
     '''
@@ -18,7 +19,7 @@ class RecurrentNeuralNetwork(object):
 
     def __init__(self, data_dim, hidden_dim, output_dim, minibatch_size, 
                  lstm=False, weight_values={}, single_digit=True, EOS_symbol_index=None,
-                 n_max_digits=24, time_training_batch=False):
+                 n_max_digits=24, time_training_batch=False, decoder=False):
         '''
         Initialize all Theano models.
         '''
@@ -27,10 +28,16 @@ class RecurrentNeuralNetwork(object):
         # Store settings        
         self.data_dim = data_dim;
         self.hidden_dim = hidden_dim;
-        self.output_dim = output_dim;
+        self.decoding_output_dim = output_dim;
+        self.prediction_output_dim = output_dim;
         self.minibatch_size = minibatch_size;
         self.n_max_digits = n_max_digits;
         self.time_training_batch = time_training_batch;
+        self.decoder = decoder;
+        
+        # Change output dim of prediction phase if decoding
+        if (self.decoder):
+            self.prediction_output_dim = self.hidden_dim;
         
         self.fake_minibatch = False;
         if (self.minibatch_size == 1):
@@ -48,7 +55,7 @@ class RecurrentNeuralNetwork(object):
         if (not lstm):
             varSettings.append(('XWh',self.data_dim,self.hidden_dim));
             varSettings.append(('hWh',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('hWo',self.hidden_dim,self.output_dim));
+            varSettings.append(('hWo',self.hidden_dim,self.decoding_output_dim));
         else:
             varSettings.append(('hWf',self.hidden_dim,self.hidden_dim));
             varSettings.append(('XWf',self.data_dim,self.hidden_dim));
@@ -58,7 +65,20 @@ class RecurrentNeuralNetwork(object):
             varSettings.append(('XWc',self.data_dim,self.hidden_dim));
             varSettings.append(('hWo',self.hidden_dim,self.hidden_dim));
             varSettings.append(('XWo',self.data_dim,self.hidden_dim));
-            varSettings.append(('hWY',self.hidden_dim,self.output_dim));
+            varSettings.append(('hWY',self.hidden_dim,self.prediction_output_dim));
+            if (decoder):
+                # Add variables for the decoding phase
+                # All these variables begin with 'D' so they can be 
+                # automatically filtered to be used as parameters
+                varSettings.append(('DhWf',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DXWf',self.data_dim,self.hidden_dim));
+                varSettings.append(('DhWi',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DXWi',self.data_dim,self.hidden_dim));
+                varSettings.append(('DhWc',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DXWc',self.data_dim,self.hidden_dim));
+                varSettings.append(('DhWo',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DXWo',self.data_dim,self.hidden_dim));
+                varSettings.append(('DhWY',self.hidden_dim,self.decoding_output_dim));
         
         # Contruct variables
         self.vars = {};
@@ -80,28 +100,34 @@ class RecurrentNeuralNetwork(object):
             # targets is 3-dimensional: 1) index in sentence, 2) datapoint, 3) encodings
             label = T.dtensor3('label');
         
+        # Set scan functions and arguments
         if (lstm):
             recurrence_function = self.lstm_predict_single;
             predict_function = self.lstm_predict_sequence;
+            # Set the prediction parameters to be either the prediction 
+            # weights or the decoding weights depending on the setting 
+            predict_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] != 'D', varSettings)];
+            if (self.decoder):
+                decode_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] == 'D', varSettings)];
+            else:
+                decode_parameters = predict_parameters;
         else:
             recurrence_function = self.rnn_predict_single;
             predict_function = self.rnn_predict_sequence;
+            predict_parameters = [self.vars[k] for k in self.vars];
+            decode_parameters = predict_parameters;
         
         first_hidden = np.zeros((self.minibatch_size,self.hidden_dim));
         [Y_1, hidden], _ = theano.scan(fn=recurrence_function,
                                 sequences=X,
                                 # Input a zero hidden layer
-                                outputs_info=(None,first_hidden))
+                                outputs_info=(None,first_hidden),
+                                non_sequences=predict_parameters)
         
         # If X is shorter than Y we are testing and thus need to predict
         # multiple digits at the end by inputting the previously predicted
         # digit at each step as X
         if (single_digit):
-            # DEBUG
-#             predicted_size = T.constant(1);
-#             Ys = Y_1;
-#             unfinished_sentence = Y_1;
-             
             # We only predict on the final Y because for now we only predict the final digit in the expression
             # Takes the argmax over the last dimension, resulting in a vector of predictions
             prediction = T.argmax(Y_1[-1], 1);
@@ -111,24 +137,36 @@ class RecurrentNeuralNetwork(object):
         else:
             # Add predictions until EOS to Y
             # The maximum number of digits to predict is n_max_digits
+            init_values = ({'initial': Y_1[-1], 'taps': [-1]},
+                           {'initial': hidden[-1], 'taps': [-1]});
+            if (self.decoder):
+                # When decoding we start the decoder with zeros as input and
+                # the last prediction output state as first hidden state
+                # This is why we had to change the prediction output dimension
+                # size to match the hidden dimension size
+                init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim), dtype='float64'), 'taps': [-1]},
+                               {'initial': Y_1[-1], 'taps': [-1]});
             [Ys, _], _ = theano.scan(fn=predict_function,
                                      # Inputs the last hidden layer and the last predicted symbol
-                                     outputs_info=({'initial': Y_1[-1], 'taps': [-1]},
-                                                   {'initial': hidden[-1], 'taps': [-1]}),
-                                     non_sequences=EOS_symbol,
+                                     outputs_info=init_values,
+                                     non_sequences=decode_parameters,
                                      n_steps=self.n_max_digits)
-             
-            # The right hand is now the last output of the recurrence function
-            # joined with the sequential output of the prediction function
-            accumulator = theano.shared(np.float64(0.), name='accumulatedError');
-            right_hand = T.join(0,Y_1[-1].reshape((1,self.minibatch_size,self.output_dim)),Ys);
+            
+            if (self.decoder):
+                right_hand = Ys;
+            else: 
+                # The right hand is now the last output of the recurrence function
+                # joined with the sequential output of the prediction function
+                right_hand = T.join(0,Y_1[-1].reshape((1,self.minibatch_size,self.decoding_output_dim)),Ys);
+            
             # We predict the final n symbols (all symbols predicted as output from input '=')
             prediction = T.argmax(right_hand, axis=2);
-            padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.output_dim)));
+            padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim)));
+            
+            accumulator = theano.shared(np.float64(0.), name='accumulatedError');
             summed_error, _ = theano.scan(fn=self.crossentropy_2d,
                                           sequences=(right_hand,padded_label),
                                           outputs_info={'initial': accumulator, 'taps': [-1]})
-            #error = summed_error[-1] / T.constant(float(self.n_max_digits), dtype='float64');
             error = summed_error[-1];
           
         # Backward pass: gradients    
@@ -166,29 +204,27 @@ class RecurrentNeuralNetwork(object):
     
     # PREDICTION FUNCTIONS
     
-    def rnn_predict_single(self, current_X, previous_hidden):
-        hidden = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWh']) + current_X.dot(self.vars['XWh']));
-        Ys = T.nnet.softmax(hidden.dot(self.vars['hWo']));
+    def rnn_predict_single(self, current_X, previous_hidden, XWh, hWh, hWo):
+        hidden = T.nnet.sigmoid(previous_hidden.dot(hWh) + current_X.dot(XWh));
+        Ys = T.nnet.softmax(hidden.dot(hWo));
         return Ys, hidden;
     
-    def rnn_predict_sequence(self, current_X, previous_hidden, EOS_symbol):
-        Ys, hidden = self.rnn_predict_single(current_X, previous_hidden);
-        #return [Ys, hidden], {}, theano.scan_module.until(T.eq(T.argmax(Ys),EOS_symbol));
+    def rnn_predict_sequence(self, current_X, previous_hidden, XWh, hWh, hWo):
+        Ys, hidden = self.rnn_predict_single(current_X, previous_hidden, XWh, hWh, hWo);
         return [Ys, hidden];
     
-    def lstm_predict_single(self, current_X, previous_hidden):
-        forget_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWf']) + current_X.dot(self.vars['XWf']));
-        input_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWi']) + current_X.dot(self.vars['XWi']));
-        candidate_cell = T.tanh(previous_hidden.dot(self.vars['hWc']) + current_X.dot(self.vars['XWc']));
+    def lstm_predict_single(self, current_X, previous_hidden, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY):
+        forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + current_X.dot(XWf));
+        input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + current_X.dot(XWi));
+        candidate_cell = T.tanh(previous_hidden.dot(hWc) + current_X.dot(XWc));
         cell = forget_gate * previous_hidden + input_gate * candidate_cell;
-        output_gate = T.nnet.sigmoid(previous_hidden.dot(self.vars['hWo']) + current_X.dot(self.vars['XWo']));
+        output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + current_X.dot(XWo));
         hidden = output_gate * cell;
-        Y_output = T.nnet.softmax(hidden.dot(self.vars['hWY']));
+        Y_output = T.nnet.softmax(hidden.dot(hWY));
         return Y_output, hidden;
      
-    def lstm_predict_sequence(self, current_X, previous_hidden, EOS_symbol):
-        Y_output, hidden = self.lstm_predict_single(current_X, previous_hidden);
-        #return [Y_output, hidden], {}, theano.scan_module.until(T.eq(T.argmax(Y_output),EOS_symbol));
+    def lstm_predict_sequence(self, current_X, previous_hidden, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY):
+        Y_output, hidden = self.lstm_predict_single(current_X, previous_hidden, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY);
         return [Y_output, hidden];
     
     # END OF INITIALIZATION
