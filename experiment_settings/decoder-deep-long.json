@@ -9,6 +9,7 @@
         "learning_rate": "0.01",
         "lstm": "True",
         "sample_testing_size": "10000",
-        "decoder": "True"
+        "decoder": "True",
+        "n_max_digits": "7"
     }
 ]
