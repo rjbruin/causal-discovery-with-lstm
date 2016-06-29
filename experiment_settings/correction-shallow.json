@@ -8,6 +8,7 @@
         "hidden_dim": "128",
         "learning_rate": "0.01",
         "lstm": "True",
-        "sample_testing_size": "10000"
+        "sample_testing_size": "10000",
+        "n_max_digits": "17"
     }
 ]
