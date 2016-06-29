@@ -11,8 +11,7 @@
         "minibatch_size": "10",
         "sample_testing_size": "10000",
         "n_max_digits": "5",
-        "random_baseline": "True",
-        "report_to_tracker": "False"
+        "random_baseline": "True"
     }, {
         "name": "random-baseline-deep",
         "script": "expressions_answer.py",
@@ -25,7 +24,6 @@
         "minibatch_size": "10",
         "sample_testing_size": "10000",
         "n_max_digits": "7",
-        "random_baseline": "True",
-        "report_to_tracker": "False"
+        "random_baseline": "True"
     }
 ]
