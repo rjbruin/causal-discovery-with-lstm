@@ -72,14 +72,16 @@ if __name__ == '__main__':
         p = subprocess.Popen(joined_args,stdout=PIPE,stderr=STDOUT,shell=True);
         
         currentBatch = 1;
+        currentIteration = 1;
         while (p.poll() == None):
             out = p.stdout.readline().strip();
             if (len(out) > 0):
                 print(out);
                 if (out[:5] == 'Batch'):
                     currentBatch = int(out.split(" ")[1]);
+                    currentIteration = int(out.split(" ")[5][:-1]);
                 if (report and all(map(lambda f: f(out), report_to_tracker_criteria))):
-                    requests.post("http://rjbruin.nl/experimenttracker/api/post.php", {'exp': experimentId, 'msg': out, 'atProgress': currentBatch, 'key': api_key});
+                    requests.post("http://rjbruin.nl/experimenttracker/api/post.php", {'exp': experimentId, 'msg': out, 'atProgress': currentIteration, 'key': api_key});
                 if (out != '' and out[0] != '#'):
                     # Write to file
                     f = open(outputPath,'a');
