@@ -1,0 +1,14 @@
+[
+    {
+        "name": "decoder-deep-long",
+        "script": "expressions_answer.py",
+        "dataset": "./data/expressions_positive_integer_answer_deep",
+        "single_digit": "False",
+        "repetitions": "216",
+        "hidden_dim": "128",
+        "learning_rate": "0.01",
+        "lstm": "True",
+        "sample_testing_size": "10000",
+        "decoder": "True"
+    }
+]
