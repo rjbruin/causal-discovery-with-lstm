@@ -378,9 +378,9 @@ class GeneratedExpressionDataset(object):
         new_expression_embeddings[-1,self.EOS_symbol_index] = 1.0;
         
         # Append data
-        data.append(old_expression_embeddings);
-        labels.append(np.argmax(new_expression_embeddings, axis=1));
-        targets.append(new_expression_embeddings);
-        expressions.append(old_expression);
+        data.append(new_expression_embeddings);
+        labels.append(np.argmax(old_expression_embeddings, axis=1));
+        targets.append(old_expression_embeddings);
+        expressions.append(new_expression);
         
         return data, targets, labels, expressions, 1;
