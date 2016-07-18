@@ -1,6 +1,6 @@
 [
     {
-        "name": "decoder-shallow-json",
+        "name": "decoder-shallow-long",
         "script": "expressions_answer.py",
         "dataset": "./data/expressions_positive_integer_answer_shallow",
         "single_digit": "False",
