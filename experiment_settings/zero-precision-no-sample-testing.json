@@ -1,0 +1,14 @@
+[
+    {
+        "name": "zero-precision-no-sample-testing",
+        "script": "expressions_answer.py",
+        "dataset": "./data/expressions_positive_integer_answer_deep",
+        "single_digit": "False",
+        "repetitions": "92",
+        "hidden_dim": "128",
+        "learning_rate": "0.01",
+        "lstm": "True",
+        "minibatch_size": "10",
+        "n_max_digits": "7"
+    }
+]
