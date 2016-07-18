@@ -8,7 +8,6 @@ import theano;
 import theano.tensor as T;
 import numpy as np;
 import time;
-from pandas.computation.ops import UndefinedVariableError
 
 class RecurrentNeuralNetwork(object):
     '''
