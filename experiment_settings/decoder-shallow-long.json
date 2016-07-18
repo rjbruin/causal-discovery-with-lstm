@@ -4,7 +4,7 @@
         "script": "expressions_answer.py",
         "dataset": "./data/expressions_positive_integer_answer_shallow",
         "single_digit": "False",
-        "repetitions": "72",
+        "repetitions": "144",
         "hidden_dim": "128",
         "learning_rate": "0.01",
         "lstm": "True",
