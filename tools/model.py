@@ -52,7 +52,7 @@ def test_and_save(model, dataset, parameters, start_time, show_prediction_conf_m
         
     total = dataset.lengths[dataset.TEST];
     printing_interval = 1000;
-    if (parameters['max_testing_size'] is not None):
+    if (parameters['max_testing_size'] is not False):
         total = parameters['max_testing_size'];
     if (total < printing_interval * 10):
         printing_interval = total / 10;

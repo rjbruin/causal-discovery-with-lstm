@@ -191,7 +191,7 @@ class GeneratedExpressionDataset(object):
         """
         # Limit part of dataset used to max_testing_size if necessary
         length = self.lengths[self.TEST];
-        if (self.max_testing_size is not None and self.max_testing_size < length):
+        if (self.max_testing_size is not False and self.max_testing_size < length):
             length = self.max_testing_size;
         
         # Terminate this batching iteration if the test is marked as done
@@ -203,7 +203,7 @@ class GeneratedExpressionDataset(object):
             return False;
         
         # Set up batching range
-        if (self.sample_testing_size is not None):
+        if (self.sample_testing_size is not False):
             if (length-self.sample_testing_size < 0):
                 raise ValueError("sample_testing_size is larger than testing set!");
             elif (length-self.sample_testing_size == 0):
@@ -224,7 +224,7 @@ class GeneratedExpressionDataset(object):
                     self.test_labels[testingRange[0]:testingRange[1]], \
                     self.test_expressions[testingRange[0]:testingRange[1]];
         else:
-            if (self.sample_testing_size is not None):
+            if (self.sample_testing_size is not False):
                 # Load in the relevant part and return
                 results, _ = self.load(self.sources[self.TEST], self.sample_testing_size, testingRange[0]);
                 self.test_done = True;

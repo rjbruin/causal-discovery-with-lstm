@@ -6,7 +6,7 @@ Created on 4 mrt. 2016
 
 def create_batches(dataset, parameters):
     _, repetition_size, indices_to_use = get_batch_statistics(dataset, parameters);
-    if (parameters['test_interval'] is not None):    
+    if (parameters['test_interval'] is not False):    
         batches = [];
         i = 0;
         while (indices_to_use - i > 0):
@@ -19,12 +19,12 @@ def create_batches(dataset, parameters):
     return batches, repetition_size;
 
 def get_batch_statistics(dataset, parameters):
-    if (parameters['max_training_size'] is not None):
+    if (parameters['max_training_size'] is not False):
         repetition_size = parameters['max_training_size'];
     else:
         repetition_size = dataset.lengths[dataset.TRAIN];
     
-    if (parameters['train_batch_size'] is not None):
+    if (parameters['train_batch_size'] is not False):
         batch_size = parameters['train_batch_size'];
     else:
         batch_size = dataset.lengths[dataset.TRAIN];

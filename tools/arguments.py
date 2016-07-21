@@ -4,6 +4,8 @@ Created on 4 mrt. 2016
 @author: Robert-Jan
 '''
 
+import json;
+
 def processString(val):
     return val;
 
@@ -17,8 +19,8 @@ def processBool(val):
     return val == 'True';
 
 def processFalseOrInt(val):
-    if (val == 'False'):
-        return None;
+    if (val == 'False' or val == 'None'):
+        return False;
     return int(val);
 
 
@@ -58,15 +60,15 @@ defaults = {'report_to_tracker': True,
             'hidden_dim': 128,
             'learning_rate': 0.01,
             'lstm': True,
-            'max_training_size': None,
-            'max_testing_size': None,
+            'max_training_size': False,
+            'max_testing_size': False,
             'save_models': True,
             'preload': False,
             'test_batch_size': 100000,
             'train_batch_size': 100000,
             'test_interval': 1.0,
             'minibatch_size': 10,
-            'sample_testing_size': None,
+            'sample_testing_size': False,
             'time_training_batch': False,
             'random_baseline': False,
             'n_max_digits': 5,
@@ -77,13 +79,21 @@ defaults = {'report_to_tracker': True,
 
 def processKeyValue(key,value):
     if (key in argumentProcessors):
-        return argumentProcessors[key](value);
+        try:
+            return argumentProcessors[key](value);
+        except Exception:
+            raise ValueError("Wrong processor applied or wrong value supplied: key = %s, value = %s, processor = %s" % (key, value, argumentProcessors[key]));
     else:
         raise ValueError("Invalid key provided: %s" % key);
 
 def processCommandLineArguments(arguments, parameters=None):
     if (parameters is None):
         parameters = defaults;
+    
+    if ('--params_from_experiment_header' in arguments):
+        # If no arguments are provided, ask for parameters as raw input
+        dictStr = raw_input("Please provide the extra arguments as dictionary: ");
+        arguments.extend(parametersFromDict(dictStr));
     
     key = None;
     for arg in arguments:
@@ -101,3 +111,23 @@ def processCommandLineArguments(arguments, parameters=None):
                 val = None;
     
     return parameters;
+
+def parametersFromDict(dictStr):
+    dict = dictStr.replace("True","true");
+    dict = dict.replace("False","false");
+    dict = dict.replace("'",'"');
+    dict = dict.replace('None','"None"');
+    obj = json.loads(dict);
+    for key in obj:
+        if (obj[key] == "None"):
+            obj[key] = None;
+    
+    # Print arguments
+    args = [];
+    for key in obj:
+        args.append('--%s' % key);
+        args.append('%s' % str(obj[key]));
+    
+    print("Parameters added: %s" % str(args));
+    
+    return args;

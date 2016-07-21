@@ -26,14 +26,14 @@ if (__name__ == '__main__'):
     saveModels = True;
     
     # Process parameters
-    parameters = processCommandLineArguments(sys.argv);
+    parameters = processCommandLineArguments(sys.argv[1:]);
     
     # Ask for seed if running random baseline
     if (parameters['random_baseline']):
         seed = int(raw_input("Please provide an integer seed for the random number generation: ")); 
     
     # Warn for unusual parameters
-    if (parameters['max_training_size'] is not None):
+    if (parameters['max_training_size'] is not False):
         print("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!");
     if (not using_gpu()):
         print("WARNING! RUNNING WITHOUT GPU USAGE!");
