@@ -205,7 +205,7 @@ class GeneratedExpressionDataset(object):
         # Set up batching range
         if (self.sample_testing_size is not False):
             batch_size = self.sample_testing_size;
-            if (length - batch_size < 0):
+            if (length - batch_size <= 0):
                 batch_size = length;
                 startingIndex = 0;
             else:
