@@ -232,7 +232,7 @@ class GeneratedExpressionDataset(object):
                 # Else, compute the batch size. Truncate the batch to be maximally 
                 # the remaining part of the dataset  
                 batch_size = self.test_batch_size;
-                if (self.locations[self.TEST]+batch_size >= length):
+                if (self.locations[self.TEST]+batch_size > length):
                     batch_size = length % self.test_batch_size;
                 
                 # Load the relevant part of the dataset
