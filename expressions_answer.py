@@ -19,14 +19,28 @@ from tools.gpu import using_gpu; # @UnresolvedImport
 import theano;
 #theano.config.mode = 'FAST_COMPILE'
 
+def writeToVerbose(verboseOutputter, s):
+    f = verboseOutputter['f']();
+    f.write(s + '\n');
+    f.close();
+
 if (__name__ == '__main__'):
     # Specific settings - default name is time of experiment
-    raw_results_folder = './raw_results';
     name = time.strftime("%d-%m-%Y_%H-%M-%S");
     saveModels = True;
     
     # Process parameters
     parameters = processCommandLineArguments(sys.argv[1:]);
+    
+    # Set up extreme verbose output
+    # Can always be called but will not do anything if not needed
+    if (parameters['extreme_verbose']):
+        verboseOutputter = {'name': './verbose_output/%s.debug' % name};
+        verboseOutputter['f'] = lambda: open(verboseOutputter['name'],'a');
+        verboseOutputter['write'] = lambda s: writeToVerbose(verboseOutputter, s);
+        #verboseOutputter['close'] = lambda: verboseOutputter['f'].close();
+    else:
+        verboseOutputter = {'write': lambda: False, 'close': lambda: False};
     
     # Ask for seed if running random baseline
     if (parameters['random_baseline']):
@@ -58,7 +72,8 @@ if (__name__ == '__main__'):
                                          minibatch_size=parameters['minibatch_size'],
                                          n_max_digits=parameters['n_max_digits'],
                                          time_training_batch=parameters['time_training_batch'],
-                                         decoder=parameters['decoder']);
+                                         decoder=parameters['decoder'],
+                                         verboseOutputter=verboseOutputter);
     
     ### From here the experiment should be the same every time
     
@@ -66,7 +81,7 @@ if (__name__ == '__main__'):
     start = time.clock();
     
     # Train
-    train(rnn, dataset, parameters, name, start, saveModels=saveModels, targets=not parameters['single_digit']);
+    train(rnn, dataset, parameters, name, start, saveModels=saveModels, targets=not parameters['single_digit'], verboseOutputter=verboseOutputter);
     
     # Final test
     test_and_save(rnn, dataset, parameters, start, show_prediction_conf_matrix=False);
@@ -76,3 +91,4 @@ if (__name__ == '__main__'):
         saveVars = rnn.vars.items();
         save_to_pickle('saved_models/%s.model' % name, saveVars);
     
+    verboseOutputter['close']();

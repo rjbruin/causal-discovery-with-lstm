@@ -164,12 +164,18 @@ class Test(unittest.TestCase):
             # First request again
             results = dataset.get_test_batch();
             self.assertNotEqual(results, False, "(test sampling) Test batching does not reset!");
+            results = dataset.get_test_batch();
+            self.assertEquals(results, False, "(test sampling) Second batch returned while using sampling!");
             
             try:
-                for i in range(1000):
+                for i in range(100):
                     results = dataset.get_test_batch();
-            except Exception:
-                self.assertEqual(True,False,"(test sampling) Exception occurred in batch %d of size %d" % (i, sample_batch_size));
+                    test, t_targets, t_labels, t_expressions = results;
+                    self.assertGreater(len(test),0,"(test sampling) Batch batch %d of size %d was too small: %d" % (i, sample_batch_size, len(test)));
+                    # Call again to reset
+                    results = dataset.get_test_batch();
+            except Exception as error:
+                self.assertEqual(True,False,"(test sampling) Exception '%s' occurred in batch %d of size %d" % (error, i, sample_batch_size));
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testProcessing']

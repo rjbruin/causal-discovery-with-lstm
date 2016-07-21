@@ -18,11 +18,13 @@ class RecurrentNeuralNetwork(object):
 
     def __init__(self, data_dim, hidden_dim, output_dim, minibatch_size, 
                  lstm=False, weight_values={}, single_digit=True, EOS_symbol_index=None,
-                 n_max_digits=24, time_training_batch=False, decoder=False):
+                 n_max_digits=24, time_training_batch=False, decoder=False,
+                 verboseOutputter=None):
         '''
         Initialize all Theano models.
         '''
         self.single_digit = single_digit;
+        self.verboseOutputter = verboseOutputter;
         
         # Store settings        
         self.data_dim = data_dim;
@@ -282,6 +284,12 @@ class RecurrentNeuralNetwork(object):
         test instances. DOES NOT handle batching. DOES output testing 
         statistics.
         """
+        # Set trigger var for extreme verbose
+        if (self.verboseOutputter is not None):
+            triggerVerbose = True;
+        else:
+            triggerVerbose = False; 
+        
         # Set printing interval
         total = len(test_data);
         printing_interval = 1000;
@@ -317,6 +325,13 @@ class RecurrentNeuralNetwork(object):
             else:
                 prediction, right_hand_symbol_indices, right_hand, padded_label, summed_error = \
                     self.predict(np.swapaxes(data, 0, 1), np.swapaxes(targets, 0, 1));
+                if (triggerVerbose):
+                    self.verboseOutputter['write']("Prediction: %s\nright_hand_symbol_indices: %s\nright_hand: %s\npadded_label: %s\nsummed_error: %s" 
+                                                   % (str(prediction), str(right_hand_symbol_indices), 
+                                                      str(right_hand), str(padded_label), str(summed_error)));
+                    # Only trigger this for the first sample, so reset the var 
+                    # to prevent further verbose outputting
+                    triggerVerbose = False;
             
             prediction = np.swapaxes(prediction, 0, 1);
             # Swap sentence index and datapoints back
@@ -386,6 +401,10 @@ class RecurrentNeuralNetwork(object):
         stats['score'] = stats['correct'] / float(stats['prediction_size']);
         if (not self.single_digit):
             stats['digit_score'] = stats['digit_correct'] / float(stats['digit_prediction_size']);
+        
+        if (self.verboseOutputter is not None and stats['score'] == 0.0):
+            self.verboseOutputter['write']("!!!!! Precision is zero\nargmax of prediction size histogram = %d\ntest_data:\n%s" 
+                                           % (np.argmax(stats['prediction_size_histogram']),str(test_data)));
         
         return stats;
     
