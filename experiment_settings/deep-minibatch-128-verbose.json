@@ -1,0 +1,16 @@
+[
+    {
+        "name": "deep-minibatch-128-verbose",
+        "script": "expressions_answer.py",
+        "dataset": "./data/expressions_positive_integer_answer_deep",
+        "single_digit": "False",
+        "repetitions": "92",
+        "hidden_dim": "128",
+        "learning_rate": "0.01",
+        "lstm": "True",
+        "minibatch_size": "128",
+        "sample_testing_size": "10000",
+        "n_max_digits": "7",
+        "extreme_verbose": "True"
+    }
+]
