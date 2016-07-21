@@ -135,33 +135,41 @@ class Test(unittest.TestCase):
         """
         # Settings
         preload = False;
-        sample_batch_size = 1000;
+        sample_batch_sizes = [1,99,1000,31233,100000];
         
-        # Construct
-        dataset = GeneratedExpressionDataset(self.sourceFolder, single_digit=self.single_digit, preload=preload,
-                                             sample_testing_size=sample_batch_size);
+        for sample_batch_size in sample_batch_sizes:
         
-        # Basic variable checks
-        self.assertEqual(self.oneHot, dataset.oneHot, "(test sampling) oneHot encoding mismatch!");
-        self.assertEqual(self.data_dim, dataset.data_dim, "(test sampling) data_dim size mismatch!");
-        self.assertEqual(dataset.preloaded, False, "(test sampling) preloaded should be False!")
-        
-        # First request
-        results = dataset.get_test_batch();
-        self.assertNotEqual(results, False, "(test sampling) No batches generated!");
-        test, t_targets, t_labels, t_expressions = results;
-        
-        # Basic checks
-        self.assertEquals(test.shape[0], sample_batch_size, "(test sampling) Batch size does not match setting sample_batch_size: %d - %d" % (test.shape[0], sample_batch_size)); 
-        self.assertEqual(True,all(map(lambda i: len(i) == len(test), [t_targets, t_labels, t_expressions])), "(test sampling) Not all variables by batching are the same size!");
-        
-        # Second request, should fail
-        results = dataset.get_test_batch();
-        self.assertEquals(results, False, "(test sampling) Second batch returned while using sampling!");
-        
-        # First request again
-        results = dataset.get_test_batch();
-        self.assertNotEqual(results, False, "(test sampling) Test batching does not reset!");
+            # Construct
+            dataset = GeneratedExpressionDataset(self.sourceFolder, single_digit=self.single_digit, preload=preload,
+                                                 sample_testing_size=sample_batch_size);
+            
+            # Basic variable checks
+            self.assertEqual(self.oneHot, dataset.oneHot, "(test sampling) oneHot encoding mismatch!");
+            self.assertEqual(self.data_dim, dataset.data_dim, "(test sampling) data_dim size mismatch!");
+            self.assertEqual(dataset.preloaded, False, "(test sampling) preloaded should be False!")
+            
+            # First request
+            results = dataset.get_test_batch();
+            self.assertNotEqual(results, False, "(test sampling) No batches generated!");
+            test, t_targets, t_labels, t_expressions = results;
+            
+            # Basic checks
+            self.assertEquals(test.shape[0], sample_batch_size, "(test sampling) Batch size does not match setting sample_batch_size: %d - %d" % (test.shape[0], sample_batch_size)); 
+            self.assertEqual(True,all(map(lambda i: len(i) == len(test), [t_targets, t_labels, t_expressions])), "(test sampling) Not all variables by batching are the same size!");
+            
+            # Second request, should fail
+            results = dataset.get_test_batch();
+            self.assertEquals(results, False, "(test sampling) Second batch returned while using sampling!");
+            
+            # First request again
+            results = dataset.get_test_batch();
+            self.assertNotEqual(results, False, "(test sampling) Test batching does not reset!");
+            
+            try:
+                for i in range(1000):
+                    results = dataset.get_test_batch();
+            except Exception:
+                self.assertEqual(True,False,"(test sampling) Exception occurred in batch %d of size %d" % (i, sample_batch_size));
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testProcessing']

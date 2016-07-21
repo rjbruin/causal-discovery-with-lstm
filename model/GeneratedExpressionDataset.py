@@ -15,8 +15,8 @@ class GeneratedExpressionDataset(object):
                  single_digit=False, single_class=False, balanced=False,
                  correction=False, 
                  test_batch_size=10000, train_batch_size=10000,
-                 max_training_size=None, max_testing_size=None,
-                 sample_testing_size=None):
+                 max_training_size=False, max_testing_size=False,
+                 sample_testing_size=False):
         self.sources = [sourceFolder + '/train.txt', sourceFolder + '/test.txt']
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
@@ -204,13 +204,13 @@ class GeneratedExpressionDataset(object):
         
         # Set up batching range
         if (self.sample_testing_size is not False):
-            if (length-self.sample_testing_size < 0):
-                raise ValueError("sample_testing_size is larger than testing set!");
-            elif (length-self.sample_testing_size == 0):
+            batch_size = self.sample_testing_size;
+            if (length - batch_size < 0):
+                batch_size = length;
                 startingIndex = 0;
             else:
-                startingIndex = np.random.randint(0,length-self.sample_testing_size);
-            testingRange = (startingIndex,startingIndex+self.sample_testing_size);
+                startingIndex = np.random.randint(0,length-batch_size);            
+            testingRange = (startingIndex,startingIndex+batch_size);
         else:
             testingRange = (0,length);
          
