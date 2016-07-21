@@ -38,7 +38,6 @@ if (__name__ == '__main__'):
         verboseOutputter = {'name': './verbose_output/%s.debug' % name};
         verboseOutputter['f'] = lambda: open(verboseOutputter['name'],'a');
         verboseOutputter['write'] = lambda s: writeToVerbose(verboseOutputter, s);
-        #verboseOutputter['close'] = lambda: verboseOutputter['f'].close();
     else:
         verboseOutputter = {'write': lambda: False, 'close': lambda: False};
     
@@ -90,5 +89,3 @@ if (__name__ == '__main__'):
     if (saveModels):
         saveVars = rnn.vars.items();
         save_to_pickle('saved_models/%s.model' % name, saveVars);
-    
-    verboseOutputter['close']();
