@@ -98,7 +98,8 @@ class Test(unittest.TestCase):
         # dataset
         stats = rnn.test(test_data[batch_indices], test_labels[batch_indices], 
                          test_targets[batch_indices], test_expressions[batch_indices], 
-                         None, stats, ['operator_scores'], no_print=True);
+                         None, stats, ['operator_scores'], no_print_progress=True,
+                         eos_symbol_index=4);
         
         return stats;
 

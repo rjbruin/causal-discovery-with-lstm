@@ -205,13 +205,13 @@ class RecurrentNeuralNetwork(object):
     
     # PREDICTION FUNCTIONS
     
-    def rnn_predict_single(self, current_X, previous_hidden, XWh, hWh, hWo):
+    def rnn_predict_single(self, current_X, previous_hidden, hWo, hWh, XWh):
         hidden = T.nnet.sigmoid(previous_hidden.dot(hWh) + current_X.dot(XWh));
         Ys = T.nnet.softmax(hidden.dot(hWo));
         return Ys, hidden;
     
-    def rnn_predict_sequence(self, current_X, previous_hidden, XWh, hWh, hWo):
-        Ys, hidden = self.rnn_predict_single(current_X, previous_hidden, XWh, hWh, hWo);
+    def rnn_predict_sequence(self, current_X, previous_hidden, hWo, hWh, XWh):
+        Ys, hidden = self.rnn_predict_single(current_X, previous_hidden, hWo, hWh, XWh);
         return [Ys, hidden];
     
     def lstm_predict_single(self, current_X, previous_hidden, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY):
@@ -278,7 +278,8 @@ class RecurrentNeuralNetwork(object):
                     print("%d seconds" % duration);
         
     def test(self, test_data, test_labels, test_targets, test_expressions, 
-             dataset, stats, excludeStats=None, no_print_progress=False, print_sample=True):
+             dataset, stats, excludeStats=None, no_print_progress=False, print_sample=True,
+             eos_symbol_index=None):
         """
         Run test data through model. Output percentage of correctly predicted
         test instances. DOES NOT handle batching. DOES output testing 
@@ -379,7 +380,9 @@ class RecurrentNeuralNetwork(object):
                     # EOS symbol
                     eos_location = np.argmax(right_hand_symbol_indices[js-j]);
                     # Check for edge case where no EOS was found and zero was returned
-                    if (right_hand_symbol_indices[js-j,eos_location] != dataset.EOS_symbol_index):
+                    if (eos_symbol_index is None):
+                        eos_symbol_index = dataset.EOS_symbol_index;
+                    if (right_hand_symbol_indices[js-j,eos_location] != eos_symbol_index):
                         stats['prediction_size_histogram'][right_hand_symbol_indices[js-j].shape[0]] += 1;
                     else:
                         stats['prediction_size_histogram'][int(eos_location)] += 1;
