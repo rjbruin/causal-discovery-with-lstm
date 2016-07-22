@@ -77,10 +77,7 @@ if (__name__ == '__main__'):
                                          n_max_digits=parameters['n_max_digits'],
                                          time_training_batch=parameters['time_training_batch'],
                                          decoder=parameters['decoder'],
-                                         verboseOutputter=verboseOutputter);
-    
-    profiler.profile();
-    
+                                         verboseOutputter=verboseOutputter);    
     ### From here the experiment should be the same every time
     
     # Start experiment clock
