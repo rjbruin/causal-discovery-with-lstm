@@ -16,6 +16,8 @@ from tools.arguments import processCommandLineArguments;
 from tools.model import train, test_and_save;
 from tools.gpu import using_gpu; # @UnresolvedImport
 
+from profiler import profiler;
+
 import numpy as np;
 import theano;
 #theano.config.mode = 'FAST_COMPILE'
@@ -42,7 +44,7 @@ if (__name__ == '__main__'):
         verboseOutputter['f'] = lambda: open(verboseOutputter['name'],'a');
         verboseOutputter['write'] = lambda s: writeToVerbose(verboseOutputter, s);
     else:
-        verboseOutputter = {'write': lambda: False, 'close': lambda: False};
+        verboseOutputter = {'write': lambda s: False};
     
     # Ask for seed if running random baseline
     if (parameters['random_baseline']):
@@ -76,6 +78,8 @@ if (__name__ == '__main__'):
                                          time_training_batch=parameters['time_training_batch'],
                                          decoder=parameters['decoder'],
                                          verboseOutputter=verboseOutputter);
+    
+    profiler.profile();
     
     ### From here the experiment should be the same every time
     

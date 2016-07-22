@@ -2,13 +2,14 @@
     {
         "name": "one_digit_answer_test",
         "script": "expressions_answer.py",
-        "dataset": "./data/expressions_one_digit_answer_shallow",
-        "single_digit": "True",
-        "repetitions": "1",
+        "dataset": "./data/expressions_positive_integer_answer_shallow",
+        "single_digit": "False",
+        "repetitions": "24",
         "hidden_dim": "128",
         "learning_rate": "0.01",
         "lstm": "False",
         "max_training_size": "1000",
-        "sample_testing_size": "1000"
+        "sample_testing_size": "1000",
+        "report_to_tracker": "False"
     }
 ]

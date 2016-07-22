@@ -55,7 +55,8 @@ if __name__ == '__main__':
         if ('report_to_tracker' in exp):
             report = exp['report_to_tracker'] == 'True';
         if (report):
-            r = requests.post("http://rjbruin.nl/experimenttracker/api/postExperiment.php", {'exp': exp['name'], 'key': api_key});
+            data = {'exp': exp['name'], 'key': api_key, 'totalProgress': exp['repetitions']}
+            r = requests.post("http://rjbruin.nl/experimenttracker/api/postExperiment.php", data);
             if (r.json() != "false"):
                 experimentId = r.json()['id'];
             else:

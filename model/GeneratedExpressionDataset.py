@@ -5,6 +5,7 @@ Created on 22 feb. 2016
 '''
 
 import numpy as np;
+from profiler import profiler;
 
 class GeneratedExpressionDataset(object):
     
@@ -70,8 +71,8 @@ class GeneratedExpressionDataset(object):
         
         # Store locations and sizes for both train and testing
         self.locations = [0, 0];
-        self.lengths = [self.filelength(self.sources[self.TRAIN]),
-                        self.filelength(self.sources[self.TEST])];
+        self.lengths = [0, self.filelength(self.sources[self.TEST])];
+        self.lengths[0] = profiler.time(self.filelength,self.sources[self.TRAIN]);
         # Set test batch settings
         self.test_done = False;
         
