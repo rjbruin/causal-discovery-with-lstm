@@ -39,11 +39,14 @@ if __name__ == '__main__':
     # Check if values can be stored
     experiment_outputPaths = [];
     for exp in experiments:
-        name = exp['name'];
-        outputPath = './raw_results/%s-%s.txt' % (name, time.strftime("%d-%m-%Y_%H-%M-%S"));
+        # Ask for name
+        newName = raw_input("Experiment 1 name (%s): " % exp['name']);
+        if (newName != ''):
+            exp['name'] = newName;
+        outputPath = './raw_results/%s-%s.txt' % (exp['name'], time.strftime("%d-%m-%Y_%H-%M-%S"));
         # http://stackoverflow.com/questions/273192/in-python-check-if-a-directory-exists-and-create-it-if-necessary
         if (os.path.exists(outputPath)):
-            name = name + '-';
+            exp['name'] = exp['name'] + '-';
         experiment_outputPaths.append(outputPath);
     
     # Run experiments    
