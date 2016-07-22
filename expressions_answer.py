@@ -16,6 +16,7 @@ from tools.arguments import processCommandLineArguments;
 from tools.model import train, test_and_save;
 from tools.gpu import using_gpu; # @UnresolvedImport
 
+import numpy as np;
 import theano;
 #theano.config.mode = 'FAST_COMPILE'
 
@@ -25,6 +26,8 @@ def writeToVerbose(verboseOutputter, s):
     f.close();
 
 if (__name__ == '__main__'):
+    np.set_printoptions(precision=3, threshold=10000000);
+    
     # Specific settings - default name is time of experiment
     name = time.strftime("%d-%m-%Y_%H-%M-%S");
     saveModels = True;
