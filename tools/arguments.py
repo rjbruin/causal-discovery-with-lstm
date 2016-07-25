@@ -50,7 +50,8 @@ argumentProcessors = {'name': processString,
                       'decoder': processBool,
                       'correction': processBool,
                       'print_sample': processBool,
-                      'extreme_verbose': processBool
+                      'extreme_verbose': processBool,
+                      'layers': processInt
                       }
 defaults = {'report_to_tracker': True,
             'dataset': './data/expressions_positive_integer_answer_shallow',
@@ -76,7 +77,8 @@ defaults = {'report_to_tracker': True,
             'decoder': False,
             'correction': False,
             'print_sample': False,
-            'extreme_verbose': False
+            'extreme_verbose': False,
+            'layers': 1
             }
 
 def processKeyValue(key,value):

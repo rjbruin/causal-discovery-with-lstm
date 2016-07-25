@@ -14,15 +14,15 @@ class Test(unittest.TestCase):
 
 
     def testRecurrentNeuralNetwork(self):
-        experiment_repetitions = 3;        
-        experiments_to_run = [(False,False,2,3000),(False,True,2,2000)];
-        #experiment_repetitions = 2;
-        #experiments_to_run = [(False,True,2,2000)];
+#         experiment_repetitions = 3;        
+#         experiments_to_run = [(False,False,1,2,3000),(False,True,1,2,2000)];
+        experiment_repetitions = 5;        
+        experiments_to_run = [(False,True,2,2,3000),(False,True,1,2,2000)];
         
-        for e, (single_digit, lstm, n_max_digits, repetitions) in enumerate(experiments_to_run):
+        for e, (single_digit, lstm, layers, n_max_digits, repetitions) in enumerate(experiments_to_run):
             scores = [];
             for j in range(experiment_repetitions):
-                stats = self.runTest(single_digit,lstm,n_max_digits,repetitions);
+                stats = self.runTest(single_digit,lstm,layers,n_max_digits,repetitions);
                 scores.append(stats['score']);
                 print("Iteration %d: %.2f percent" % (j+1, stats['score'] * 100));
             mean_score = np.mean(scores);
@@ -30,7 +30,7 @@ class Test(unittest.TestCase):
             self.assertGreaterEqual(mean_score, 1.0, 
                                     "Experiment %d: mean score is not perfect: %.2f percent" % (e, mean_score * 100));
 
-    def runTest(self, single_digit=False, lstm=True, n_max_digits=24, repetitions=3000):
+    def runTest(self, single_digit=False, lstm=True, layers=1, n_max_digits=24, repetitions=3000):
         # Testcase settings
         learning_rate = 0.1;
         repetitions = repetitions;
@@ -47,7 +47,8 @@ class Test(unittest.TestCase):
         rnn = RecurrentNeuralNetwork(data_dim, hidden_dim, output_dim, 
                                      minibatch_size,
                                      single_digit=single_digit, lstm=lstm,
-                                     n_max_digits=n_max_digits);
+                                     n_max_digits=n_max_digits,
+                                     layers=layers);
         
         # Data generation
         training_data = np.array([np.array([[1.0,0.0,0.0,0.0,0.0],[1.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.0,0.0,0.0]]),
