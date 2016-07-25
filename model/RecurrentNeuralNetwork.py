@@ -23,12 +23,18 @@ class RecurrentNeuralNetwork(object):
         '''
         Initialize all Theano models.
         '''
+        # Store settings in self since the initializing functions will need them
+        self.layers = layers;
         self.single_digit = single_digit;
+        self.minibatch_size = minibatch_size;
+        self.n_max_digits = n_max_digits;
+        self.time_training_batch = time_training_batch;
+        self.lstm = lstm;
+        self.single_digit = single_digit;
+        self.decoder = decoder;
         self.verboseOutputter = verboseOutputter;
         
-        # Store settings
-        self.layers = layers;
-                
+        # Set dimensions
         self.data_dim = data_dim;
         self.hidden_dim = hidden_dim;
         if (self.layers == 2):
@@ -36,31 +42,20 @@ class RecurrentNeuralNetwork(object):
             self.hidden_dim_2 = hidden_dim;
         self.decoding_output_dim = output_dim;
         self.prediction_output_dim = output_dim;
-        
-        self.minibatch_size = minibatch_size;
-        self.n_max_digits = n_max_digits;
-        self.time_training_batch = time_training_batch;
-        self.lstm = lstm;
-        self.single_digit = single_digit;
-        self.decoder = decoder;
-        
         # Change output dim of prediction phase if decoding
         if (self.decoder):
             self.prediction_output_dim = self.hidden_dim;
         
+        # Set up settings for fake minibatching
         self.fake_minibatch = False;
         if (self.minibatch_size == 1):
             self.fake_minibatch = True;
             self.minibatch_size = 2;
         
-        if (not single_digit):
-            if (EOS_symbol_index is None):
-                # EOS symbol is last index by default
-                EOS_symbol_index = self.data_dim-1;
-            EOS_symbol = T.constant(EOS_symbol_index);
         
-        varSettings = [];
+        
         # Set up shared variables
+        varSettings = [];
         if (self.layers == 1):
             if (not lstm):
                 varSettings.append(('XWh',self.data_dim,self.hidden_dim));
@@ -118,10 +113,11 @@ class RecurrentNeuralNetwork(object):
                 value = weight_values[varName];
             self.vars[varName] = theano.shared(name=varName, value=value);
         
-        # Forward pass
+        
+        
+        # Set up inputs to prediction and SGD
         # X is 3-dimensional: 1) index in sentence, 2) datapoint, 3) dimensionality of data
         X = T.dtensor3('X');
-        
         if (single_digit):
             # targets is 2-dimensional: 1) datapoint, 2) label for each answer
             label = T.imatrix('label');
@@ -129,15 +125,20 @@ class RecurrentNeuralNetwork(object):
             # targets is 3-dimensional: 1) index in sentence, 2) datapoint, 3) encodings
             label = T.dtensor3('label');
         
+        
+        
+        # Call the specific initializing function for this specific model
         if (self.layers > 1):
             prediction, right_hand, padded_label, summed_error, error = self.init_multiple_layers(X, label, varSettings);
         else:
             prediction, right_hand, padded_label, summed_error, error = self.init_other(X, label, varSettings);
           
-        # Backward pass: gradients    
+        
+        
+        # Automatic backward pass for all models: gradients    
         derivatives = T.grad(error, self.vars.values());
            
-        # Functions
+        # Defining prediction
         if (single_digit):
             self.predict = theano.function([X], prediction);
         else:
@@ -148,21 +149,12 @@ class RecurrentNeuralNetwork(object):
                                                  padded_label,
                                                  summed_error]);
         
-        # Stochastic Gradient Descent
+        # Defining stochastic gradient descent
         learning_rate = T.dscalar('learning_rate');
-        # Always perform updates for all vars in self.vars
         updates = [(var,var-learning_rate*der) for (var,der) in zip(self.vars.values(),derivatives)];
         self.sgd = theano.function([X, label, learning_rate], [], 
                                    updates=updates,
                                    allow_input_downcast=True)
-        
-        # Sequence repairing - disabled until we find the bug in regular 
-        # prediction
-#         missing_X = T.iscalar();
-#         dX = T.grad(error, X);
-#         self.find_x_gradient = theano.function([X, label, missing_X], [dX[missing_X]]);
-#         missing_X_digit = T.argmin(dX[missing_X]);
-#         self.find_x = theano.function([X, label, missing_X], [missing_X_digit]);
     
     def init_other(self, X, label, varSettings):
         # Set scan functions and arguments
