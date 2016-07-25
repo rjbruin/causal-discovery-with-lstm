@@ -10,6 +10,20 @@ import os, sys;
 import json, time;
 import requests;
 
+def progressStackToTracker(stack):
+    newStack = [];
+    for data in stack:
+        if ('url' in data):
+            try:
+                r = requests.post(data['url'], data);
+                if (r.status_code != 200):
+                    print("Posting to tracker failed with status code! Added data to stack.");
+                    newStack.append(data);
+            except Exception:
+                print("Posting to tracker failed! Added data to stack.");
+                newStack.append(data);
+    return newStack;
+
 if __name__ == '__main__':
     # Settings
     report_to_tracker_criteria = [lambda s: s[0] != '#'];
@@ -49,19 +63,24 @@ if __name__ == '__main__':
             exp['name'] = exp['name'] + '-';
         experiment_outputPaths.append(outputPath);
     
-    # Run experiments    
+    # Run experiments
+    trackerStack = [];
     for i,exp in enumerate(experiments):
         report = True;
         if ('report_to_tracker' in exp):
             report = exp['report_to_tracker'] == 'True';
         if (report):
-            data = {'exp': exp['name'], 'key': api_key, 'totalProgress': exp['repetitions']}
-            r = requests.post("http://rjbruin.nl/experimenttracker/api/postExperiment.php", data);
-            if (r.json() != "false"):
-                experimentId = r.json()['id'];
-            else:
-                print("WARNING! Experiment could not be posted to tracker!");
-                experimentId = -1;
+            data = {'url': "http://rjbruin.nl/experimenttracker/api/postExperiment.php", 
+                    'exp': exp['name'], 'key': api_key, 'totalProgress': exp['repetitions']}
+            try:
+                r = requests.post(data['url'], data);
+                if (r.json() != "false"):
+                    experimentId = r.json()['id'];
+                else:
+                    print("WARNING! Experiment could not be posted to tracker!");
+                    experimentId = -1;
+            except Exception:
+                print("Posting experiment to tracker failed!");
             
         outputPath = experiment_outputPaths[i];
         args = ['python',exp['script']];
@@ -85,7 +104,14 @@ if __name__ == '__main__':
                     currentBatch = int(out.split(" ")[1]);
                     currentIteration = int(out.split(" ")[5][:-1]);
                 if (report and all(map(lambda f: f(out), report_to_tracker_criteria))):
-                    requests.post("http://rjbruin.nl/experimenttracker/api/post.php", {'exp': experimentId, 'msg': out, 'atProgress': currentIteration, 'key': api_key});
+                    # Compose data object
+                    data = {'url': "http://rjbruin.nl/experimenttracker/api/post.php", 
+                            'exp': experimentId, 'msg': out, 'atProgress': currentIteration, 'key': api_key};
+                    # Add data to stack of data to send
+                    trackerStack.append(data);
+                    # Retrieve new stack containing all failed requests
+                    trackerStack = progressStackToTracker(trackerStack);
+                        
                 if (out != '' and out[0] != '#'):
                     # Write to file
                     f = open(outputPath,'a');

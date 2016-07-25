@@ -10,6 +10,6 @@
         "lstm": "False",
         "max_training_size": "1000",
         "sample_testing_size": "1000",
-        "report_to_tracker": "False"
+        "report_to_tracker": "True"
     }
 ]
