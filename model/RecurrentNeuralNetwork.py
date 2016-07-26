@@ -7,9 +7,9 @@ Created on 22 feb. 2016
 import theano;
 import theano.tensor as T;
 import numpy as np;
-import time;
+from model.RecurrentModel import RecurrentModel
 
-class RecurrentNeuralNetwork(object):
+class RecurrentNeuralNetwork(RecurrentModel):
     '''
     Recurrent neural network model with one hidden layer. Models single class 
     prediction based on regular recurrent model or LSTM model. 
@@ -19,7 +19,7 @@ class RecurrentNeuralNetwork(object):
     def __init__(self, data_dim, hidden_dim, output_dim, minibatch_size, 
                  lstm=False, weight_values={}, single_digit=True, EOS_symbol_index=None,
                  n_max_digits=24, time_training_batch=False, decoder=False,
-                 verboseOutputter=None, layers=1):
+                 verboseOutputter=None, layers=1, mn=False):
         '''
         Initialize all Theano models.
         '''
@@ -30,6 +30,7 @@ class RecurrentNeuralNetwork(object):
         self.n_max_digits = n_max_digits;
         self.time_training_batch = time_training_batch;
         self.lstm = lstm;
+        self.mn = mn;
         self.single_digit = single_digit;
         self.decoder = decoder;
         self.verboseOutputter = verboseOutputter;
@@ -57,7 +58,12 @@ class RecurrentNeuralNetwork(object):
         # Set up shared variables
         varSettings = [];
         if (self.layers == 1):
-            if (not lstm):
+            if (self.mn):
+                varSettings.append(('qWu_B',self.query_dim,self.memory_dim));
+                varSettings.append(('xWm_A',self.data_dim,self.memory_dim));
+                varSettings.append(('xWc_C',self.data_dim,self.memory_dim));
+                varSettings.append(('ouWy_W',self.memory_dim,self.output_dim));
+            elif (not self.lstm):
                 varSettings.append(('XWh',self.data_dim,self.hidden_dim));
                 varSettings.append(('hWh',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('hWo',self.hidden_dim,self.decoding_output_dim));
@@ -140,10 +146,10 @@ class RecurrentNeuralNetwork(object):
            
         # Defining prediction
         if (single_digit):
-            self.predict = theano.function([X], prediction);
+            self._predict = theano.function([X], prediction);
         else:
             right_hand_symbol_indices = T.argmax(right_hand,axis=2);
-            self.predict = theano.function([X, label], [prediction, 
+            self._predict = theano.function([X, label], [prediction, 
                                                  right_hand_symbol_indices,
                                                  right_hand,
                                                  padded_label,
@@ -152,9 +158,11 @@ class RecurrentNeuralNetwork(object):
         # Defining stochastic gradient descent
         learning_rate = T.dscalar('learning_rate');
         updates = [(var,var-learning_rate*der) for (var,der) in zip(self.vars.values(),derivatives)];
-        self.sgd = theano.function([X, label, learning_rate], [], 
+        self._sgd = theano.function([X, label, learning_rate], [], 
                                    updates=updates,
                                    allow_input_downcast=True)
+        
+        super(RecurrentNeuralNetwork, self).__init__();
     
     def init_other(self, X, label, varSettings):
         # Set scan functions and arguments
@@ -333,184 +341,109 @@ class RecurrentNeuralNetwork(object):
     
     # END OF INITIALIZATION
     
-    def train(self, training_data, training_labels, learning_rate, no_print=False):
+    def sanityChecks(self, training_data, training_labels):
         """
-        Takes data and trains the model with it. DOES NOT handle batching or 
-        any other project-like structures.
+        Sanity checks to be called before training a batch. Throws exceptions 
+        if things are not right.
         """
-        # Sanity checks
         if (not self.single_digit and training_labels.shape[1] > self.n_max_digits):
             raise ValueError("n_max_digits too small! Increase to %d" % training_labels.shape[1]);
+    
+    def sgd(self, data, label, learning_rate):
+        return self._sgd(data, label, learning_rate);
         
-        # Set printing interval
-        total = len(training_data);
-        printing_interval = 1000;
-        if (total <= printing_interval * 10):
-            # Make printing interval always at least one
-            printing_interval = max(total / 5,1);
-        
-        # Train model per minibatch
-        batch_range = range(0,total,self.minibatch_size);
-        if (self.fake_minibatch):
-            batch_range = range(0,total);
-        for k in batch_range:
-            if (self.time_training_batch):
-                start = time.clock();
-            
-            data = training_data[k:k+self.minibatch_size];
-            label = training_labels[k:k+self.minibatch_size];
-            
-            if (self.fake_minibatch):
-                data = training_data[k:k+1];
-                label = training_labels[k:k+1];
-            
-            if (len(data) < self.minibatch_size):
-                missing_datapoints = self.minibatch_size - data.shape[0];
-                data = np.concatenate((data,np.zeros((missing_datapoints, training_data.shape[1], training_data.shape[2]))), axis=0);
-                label = np.concatenate((label,np.zeros((missing_datapoints, training_labels.shape[1], training_labels.shape[2]))), axis=0);
+    def predict(self, data, labels, targets):
+        """
+        Perform necessary models-specific transformations and call the actual 
+        prediction function of the model.
+        """
+        if (self.single_digit):
             # Swap axes of index in sentence and datapoint for Theano purposes
-            data = np.swapaxes(data, 0, 1);
-            label = np.swapaxes(label, 0, 1);
-            # Run training
-            self.sgd(data, label, learning_rate);
-            
-            if (not no_print and k % printing_interval == 0):
-                print("# %d / %d" % (k, total));
-                if (self.time_training_batch):
-                    duration = time.clock() - start;
-                    print("%d seconds" % duration);
-        
-    def test(self, test_data, test_labels, test_targets, test_expressions, 
-             dataset, stats, excludeStats=None, no_print_progress=False, print_sample=True,
-             eos_symbol_index=None):
-        """
-        Run test data through model. Output percentage of correctly predicted
-        test instances. DOES NOT handle batching. DOES output testing 
-        statistics.
-        """
-        # Set trigger var for extreme verbose
-        if (self.verboseOutputter is not None):
-            triggerVerbose = True;
+            prediction = self.predict(np.swapaxes(data, 0, 1));
         else:
-            triggerVerbose = False; 
+            prediction, right_hand_symbol_indices, right_hand, padded_label, summed_error = \
+                self._predict(np.swapaxes(data, 0, 1), np.swapaxes(targets, 0, 1));
         
-        # Set printing interval
-        total = len(test_data);
-        printing_interval = 1000;
-        if (total <= printing_interval * 10):
-            # Make printing interval always at least one
-            printing_interval = max(total / 10,1);
+        prediction = np.swapaxes(prediction, 0, 1);
+        # Swap sentence index and datapoints back
+        right_hand_symbol_indices = np.swapaxes(right_hand_symbol_indices, 0, 1);
         
-        batch_range = range(0,len(test_data),self.minibatch_size);
-        if (self.fake_minibatch):
-            batch_range = range(0,len(test_data));
-        for j in batch_range:
-            data = test_data[j:j+self.minibatch_size];
-            targets = test_targets[j:j+self.minibatch_size];
-            labels = test_labels[j:j+self.minibatch_size];
-            test_n = self.minibatch_size;
-            
-            if (self.fake_minibatch):
-                data = test_data[j:j+1];
-                targets = test_targets[j:j+1];
-                labels = test_labels[j:j+1];
-                test_n = 1;
-            
-            # Add zeros to minibatch if the batch is too small
-            if (len(data) < self.minibatch_size):
-                test_n = data.shape[0];
-                missing_datapoints = self.minibatch_size - test_n;
-                data = np.concatenate((data,np.zeros((missing_datapoints, test_data.shape[1], test_data.shape[2]))), axis=0);
-                targets = np.concatenate((targets,np.zeros((missing_datapoints, test_targets.shape[1], test_targets.shape[2]))), axis=0);
-            
+        return prediction, {'right_hand_symbol_indices': right_hand_symbol_indices,
+                            'right_hand': right_hand, 'padded_label': padded_label,
+                            'summed_error': summed_error};
+        
+    def verboseOutput(self, prediction, other):
+        self.verboseOutputter['write']("Prediction: %s\nright_hand_symbol_indices: %s\nright_hand: %s\npadded_label: %s\nsummed_error: %s" 
+                                       % (str(prediction), str(other['right_hand_symbol_indices']), 
+                                          str(other['right_hand']), str(other['padded_label']), str(other['summed_error'])));
+    
+    def batch_statistics(self, stats, prediction, labels, targets, expressions, 
+                         right_hand_symbol_indices, test_n, dataset,
+                         excludeStats=None, no_print_progress=False,
+                         eos_symbol_index=None, print_sample=False):
+        # Statistics
+        for j in range(0,test_n):
             if (self.single_digit):
-                # Swap axes of index in sentence and datapoint for Theano purposes
-                prediction = self.predict(np.swapaxes(data, 0, 1));
+                if (prediction[j] == np.argmax(labels[j])):
+                    stats['correct'] += 1;
             else:
-                prediction, right_hand_symbol_indices, right_hand, padded_label, summed_error = \
-                    self.predict(np.swapaxes(data, 0, 1), np.swapaxes(targets, 0, 1));
-                if (triggerVerbose):
-                    self.verboseOutputter['write']("Prediction: %s\nright_hand_symbol_indices: %s\nright_hand: %s\npadded_label: %s\nsummed_error: %s" 
-                                                   % (str(prediction), str(right_hand_symbol_indices), 
-                                                      str(right_hand), str(padded_label), str(summed_error)));
-                    # Only trigger this for the first sample, so reset the var 
-                    # to prevent further verbose outputting
-                    triggerVerbose = False;
-            
-            prediction = np.swapaxes(prediction, 0, 1);
-            # Swap sentence index and datapoints back
-            right_hand_symbol_indices = np.swapaxes(right_hand_symbol_indices, 0, 1);
-            
-            # Statistics
-            for js in range(j,j+test_n):
-                if (self.single_digit):
-                    if (prediction[js-j] == np.argmax(labels[js-j])):
-                        stats['correct'] += 1;
+                # Get the labels
+                argmax_target = np.argmax(targets[j],axis=1);
+                # Compute the length of the target answer
+                target_length = np.argmax(argmax_target);
+                if (target_length == 0):
+                    # If no EOS is found, the target is the entire length
+                    target_length = targets[j].shape[1];
+                # Compute the length of the prediction answer
+                prediction_length = np.argmax(prediction[j]);
+                if (prediction_length == target_length and np.array_equal(prediction[j][:target_length],argmax_target[:target_length])):
+                    # Correct if prediction and target length match and 
+                    # prediction and target up to target length are the same
+                    stats['correct'] += 1.0;
+                for k,digit in enumerate(prediction[j][:len(argmax_target)]):
+                    if (digit == np.argmax(targets[j][k])):
+                        stats['digit_correct'] += 1.0;
+                    stats['digit_prediction_size'] += 1;
+                    
+            if (self.single_digit):
+                stats['prediction_histogram'][int(prediction[j])] += 1;
+                stats['groundtruth_histogram'][np.argmax(labels[j])] += 1;
+                stats['prediction_confusion_matrix']\
+                    [np.argmax(labels[j]),int(prediction[j])] += 1;
+                if ('operator_scores' not in excludeStats):
+                    stats['operator_scores'] = \
+                        self.operator_scores(expressions[j], 
+                                             int(prediction[j])==np.argmax(labels[j]),
+                                             dataset.operators,
+                                             dataset.key_indices,
+                                             stats['operator_scores']);
+            else:
+                # Taking argmax over symbols for each sentence returns 
+                # the location of the highest index, which is the first 
+                # EOS symbol
+                eos_location = np.argmax(right_hand_symbol_indices[j]);
+                # Check for edge case where no EOS was found and zero was returned
+                if (eos_symbol_index is None):
+                    eos_symbol_index = dataset.EOS_symbol_index;
+                if (right_hand_symbol_indices[j,eos_location] != eos_symbol_index):
+                    stats['prediction_size_histogram'][right_hand_symbol_indices[j].shape[0]] += 1;
                 else:
-                    # Get the labels
-                    argmax_target = np.argmax(targets[js-j],axis=1);
-                    # Compute the length of the target answer
-                    target_length = np.argmax(argmax_target);
-                    if (target_length == 0):
-                        # If no EOS is found, the target is the entire length
-                        target_length = targets[js-j].shape[1];
-                    # Compute the length of the prediction answer
-                    prediction_length = np.argmax(prediction[js-j]);
-                    if (prediction_length == target_length and np.array_equal(prediction[js-j][:target_length],argmax_target[:target_length])):
-                        # Correct if prediction and target length match and 
-                        # prediction and target up to target length are the same
-                        stats['correct'] += 1.0;
-                    for k,digit in enumerate(prediction[js-j][:len(argmax_target)]):
-                        if (digit == np.argmax(targets[js-j][k])):
-                            stats['digit_correct'] += 1.0;
-                        stats['digit_prediction_size'] += 1;
-                        
-                if (self.single_digit):
-                    stats['prediction_histogram'][int(prediction[js-j])] += 1;
-                    stats['groundtruth_histogram'][np.argmax(labels[js-j])] += 1;
-                    stats['prediction_confusion_matrix']\
-                        [np.argmax(labels[js-j]),int(prediction[js-j])] += 1;
-                    if ('operator_scores' not in excludeStats):
-                        stats['operator_scores'] = \
-                            self.operator_scores(test_expressions[j], 
-                                                 int(prediction[js-j])==np.argmax(labels[js-j]),
-                                                 dataset.operators,
-                                                 dataset.key_indices,
-                                                 stats['operator_scores']);
-                else:
-                    # Taking argmax over symbols for each sentence returns 
-                    # the location of the highest index, which is the first 
-                    # EOS symbol
-                    eos_location = np.argmax(right_hand_symbol_indices[js-j]);
-                    # Check for edge case where no EOS was found and zero was returned
-                    if (eos_symbol_index is None):
-                        eos_symbol_index = dataset.EOS_symbol_index;
-                    if (right_hand_symbol_indices[js-j,eos_location] != eos_symbol_index):
-                        stats['prediction_size_histogram'][right_hand_symbol_indices[js-j].shape[0]] += 1;
-                    else:
-                        stats['prediction_size_histogram'][int(eos_location)] += 1;
-                    if (int(eos_location) > self.n_max_digits):
-                        print('score');
-                    for digit_prediction in prediction[js-j]:
-                        stats['prediction_histogram'][int(digit_prediction)] += 1;
-                stats['prediction_size'] += 1;
-                
-                # Sample print of testing
-                if (print_sample and j == batch_range[-1] and js == j+test_n-1):
-                    print("# SAMPLE Data: %s" % (str(np.argmax(data[js-j], axis=1))));
-                    print("# SAMPLE Label: %s" % (str(labels[js-j])));
-                    print("# SAMPLE Prediction: %s" % (str(prediction[js-j])));
-            
-            if (not no_print_progress and stats['prediction_size'] % printing_interval == 0):
-                print("# %d / %d" % (stats['prediction_size'], total));
+                    stats['prediction_size_histogram'][int(eos_location)] += 1;
+                if (int(eos_location) > self.n_max_digits):
+                    print('score');
+                for digit_prediction in prediction[j]:
+                    stats['prediction_histogram'][int(digit_prediction)] += 1;
+            stats['prediction_size'] += 1;
         
+        return stats;
+        
+    def total_statistics(self, stats):
+        """
+        Adds general statistics to the statistics generated per batch.
+        """
         stats['score'] = stats['correct'] / float(stats['prediction_size']);
         if (not self.single_digit):
             stats['digit_score'] = stats['digit_correct'] / float(stats['digit_prediction_size']);
-        
-        if (self.verboseOutputter is not None and stats['score'] == 0.0):
-            self.verboseOutputter['write']("!!!!! Precision is zero\nargmax of prediction size histogram = %d\ntest_data:\n%s" 
-                                           % (np.argmax(stats['prediction_size_histogram']),str(test_data)));
         
         return stats;
     

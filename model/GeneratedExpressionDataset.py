@@ -5,12 +5,9 @@ Created on 22 feb. 2016
 '''
 
 import numpy as np;
-from profiler import profiler;
+from model.Dataset import Dataset
 
-class GeneratedExpressionDataset(object):
-    
-    TRAIN = 0;
-    TEST = 1;
+class GeneratedExpressionDataset(Dataset):
     
     def __init__(self, sourceFolder, preload=True, add_x=False, 
                  single_digit=False, single_class=False, balanced=False,
