@@ -80,7 +80,7 @@ if __name__ == '__main__':
                     print("WARNING! Experiment could not be posted to tracker!");
                     experimentId = -1;
             except Exception:
-                print("Posting experiment to tracker failed!");
+                raise ValueError("Posting experiment to tracker failed!");
             
         outputPath = experiment_outputPaths[i];
         args = ['python',exp['script']];
