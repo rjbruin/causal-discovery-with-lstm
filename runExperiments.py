@@ -10,12 +10,14 @@ import os, sys;
 import json, time;
 import requests;
 
+request_headers = {'user-agent': 'Chrome/51.0.2704.103'};
+
 def progressStackToTracker(stack):
     newStack = [];
     for data in stack:
         if ('url' in data):
             try:
-                r = requests.post(data['url'], data);
+                r = requests.post(data['url'], data, headers=request_headers);
                 if (r.status_code != 200):
                     print("Posting to tracker failed with status code! Added data to stack.");
                     newStack.append(data);
@@ -73,13 +75,14 @@ if __name__ == '__main__':
             data = {'url': "http://rjbruin.nl/experimenttracker/api/postExperiment.php", 
                     'exp': exp['name'], 'key': api_key, 'totalProgress': exp['repetitions']}
             try:
-                r = requests.post(data['url'], data);
+                r = requests.post(data['url'], data, headers=request_headers);
                 if (r.json() != "false"):
                     experimentId = r.json()['id'];
                 else:
                     print("WARNING! Experiment could not be posted to tracker!");
                     experimentId = -1;
-            except Exception:
+            except Exception as e:
+                print(e);
                 raise ValueError("Posting experiment to tracker failed!");
             
         outputPath = experiment_outputPaths[i];
