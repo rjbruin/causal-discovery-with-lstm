@@ -68,7 +68,8 @@ if (__name__ == '__main__'):
                                                     sample_testing_size=parameters['sample_testing_size'],
                                                     predictExpressions=parameters['predict_expressions']);
     if (parameters['random_baseline']):
-        rnn = rb.RandomBaseline(parameters['single_digit'], seed);
+        rnn = rb.RandomBaseline(parameters['single_digit'], seed, dataset,
+                                n_max_digits=parameters['n_max_digits'], minibatch_size=parameters['minibatch_size']);
     else:
         rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
                                          lstm=parameters['lstm'], single_digit=parameters['single_digit'],

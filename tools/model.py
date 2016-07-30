@@ -167,7 +167,7 @@ def test_and_save(model, dataset, parameters, start_time, show_prediction_conf_m
             
             stats = model.batch_statistics(stats, prediction, labels, 
                                            targets, expressions, 
-                                           other['right_hand_symbol_indices'],
+                                           other,
                                            test_n, dataset, 
                                            eos_symbol_index=dataset.EOS_symbol_index);
         

@@ -7,7 +7,12 @@ from abc import ABCMeta, abstractmethod
 
 class RecurrentModel(object):
     '''
-    classdocs
+    Requires variables:
+    - int minibatch_size
+    - bool fake_minibatch
+    - bool time_training_batch
+    - {string,Theano.shared} vars
+    - {string,verbose output functions} or None verboseOutput
     '''
     __metaclass__ = ABCMeta
 

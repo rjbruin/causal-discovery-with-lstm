@@ -378,7 +378,7 @@ class RecurrentNeuralNetwork(RecurrentModel):
                                           str(other['right_hand']), str(other['padded_label']), str(other['summed_error'])));
     
     def batch_statistics(self, stats, prediction, labels, targets, expressions, 
-                         right_hand_symbol_indices, test_n, dataset,
+                         other, test_n, dataset,
                          excludeStats=None, no_print_progress=False,
                          eos_symbol_index=None, print_sample=False):
         # Statistics
@@ -421,16 +421,14 @@ class RecurrentNeuralNetwork(RecurrentModel):
                 # Taking argmax over symbols for each sentence returns 
                 # the location of the highest index, which is the first 
                 # EOS symbol
-                eos_location = np.argmax(right_hand_symbol_indices[j]);
+                eos_location = np.argmax(other['right_hand_symbol_indices'][j]);
                 # Check for edge case where no EOS was found and zero was returned
                 if (eos_symbol_index is None):
                     eos_symbol_index = dataset.EOS_symbol_index;
-                if (right_hand_symbol_indices[j,eos_location] != eos_symbol_index):
-                    stats['prediction_size_histogram'][right_hand_symbol_indices[j].shape[0]] += 1;
+                if (other['right_hand_symbol_indices'][j,eos_location] != eos_symbol_index):
+                    stats['prediction_size_histogram'][other['right_hand_symbol_indices'][j].shape[0]] += 1;
                 else:
                     stats['prediction_size_histogram'][int(eos_location)] += 1;
-                if (int(eos_location) > self.n_max_digits):
-                    print('score');
                 for digit_prediction in prediction[j]:
                     stats['prediction_histogram'][int(digit_prediction)] += 1;
             stats['prediction_size'] += 1;
