@@ -16,10 +16,8 @@ from tools.arguments import processCommandLineArguments;
 from tools.model import train, test_and_save;
 from tools.gpu import using_gpu; # @UnresolvedImport
 
-from profiler import profiler;
-
 import numpy as np;
-import theano;
+#import theano;
 #theano.config.mode = 'FAST_COMPILE'
 
 def writeToVerbose(verboseOutputter, s):
@@ -67,7 +65,8 @@ if (__name__ == '__main__'):
                                                     train_batch_size=parameters['train_batch_size'],
                                                     max_training_size=parameters['max_training_size'],
                                                     max_testing_size=parameters['max_testing_size'],
-                                                    sample_testing_size=parameters['sample_testing_size']);
+                                                    sample_testing_size=parameters['sample_testing_size'],
+                                                    predictExpressions=parameters['predict_expressions']);
     if (parameters['random_baseline']):
         rnn = rb.RandomBaseline(parameters['single_digit'], seed);
     else:

@@ -14,7 +14,7 @@ class GeneratedExpressionDataset(Dataset):
                  correction=False, 
                  test_batch_size=10000, train_batch_size=10000,
                  max_training_size=False, max_testing_size=False,
-                 sample_testing_size=False):
+                 sample_testing_size=False, predictExpressions=False):
         self.sources = [sourceFolder + '/train.txt', sourceFolder + '/test.txt']
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
@@ -28,12 +28,12 @@ class GeneratedExpressionDataset(Dataset):
             self.processor = self.processSampleWithX;
         elif (single_class):
             self.processor = self.processSampleSingleClass;
+        elif (predictExpressions):
+            self.process = self.processSamplePredictExpression;
         elif (correction):
             self.processor = self.processSampleCorrection;
-        elif (not single_digit):
+        else:
             self.processor = self.processSampleMultiDigit;
-        elif (balanced):
-            self.processor = self.processSampleBalanced;
         
         # Setting one-hot encoding
         self.digits_range = 10;
@@ -343,18 +343,14 @@ class GeneratedExpressionDataset(Dataset):
         
         return data, targets, labels, expressions, 1;
     
-    def processSampleBalanced(self, line, data, targets, labels, expressions):
+    def processSamplePredictExpression(self, line, data, targets, labels, expressions):
         expression = line.strip();
+        right_hand_start = expression.find('=')+1;
         
-        # TODO: implement
+        # Simply swap left and right hand side and use the multi-digit processor
+        line = line[right_hand_start:] + "=" + line[:right_hand_start-1];
         
-        # Append data
-#         data.append(X);
-#         labels.append(right_hand_digits);
-#         targets.append(np.array(target));
-#         expressions.append(expression);
-
-        return data, targets, labels, expressions, 1;
+        return self.processSampleMultiDigit(line, data, targets, labels, expressions);
     
     def processSampleCorrection(self, line, data, targets, labels, expressions):
         line = line.strip();
