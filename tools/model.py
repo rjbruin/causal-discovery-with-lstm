@@ -93,7 +93,7 @@ def train(model, dataset, parameters, exp_name, start_time, saveModels=True, tar
                 # Save weights to pickles
                 if (saveModels):
                     saveVars = model.vars.items();
-                    save_to_pickle('saved_models/%s_%d.model' % (exp_name, b), saveVars, settings={'test': 'True'});
+                    save_to_pickle('saved_models/%s_%d.model' % (exp_name, b), saveVars, settings=parameters);
                 next_testing_threshold += parameters['test_interval'] * repetition_size;
 
 def test_and_save(model, dataset, parameters, start_time, show_prediction_conf_matrix=False, verboseOutputter=None, no_print_progress=False):
