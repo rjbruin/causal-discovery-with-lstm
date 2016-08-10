@@ -344,8 +344,8 @@ class GeneratedExpressionDataset(Dataset):
         return data, targets, labels, expressions, 1;
     
     def processSamplePredictExpression(self, line, data, targets, labels, expressions):
-        expression = line.strip();
-        right_hand_start = expression.find('=')+1;
+        line = line.strip();
+        right_hand_start = line.find('=')+1;
         
         # Simply swap left and right hand side and use the multi-digit processor
         line = line[right_hand_start:] + "=" + line[:right_hand_start-1];
