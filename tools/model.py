@@ -28,7 +28,7 @@ def train(model, dataset, parameters, exp_name, start_time, saveModels=True, tar
             verboseOutputter['write'](progress);
         
         # Get the part of the dataset for this batch
-        batch_train, batch_train_targets, batch_train_labels, _ = dataset.get_train_batch(batch_size);
+        batch_train, batch_train_targets, batch_train_labels, batch_train_expressions = dataset.get_train_batch(batch_size);
         if (not model.single_digit):
             batch_train_labels = batch_train_targets;
         

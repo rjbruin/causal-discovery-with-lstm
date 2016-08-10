@@ -29,7 +29,7 @@ class GeneratedExpressionDataset(Dataset):
         elif (single_class):
             self.processor = self.processSampleSingleClass;
         elif (predictExpressions):
-            self.process = self.processSamplePredictExpression;
+            self.processor = self.processSamplePredictExpression;
         elif (correction):
             self.processor = self.processSampleCorrection;
         else:
