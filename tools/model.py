@@ -7,9 +7,41 @@ Created on 4 mrt. 2016
 import numpy as np;
 import time;
 
+from models.GeneratedExpressionDataset import GeneratedExpressionDataset;
+from models.RandomBaseline import RandomBaseline;
+from models.RecurrentNeuralNetwork import RecurrentNeuralNetwork;
+
 from tools.statistics import str_statistics;
 from tools.file import save_to_pickle;
 from tools.data import get_batch_statistics
+
+def constructModels(parameters, seed, verboseOutputter):
+    dataset = GeneratedExpressionDataset(parameters['dataset'], 
+                                                    add_x=parameters['find_x'],
+                                                    single_digit=parameters['single_digit'], 
+                                                    single_class=parameters['single_class'],
+                                                    correction=parameters['correction'],
+                                                    preload=parameters['preload'],
+                                                    test_batch_size=parameters['test_batch_size'],
+                                                    train_batch_size=parameters['train_batch_size'],
+                                                    max_training_size=parameters['max_training_size'],
+                                                    max_testing_size=parameters['max_testing_size'],
+                                                    sample_testing_size=parameters['sample_testing_size'],
+                                                    predictExpressions=parameters['predict_expressions']);
+    if (parameters['random_baseline']):
+        rnn = RandomBaseline(parameters['single_digit'], seed, dataset,
+                                n_max_digits=parameters['n_max_digits'], minibatch_size=parameters['minibatch_size']);
+    else:
+        rnn = RecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
+                                         lstm=parameters['lstm'], single_digit=parameters['single_digit'],
+                                         minibatch_size=parameters['minibatch_size'],
+                                         n_max_digits=parameters['n_max_digits'],
+                                         time_training_batch=parameters['time_training_batch'],
+                                         decoder=parameters['decoder'],
+                                         verboseOutputter=verboseOutputter,
+                                         layers=parameters['layers']);
+    
+    return dataset, rnn;
 
 def train(model, dataset, parameters, exp_name, start_time, saveModels=True, targets=False, verboseOutputter=None, no_print=False):
     # Print settings headers to raw results file

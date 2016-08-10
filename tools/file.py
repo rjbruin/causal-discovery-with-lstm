@@ -12,18 +12,19 @@ def append_to_file(filepath, string):
     f.write(string);
     f.close();
 
-def save_to_pickle(filepath, vars, settings={}):
+def save_to_pickle(filepath, variables, settings={}):
     """
     Saves models to pickle with settings as header.
     Provide all settings as strings.
     """
     f = open(filepath, 'w');
     
-    f.write("### %d" % len(settings));
-    for key,value in settings.items():
-        f.write("# %s:%s\n" % (key,value));
+    f.write("### %d\n" % len(settings));
+    f.write(" ".join(arg.parametersArguments(settings)) + "\n");
+#     for key,value in settings.items():
+#         f.write("# %s:%s\n" % (key,value));
     
-    pickle.dump(vars,f);
+    pickle.dump(variables,f);
     f.close();
 
 def load_from_pickle(f):
@@ -31,16 +32,9 @@ def load_from_pickle(f):
     Reads models from pickle with settings as header.
     Settings are pre-populated with default values from tools.arguments.
     """
-    firstLine = f.readline();
-    if (firstLine[:3] != "###"):
-        raise ValueError("Model file header is missing!");
-    nrSettings = int(firstLine.split(" ")[1]);
-    
-    settings = arg.defaults;
-    for _ in range(nrSettings):
-        line = f.readline()[1:].strip();
-        key,value = map(lambda x: x.strip(), line.split(":"));
-        settings[key] = arg.processKeyValue(key, value);
+    # Skip deprecated first line
+    _ = f.readline();
+    settings = arg.processCommandLineArguments(f.readline().strip().split(" "), None);
     
     savedVars = pickle.load(f);
     

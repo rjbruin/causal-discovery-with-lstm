@@ -7,7 +7,7 @@ Created on 22 feb. 2016
 import theano;
 import theano.tensor as T;
 import numpy as np;
-from model.RecurrentModel import RecurrentModel
+from models.RecurrentModel import RecurrentModel
 
 class RecurrentNeuralNetwork(RecurrentModel):
     '''
@@ -305,6 +305,16 @@ class RecurrentNeuralNetwork(RecurrentModel):
             error = summed_error[-1];
         
         return prediction, right_hand, padded_label, summed_error, error;
+    
+    def loadVars(self, variables):
+        """
+        Provide vars as a dictionary matching the self.vars structure.
+        """
+        for key in variables:
+            if (key not in self.vars):
+                return False;
+            self.vars[key].set_value(variables[key].get_value());
+        return True;
     
     def crossentropy_2d(self, coding_dist, true_dist, accumulated_score):
         return accumulated_score + T.mean(T.nnet.categorical_crossentropy(coding_dist, true_dist));

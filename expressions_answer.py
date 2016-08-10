@@ -7,9 +7,8 @@ Created on 16 feb. 2016
 import time;
 import sys;
 
-import model.RecurrentNeuralNetwork as rnn;
-import model.GeneratedExpressionDataset as ge_dataset;
-import model.RandomBaseline as rb;
+import models.RecurrentNeuralNetwork as rnn;
+import tools.model;
 
 from tools.file import save_to_pickle;
 from tools.arguments import processCommandLineArguments;
@@ -45,6 +44,7 @@ if (__name__ == '__main__'):
         verboseOutputter = {'write': lambda s: False};
     
     # Ask for seed if running random baseline
+    seed = 0;
     if (parameters['random_baseline']):
         seed = int(raw_input("Please provide an integer seed for the random number generation: ")); 
     
@@ -55,30 +55,8 @@ if (__name__ == '__main__'):
         print("WARNING! RUNNING WITHOUT GPU USAGE!");
     
     # Construct models
-    dataset = ge_dataset.GeneratedExpressionDataset(parameters['dataset'], 
-                                                    add_x=parameters['find_x'],
-                                                    single_digit=parameters['single_digit'], 
-                                                    single_class=parameters['single_class'],
-                                                    correction=parameters['correction'],
-                                                    preload=parameters['preload'],
-                                                    test_batch_size=parameters['test_batch_size'],
-                                                    train_batch_size=parameters['train_batch_size'],
-                                                    max_training_size=parameters['max_training_size'],
-                                                    max_testing_size=parameters['max_testing_size'],
-                                                    sample_testing_size=parameters['sample_testing_size'],
-                                                    predictExpressions=parameters['predict_expressions']);
-    if (parameters['random_baseline']):
-        rnn = rb.RandomBaseline(parameters['single_digit'], seed, dataset,
-                                n_max_digits=parameters['n_max_digits'], minibatch_size=parameters['minibatch_size']);
-    else:
-        rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
-                                         lstm=parameters['lstm'], single_digit=parameters['single_digit'],
-                                         minibatch_size=parameters['minibatch_size'],
-                                         n_max_digits=parameters['n_max_digits'],
-                                         time_training_batch=parameters['time_training_batch'],
-                                         decoder=parameters['decoder'],
-                                         verboseOutputter=verboseOutputter,
-                                         layers=parameters['layers']);    
+    dataset, rnn = tools.model.constructModels(parameters, seed, verboseOutputter);
+    
     ### From here the experiment should be the same every time
     
     # Start experiment clock

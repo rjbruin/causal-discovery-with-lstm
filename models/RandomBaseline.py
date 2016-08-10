@@ -6,7 +6,7 @@ Created on 21 jun. 2016
 
 import numpy as np;
 
-from model.RecurrentModel import RecurrentModel
+from models.RecurrentModel import RecurrentModel
 
 class RandomBaseline(RecurrentModel):
     '''

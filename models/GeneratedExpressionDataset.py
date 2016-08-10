@@ -5,7 +5,7 @@ Created on 22 feb. 2016
 '''
 
 import numpy as np;
-from model.Dataset import Dataset
+from models.Dataset import Dataset
 
 class GeneratedExpressionDataset(Dataset):
     

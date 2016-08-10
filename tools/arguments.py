@@ -99,7 +99,7 @@ def processCommandLineArguments(arguments, parameters=None):
     if ('--params_from_experiment_header' in arguments):
         # If no arguments are provided, ask for parameters as raw input
         dictStr = raw_input("Please provide the extra arguments as dictionary: ");
-        arguments.extend(parametersString(parametersFromDictStr(dictStr)));
+        arguments.extend(parametersArguments(parametersFromDictStr(dictStr)));
     
     key = None;
     for arg in arguments:
@@ -123,19 +123,17 @@ def parametersFromDictStr(dictStr):
     obj = obj.replace("False","false");
     obj = obj.replace("'",'"');
     obj = obj.replace('None','"None"');
-    obj = json.loads(dict);
+    obj = json.loads(obj);
     for key in obj:
         if (obj[key] == "None"):
             obj[key] = None;
     return obj;
 
-def parametersString(obj):    
+def parametersArguments(obj):    
     # Print arguments
     args = [];
     for key in obj:
         args.append('--%s' % key);
         args.append('%s' % str(obj[key]));
-    
-    print("Parameters added: %s" % str(args));
     
     return args;
