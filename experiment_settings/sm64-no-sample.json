@@ -1,0 +1,10 @@
+[
+    {
+        "name": "sm64-no-sample",
+        "script": "expressions_answer.py",
+        "dataset": "./data/expressions_positive_integer_answer_shallow",
+        "repetitions": "92",
+        "minibatch_size": "64",
+        "n_max_digits": "7"
+    }
+]
