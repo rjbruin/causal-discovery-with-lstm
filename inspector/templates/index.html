@@ -19,7 +19,7 @@ $(document).ready( function() {
 	}
 	
 	formatDatasetForm = function() {
-		var repr = "<div class='col-md-6'>";
+		var repr = "<div class='col-md-6' id='datasetContainer'>";
 		repr += "<h2>Run prediction on dataset</h2><form id='datasetForm' class='form-horizontal'>";
 		repr += "<div class='form-group'><label for='sample' class='col-sm-3 control-label'>Select a dataset</label>";
 		repr += "<div class='col-sm-9'><select name='sample' class='form-control'>";
@@ -39,14 +39,21 @@ $(document).ready( function() {
 	}
 	
 	formatModelInfo = function(modelInfo) {
-		var repr = "<dl class='dl-horizontal'>";
+		var repr = "<div class='panel panel-default'><div class='panel-heading'>Model info</div><div class='panel-body row'>";
+		repr += "<dl class='dl-horizontal col-sm-6'>";
 		// http://stackoverflow.com/questions/684672/how-do-i-loop-through-or-enumerate-a-javascript-object
+		var i = 0;
 		for (var key in modelInfo) {
 			if (modelInfo.hasOwnProperty(key)) {
 				repr += "<dt>" + key + "</dt><dd>" + modelInfo[key] + "</dd>";				
 			}
+			i++;
+			if (i > Object.keys(modelInfo).length / 2) {
+				repr += "</dl><dl class='dl-horizontal col-sm-6'>";
+				i = -100;
+			}
 		}
-		repr += "</dl>";
+		repr += "</dl></div></div>";
 		return repr;
 	}
 	
@@ -70,7 +77,7 @@ $(document).ready( function() {
 	initDashboard = function() {
 		$("#loadModelForm").remove();
 		$("#dashboard").html(formatPredictionForm());
-		$("#dashboard").append(formatDatasetForm());
+		//$("#dashboard").append(formatDatasetForm());
 		setupPredictionForm();
 		$("#modelInfo").html('');
 		// Add button to reset model
