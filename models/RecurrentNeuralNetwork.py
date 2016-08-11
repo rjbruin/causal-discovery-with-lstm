@@ -149,11 +149,9 @@ class RecurrentNeuralNetwork(RecurrentModel):
             self._predict = theano.function([X], prediction);
         else:
             right_hand_symbol_indices = T.argmax(right_hand,axis=2);
-            self._predict = theano.function([X, label], [prediction, 
-                                                 right_hand_symbol_indices,
-                                                 right_hand,
-                                                 padded_label,
-                                                 summed_error]);
+            self._predict = theano.function([X], [prediction, 
+                                                  right_hand_symbol_indices,
+                                                  right_hand]);
         
         # Defining stochastic gradient descent
         learning_rate = T.dscalar('learning_rate');
@@ -362,7 +360,7 @@ class RecurrentNeuralNetwork(RecurrentModel):
     def sgd(self, data, label, learning_rate):
         return self._sgd(data, label, learning_rate);
         
-    def predict(self, data, labels, targets):
+    def predict(self, data):
         """
         Perform necessary models-specific transformations and call the actual 
         prediction function of the model.
@@ -371,21 +369,20 @@ class RecurrentNeuralNetwork(RecurrentModel):
             # Swap axes of index in sentence and datapoint for Theano purposes
             prediction = self.predict(np.swapaxes(data, 0, 1));
         else:
-            prediction, right_hand_symbol_indices, right_hand, padded_label, summed_error = \
-                self._predict(np.swapaxes(data, 0, 1), np.swapaxes(targets, 0, 1));
+            prediction, right_hand_symbol_indices, right_hand = \
+                self._predict(np.swapaxes(data, 0, 1));
         
         prediction = np.swapaxes(prediction, 0, 1);
         # Swap sentence index and datapoints back
         right_hand_symbol_indices = np.swapaxes(right_hand_symbol_indices, 0, 1);
         
         return prediction, {'right_hand_symbol_indices': right_hand_symbol_indices,
-                            'right_hand': right_hand, 'padded_label': padded_label,
-                            'summed_error': summed_error};
+                            'right_hand': right_hand};
         
     def verboseOutput(self, prediction, other):
-        self.verboseOutputter['write']("Prediction: %s\nright_hand_symbol_indices: %s\nright_hand: %s\npadded_label: %s\nsummed_error: %s" 
+        self.verboseOutputter['write']("Prediction: %s\nright_hand_symbol_indices: %s\nright_hand: %s" 
                                        % (str(prediction), str(other['right_hand_symbol_indices']), 
-                                          str(other['right_hand']), str(other['padded_label']), str(other['summed_error'])));
+                                          str(other['right_hand'])));
     
     def batch_statistics(self, stats, prediction, labels, targets, expressions, 
                          other, test_n, dataset,

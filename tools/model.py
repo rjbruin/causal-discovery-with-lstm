@@ -121,14 +121,14 @@ def train(model, dataset, parameters, exp_name, start_time, saveModels=True, tar
                             verboseOutputter['write']("!!!!! Variable sum value is equal to zero!");
                             verboseOutputter['write']("=> name = %s, value:\n%s" % (varname, str(model.vars[varname].get_value())));
                 
-                test_and_save(model, dataset, parameters, start_time, verboseOutputter=verboseOutputter);
+                test(model, dataset, parameters, start_time, verboseOutputter=verboseOutputter);
                 # Save weights to pickles
                 if (saveModels):
                     saveVars = model.vars.items();
                     save_to_pickle('saved_models/%s_%d.model' % (exp_name, b), saveVars, settings=parameters);
                 next_testing_threshold += parameters['test_interval'] * repetition_size;
 
-def test_and_save(model, dataset, parameters, start_time, show_prediction_conf_matrix=False, verboseOutputter=None, no_print_progress=False):
+def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=False, verboseOutputter=None, no_print_progress=False):
     # Test
     print("Testing...");
         
@@ -189,7 +189,7 @@ def test_and_save(model, dataset, parameters, start_time, show_prediction_conf_m
                 data = np.concatenate((data,np.zeros((missing_datapoints, test_data.shape[1], test_data.shape[2]))), axis=0);
                 targets = np.concatenate((targets,np.zeros((missing_datapoints, test_targets.shape[1], test_targets.shape[2]))), axis=0);
             
-            prediction, other = model.predict(data, None, targets);
+            prediction, other = model.predict(data);
             
             if (triggerVerbose):
                 model.verboseOutput(prediction, other);

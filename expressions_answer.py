@@ -12,7 +12,7 @@ import tools.model;
 
 from tools.file import save_to_pickle;
 from tools.arguments import processCommandLineArguments;
-from tools.model import train, test_and_save;
+from tools.model import train, test;
 from tools.gpu import using_gpu; # @UnresolvedImport
 
 import numpy as np;
@@ -66,7 +66,7 @@ if (__name__ == '__main__'):
     train(rnn, dataset, parameters, name, start, saveModels=saveModels, targets=not parameters['single_digit'], verboseOutputter=verboseOutputter);
     
     # Final test
-    test_and_save(rnn, dataset, parameters, start, show_prediction_conf_matrix=False);
+    test(rnn, dataset, parameters, start, show_prediction_conf_matrix=False);
     
     # Save weights to pickles
     if (saveModels):
