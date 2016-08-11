@@ -6,6 +6,7 @@ Created on 10 aug. 2016
 
 from flask import Flask, request;
 import os,flask;
+import numpy as np;
 
 import tools.model;
 from tools.file import load_from_pickle_with_filename
@@ -16,6 +17,10 @@ data = {'modelSet': False};
 
 @app.route("/")
 def index():
+    data['availableModels'] = [];
+    os.path.walk('../saved_models',lambda _,__,fs: data['availableModels'].extend(fs),None);
+    data['availableModels'] = filter(lambda f: f[-6:] == '.model',data['availableModels']);
+    data['availableModels'] = map(lambda f: f[:-6],data['availableModels']);
     return flask.render_template('index.html', data=data);
 
 @app.route("/api/load", methods =['POST'])
@@ -28,6 +33,37 @@ def load():
         name = request.form['name'];
         response['success'] = loadModel(name);
         response['modelInfo'] = data['modelInfo'];
+    return flask.jsonify(response);
+
+@app.route("/api/predict/sample", methods=['POST'])
+def predictSample():
+    """
+    Takes a POST variable 'sample' containing a data sample for this model,
+    without the '='-symbol.
+    """
+    response = {'success': False};
+    if ('sample' in request.form):
+        sample = request.form['sample'];
+        response['sample'] = sample;
+        sample += "=0";
+        datasample, _, _, _, _ = data['dataset'].processor(sample,[],[],[],[]);
+        response['data'] = datasample[0].tolist();
+        
+        datasample = np.array(datasample).reshape((1,datasample[0].shape[0],datasample[0].shape[1]));
+        if (len(datasample) < data['rnn'].minibatch_size):
+            missing_datapoints = data['rnn'].minibatch_size - datasample.shape[0];
+            datasample = np.concatenate((datasample,np.zeros((missing_datapoints, datasample.shape[1], datasample.shape[2]))), axis=0);
+        prediction, other = data['rnn'].predict(datasample);
+        
+        response['prediction'] = prediction[0].tolist();
+        response['predictionPretty'] = "";
+        for index in response['prediction']:
+            if (index == 17):
+                response['predictionPretty'] += "_";
+            else:
+                response['predictionPretty'] += data['dataset'].findSymbol[index];
+        response['success'] = True;
+        
     return flask.jsonify(response);
 
 def loadModel(name):

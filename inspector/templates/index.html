@@ -1,15 +1,9 @@
 {% include 'header.html' %}
 
 <div class='container'>
-	<h1>Deep Causal Learning - Model inspector</h1>
-	
-	<form id='loadModelForm'>
-		<input type='text' placeholder='Enter the model identifier (no path or extension)' name='modelName' class='form-control'/>
-		<button id='loadModel' class='btn btn-primary' >Load</button>
-	</form>
-	
+	<h1 class="page-header">Deep Causal Learning - Model inspector</h1>
+	<div id='buttonContainer'></div>
 	<div id='dashboard' class='row'></div>
-	
 	<div id='modelInfo'></div>
 </div>
 
@@ -18,24 +12,28 @@ $(document).ready( function() {
 	formatPredictionForm = function() {
 		var repr = "<div class='col-md-6'>";
 		repr += "<h2>Run prediction on sample</h2><form id='predictionForm'>";
-		repr += "<div class='form-group'><input type='text' placeholder='Enter a data sample' name='sample' class='form-control'/></div>";
-		repr += "<button class='btn btn-default'>Predict</button>";
-		repr += "</form></div>";
+		repr += "<div class='input-group'><input type='text' placeholder='Enter a data sample' name='sample' class='form-control'/>";
+		repr += "<div class='input-group-btn'><button class='btn btn-default'>Predict</button></div></div>";
+		repr += "</form><div id='predictionResults'></div></div>";
 		return repr;
 	}
 	
 	formatDatasetForm = function() {
 		var repr = "<div class='col-md-6'>";
-		repr += "<h2>Run prediction on dataset</h2><form id='datasetForm'>";
-		repr += "<div class='form-group'><label for='sample'>Select a dataset</label><select name='sample' class='form-control'>";
+		repr += "<h2>Run prediction on dataset</h2><form id='datasetForm' class='form-horizontal'>";
+		repr += "<div class='form-group'><label for='sample' class='col-sm-3 control-label'>Select a dataset</label>";
+		repr += "<div class='col-sm-9'><select name='sample' class='form-control'>";
 		repr += "<option value='deep'>Deep</option>";
 		repr += "<option value='shallow'>Shallow</option>";
-		repr += "</select></div>";
-		repr += "<div class='form-group'><label for='sample'>Select a part</label><select name='sample' class='form-control'>";
+		repr += "</select></div></div>";
+		
+		repr += "<div class='form-group'><label for='sample' class='col-sm-3 control-label'>Select a part</label>";
+		repr += "<div class='col-sm-9'><select name='sample' class='form-control'>";
 		repr += "<option value='training'>Training</option>";
 		repr += "<option value='testing'>Testing</option>";
-		repr += "</select></div>";
-		repr += "<button class='btn btn-default'>Predict</button>";
+		repr += "</select></div></div>";
+		
+		repr += "<button class='btn btn-default pull-right'>Predict</button>";
 		repr += "</form></div>";
 		return repr;
 	}
@@ -51,44 +49,108 @@ $(document).ready( function() {
 		repr += "</dl>";
 		return repr;
 	}
+	
+	formatPredictionResult = function(response) {
+		var repr = response.sample + " = " + response.predictionPretty + "<br />";
+		return repr;
+	}
+	
+	initLoading = function() {
+		var models = {{ data.availableModels|tojson|safe }};
+		var select = $("<select name='modelName' class='form-control'></select>");
+		for (var i = 0; i < models.length; i++) {
+			select.append("<option value='" + models[i] + "'>" + models[i] + "</option>");
+		}
+		$("#buttonContainer").html('');
+		$("#dashboard").html("<div class='col-xs-12'><form id='loadModelForm'><div class='form-group' id='selectTarget'></div><button id='loadModel' class='btn btn-primary' >Load</button></form></div>");
+		$("#selectTarget").append(select);
+		setupModelForm();
+	}
 
 	initDashboard = function() {
 		$("#loadModelForm").remove();
-		$("#dashboard").append(formatPredictionForm());
+		$("#dashboard").html(formatPredictionForm());
 		$("#dashboard").append(formatDatasetForm());
+		setupPredictionForm();
+		$("#modelInfo").html('');
+		// Add button to reset model
+		var btn = $("<button id='resetDashboard' class='btn btn-default btn-block'>Reset model</button>");
+		$("#buttonContainer").append(btn);
+		btn.click( function() {
+			initLoading();
+		});
 	}
 	
 	showModelInfo = function(modelInfo) {
 		$("#modelInfo").append(formatModelInfo(modelInfo));
 	}
 
-	$("#loadModelForm").submit( function(e) {
-		e.preventDefault();
-		var modelName = $(this).find("input[name='modelName']").val();
-		$.ajax({
-			url: './api/load',
-			method: 'POST',
-			data: {'name': modelName},
-			success: function(response) {
-				if (response.success) {
-					console.log("success!");
-					initDashboard();
-					showModelInfo(response.modelInfo);
-				} else {
-					console.log("no success!");
+	setupModelForm = function() {
+		$("#loadModelForm").submit( function(e) {
+			e.preventDefault();
+			var modelName = $(this).find("select[name='modelName']").val();
+			$.ajax({
+				url: './api/load',
+				method: 'POST',
+				data: {'name': modelName},
+				success: function(response) {
+					if (response.success) {
+						console.log("success!");
+						initDashboard();
+						showModelInfo(response.modelInfo);
+					} else {
+						console.log("no success!");
+						$(this).find("button").removeAttr('disabled');
+						$("#predictionForm input").parent().addClass("has-error");
+					}
+				}, error: function(response) {
+					console.log("error!");
+					$(this).find("button").removeAttr('disabled');
+					$("#predictionForm input").parent().addClass("has-error");
 				}
-			}, error: function(response) {
-				console.log("error!");
-			}
+			});
+			$(this).find("button").attr('disabled','');
+			$("#predictionForm input").parent().removeClass("has-error");
 		});
-		$(this).find("button").addAttr('disabled','');
-	});
+	}
+	
+	setupPredictionForm = function() {
+		$("#predictionForm").submit( function(e) {
+			e.preventDefault();
+			var sample = $(this).find("input[name='sample']").val();
+			$.ajax({
+				url: './api/predict/sample',
+				method: 'POST',
+				data: {'sample': sample},
+				success: function(response) {
+					if (response.success) {
+						console.log("success!");
+						console.log(response);
+						$("#predictionForm button").removeAttr('disabled');
+						// Show results
+						$("#predictionResults").append(formatPredictionResult(response));
+					} else {
+						console.log("no success!");
+						$("#predictionForm input").parent().addClass("has-error");
+						$("#predictionForm button").removeAttr('disabled');
+					}
+				}, error: function(response) {
+					console.log("error!");
+					$(this).find("button").removeAttr('disabled');
+				}
+			});
+			$(this).find("button").attr('disabled','');
+			$(this).find("input").parent().removeClass("has-error");
+		});
+	}
 	
 	{% if data.modelSet %}
 		initDashboard();
 		var modelInfo = {{ data.modelInfo|tojson|safe }};
 		console.log(modelInfo);
 		showModelInfo(modelInfo);
+	{% else %}
+		initLoading();
 	{% endif %}	
 });
 </script>
