@@ -1,0 +1,15 @@
+[
+    {
+        "name": "test-tracker",
+        "script": "expressions_answer.py",
+        "dataset": "./data/expressions_positive_integer_answer_shallow",
+        "single_digit": "False",
+        "repetitions": "24",
+        "hidden_dim": "128",
+        "learning_rate": "0.01",
+        "lstm": "True",
+        "max_training_size": "1000",
+        "train_batch_size": "500",
+        "sample_testing_size": "1000"
+    }
+]
