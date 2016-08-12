@@ -1,0 +1,26 @@
+[
+    {
+        "name": "dm64-pe-curriculum",
+        "script": "expressions_answer.py",
+        "dataset": "./data/expressions_positive_integer_answer_deep",
+        "single_digit": "False",
+        "repetitions": "576",
+        "hidden_dim": "128",
+        "learning_rate": "0.01",
+        "lstm": "True",
+        "minibatch_size": "64",
+        "sample_testing_size": "10000",
+        "n_max_digits": "12",
+        "extreme_verbose": "True",
+        "predict_expressions": "True",
+        "multipart_dataset": "2",
+        "multipart_1": "_depth_2",
+        "multipart_1_reps": "100",
+        "multipart_2": "_depth_3",
+        "multipart_2_reps": "100",
+        "multipart_3": "_depth_4",
+        "multipart_3_reps": "100",
+        "multipart_4": "False",
+        "multipart_4_reps": "False"
+    }
+]
