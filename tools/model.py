@@ -65,19 +65,27 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
     # Print settings headers to raw results file
     print(str(parameters));
     
-    for d, dataset in enumerate(datasets):
+    dataset_reps = [parameters['multipart_1_reps'], parameters['multipart_2_reps'], 
+                    parameters['multipart_3_reps'], parameters['multipart_4_reps']];
+    datasets_with_reps = zip(datasets, dataset_reps[:len(datasets)]);
+    
+    for d, (dataset, reps) in enumerate(datasets_with_reps):
+        if (reps is False):
+            reps = parameters['repetitions'];
+        
         # Compute number of batches
-        batch_size, repetition_size, _, _ = get_batch_statistics(dataset, parameters);
+        batch_size, repetition_size, _, _ = get_batch_statistics(dataset, reps, parameters);
         next_testing_threshold = parameters['test_interval'] * repetition_size;
         
         total_datapoints_processed = 0;
         b = 0;
         
-        for r in range(parameters['repetitions'] * (repetition_size/batch_size)):
+        for r in range(reps * (repetition_size/batch_size)):
             batch = dataset.get_train_batch(batch_size);
             while (batch is not False):
                 # Print progress and save to raw results file
-                progress = "Batch %d (repetition %d of %d, dataset %d of %d) (samples processed after batch: %d)" % (b+1,int(total_datapoints_processed/repetition_size)+1,parameters['repetitions'],d+1,len(datasets),total_datapoints_processed+batch_size);
+                progress = "Batch %d (repetition %d of %d, dataset %d of %d) (samples processed after batch: %d)" % \
+                    (b+1,int(total_datapoints_processed/repetition_size)+1,reps,d+1,len(datasets),total_datapoints_processed+batch_size);
                 print(progress);
                 if (verboseOutputter is not None):
                     verboseOutputter['write'](progress);

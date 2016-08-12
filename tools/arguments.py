@@ -60,9 +60,13 @@ argumentProcessors = {'name': processString,
                       'predict_expressions': processBool,
                       'multipart_dataset': processFalseOrInt,
                       'multipart_1': processFalseOrString,
+                      'multipart_1_reps': processFalseOrInt,
                       'multipart_2': processFalseOrString,
+                      'multipart_2_reps': processFalseOrInt,
                       'multipart_3': processFalseOrString,
-                      'multipart_4': processFalseOrString
+                      'multipart_3_reps': processFalseOrInt,
+                      'multipart_4': processFalseOrString,
+                      'multipart_4_reps': processFalseOrInt
                       }
 defaults = {'report_to_tracker': True,
             'dataset': './data/expressions_positive_integer_answer_shallow',
@@ -93,9 +97,13 @@ defaults = {'report_to_tracker': True,
             'predict_expressions': False,
             'multipart_dataset': False,
             'multipart_1': False,
+            'multipart_1_reps': False,
             'multipart_2': False,
+            'multipart_2_reps': False,
             'multipart_3': False,
-            'multipart_4': False
+            'multipart_3_reps': False,
+            'multipart_4': False,
+            'multipart_4_reps': False
             }
 
 def processKeyValue(key,value):

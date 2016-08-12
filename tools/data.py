@@ -18,7 +18,7 @@ def create_batches(dataset, parameters):
     
     return batches, repetition_size;
 
-def get_batch_statistics(dataset, parameters):
+def get_batch_statistics(dataset, reps, parameters):
     if (parameters['max_training_size'] is not False):
         repetition_size = parameters['max_training_size'];
     else:
@@ -32,7 +32,7 @@ def get_batch_statistics(dataset, parameters):
     if (batch_size > repetition_size):
         batch_size = repetition_size;
     
-    total_iterations_size = repetition_size * parameters['repetitions'];
+    total_iterations_size = repetition_size * reps;
     nrBatches = int(total_iterations_size / batch_size);
     if (total_iterations_size % batch_size > 0):
         nrBatches += 1;
