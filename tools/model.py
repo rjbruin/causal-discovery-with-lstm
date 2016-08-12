@@ -16,18 +16,36 @@ from tools.file import save_to_pickle;
 from tools.data import get_batch_statistics
 
 def constructModels(parameters, seed, verboseOutputter):
-    dataset = GeneratedExpressionDataset(parameters['dataset'], 
-                                                    add_x=parameters['find_x'],
-                                                    single_digit=parameters['single_digit'], 
-                                                    single_class=parameters['single_class'],
-                                                    correction=parameters['correction'],
-                                                    preload=parameters['preload'],
-                                                    test_batch_size=parameters['test_batch_size'],
-                                                    train_batch_size=parameters['train_batch_size'],
-                                                    max_training_size=parameters['max_training_size'],
-                                                    max_testing_size=parameters['max_testing_size'],
-                                                    sample_testing_size=parameters['sample_testing_size'],
-                                                    predictExpressions=parameters['predict_expressions']);
+    if (parameters['multipart_dataset']):
+        extensions = [parameters['multipart_1']]
+        if (parameters['multipart_2'] is not False):
+            extensions.append(parameters['multipart_2']);
+            if (parameters['multipart_3'] is not False):
+                extensions.append(parameters['multipart_3']);
+                if (parameters['multipart_4'] is not False):
+                    extensions.append(parameters['multipart_4']);
+        train_paths = map(lambda f: "%s/train%s.txt" % (parameters['dataset'], f), extensions);
+        test_paths = map(lambda f: "%s/test%s.txt" % (parameters['dataset'], f), extensions);
+    else:
+        train_paths = ["%s/train.txt" % (parameters['dataset'])];
+        test_paths = ["%s/test.txt" % (parameters['dataset'])];
+    
+    datasets = [];
+    for i in range(len(train_paths)):
+        dataset = GeneratedExpressionDataset(train_paths[i], test_paths[i], 
+                                             add_x=parameters['find_x'],
+                                             single_digit=parameters['single_digit'], 
+                                             single_class=parameters['single_class'],
+                                             correction=parameters['correction'],
+                                             preload=parameters['preload'],
+                                             test_batch_size=parameters['test_batch_size'],
+                                             train_batch_size=parameters['train_batch_size'],
+                                             max_training_size=parameters['max_training_size'],
+                                             max_testing_size=parameters['max_testing_size'],
+                                             sample_testing_size=parameters['sample_testing_size'],
+                                             predictExpressions=parameters['predict_expressions']);
+        datasets.append(dataset);
+    
     if (parameters['random_baseline']):
         rnn = RandomBaseline(parameters['single_digit'], seed, dataset,
                                 n_max_digits=parameters['n_max_digits'], minibatch_size=parameters['minibatch_size']);
@@ -41,92 +59,100 @@ def constructModels(parameters, seed, verboseOutputter):
                                          verboseOutputter=verboseOutputter,
                                          layers=parameters['layers']);
     
-    return dataset, rnn;
+    return datasets, rnn;
 
-def train(model, dataset, parameters, exp_name, start_time, saveModels=True, targets=False, verboseOutputter=None, no_print=False):
+def train(model, datasets, parameters, exp_name, start_time, saveModels=True, targets=False, verboseOutputter=None, no_print=False):
     # Print settings headers to raw results file
     print(str(parameters));
     
-    # Compute number of batches
-    batch_size, repetition_size, _, nrBatches = get_batch_statistics(dataset, parameters);
-    next_testing_threshold = parameters['test_interval'] * repetition_size;
-    
-    total_datapoints_processed = 0;
-    for b in range(nrBatches):
-        # Print progress and save to raw results file
-        progress = "Batch %d of %d (repetition %d) (samples processed after batch: %d)" % (b+1,nrBatches,int(total_datapoints_processed/repetition_size)+1,total_datapoints_processed+batch_size);
-        print(progress);
-        if (verboseOutputter is not None):
-            verboseOutputter['write'](progress);
+    for d, dataset in enumerate(datasets):
+        # Compute number of batches
+        batch_size, repetition_size, _, _ = get_batch_statistics(dataset, parameters);
+        next_testing_threshold = parameters['test_interval'] * repetition_size;
         
-        # Get the part of the dataset for this batch
-        batch_train, batch_train_targets, batch_train_labels, batch_train_expressions = dataset.get_train_batch(batch_size);
-        if (not model.single_digit):
-            batch_train_labels = batch_train_targets;
+        total_datapoints_processed = 0;
+        b = 0;
         
-        # Perform specific model sanity checks before training this batch
-        model.sanityChecks(batch_train, batch_train_labels);
-        
-        # Set printing interval
-        total = len(batch_train);
-        printing_interval = 1000;
-        if (total <= printing_interval * 10):
-            # Make printing interval always at least one
-            printing_interval = max(total / 5,1);
-        
-        # Train model per minibatch
-        batch_range = range(0,total,model.minibatch_size);
-        if (model.fake_minibatch):
-            batch_range = range(0,total);
-        for k in batch_range:
-            if (model.time_training_batch):
-                start = time.clock();
-            
-            data = batch_train[k:k+model.minibatch_size];
-            label = batch_train_labels[k:k+model.minibatch_size];
-            
-            if (model.fake_minibatch):
-                data = batch_train[k:k+1];
-                label = batch_train_labels[k:k+1];
-            
-            if (len(data) < model.minibatch_size):
-                missing_datapoints = model.minibatch_size - data.shape[0];
-                data = np.concatenate((data,np.zeros((missing_datapoints, batch_train.shape[1], batch_train.shape[2]))), axis=0);
-                label = np.concatenate((label,np.zeros((missing_datapoints, batch_train_labels.shape[1], batch_train_labels.shape[2]))), axis=0);
-            
-            # Swap axes of index in sentence and datapoint for Theano purposes
-            data = np.swapaxes(data, 0, 1);
-            label = np.swapaxes(label, 0, 1);
-            # Run training
-            model.sgd(data, label, parameters['learning_rate']);
-            
-            if (not no_print and k % printing_interval == 0):
-                print("# %d / %d" % (k, total));
-                if (model.time_training_batch):
-                    duration = time.clock() - start;
-                    print("%d seconds" % duration);
-        
-        # Update stats
-        total_datapoints_processed += len(batch_train);
-        
-        # Intermediate testing if this was not the last iteration of training
-        # and we have passed the testing threshold
-        if (b != nrBatches-1):
-            if (total_datapoints_processed >= next_testing_threshold):
+        for r in range(parameters['repetitions'] * (repetition_size/batch_size)):
+            batch = dataset.get_train_batch(batch_size);
+            while (batch is not False):
+                # Print progress and save to raw results file
+                progress = "Batch %d (repetition %d of %d, dataset %d of %d) (samples processed after batch: %d)" % (b+1,int(total_datapoints_processed/repetition_size)+1,parameters['repetitions'],d+1,len(datasets),total_datapoints_processed+batch_size);
+                print(progress);
                 if (verboseOutputter is not None):
-                    for varname in model.vars:
-                        varsum = model.vars[varname].get_value().sum();
-                        verboseOutputter['write']("summed %s: %.8f" % (varname, varsum));
-                        if (varsum == 0.0):
-                            verboseOutputter['write']("!!!!! Variable sum value is equal to zero!");
-                            verboseOutputter['write']("=> name = %s, value:\n%s" % (varname, str(model.vars[varname].get_value())));
+                    verboseOutputter['write'](progress);
                 
-                test(model, dataset, parameters, start_time, verboseOutputter=verboseOutputter);
-                # Save weights to pickles
-                if (saveModels):
-                    saveVars = model.vars.items();
-                    save_to_pickle('saved_models/%s_%d.model' % (exp_name, b), saveVars, settings=parameters);
-                next_testing_threshold += parameters['test_interval'] * repetition_size;
+                # Get the part of the dataset for this batch
+                batch_train, batch_train_targets, batch_train_labels, _ = batch;
+                if (not model.single_digit):
+                    batch_train_labels = batch_train_targets;
+                
+                # Perform specific model sanity checks before training this batch
+                model.sanityChecks(batch_train, batch_train_labels);
+                
+                # Set printing interval
+                total = len(batch_train);
+                printing_interval = 1000;
+                if (total <= printing_interval * 10):
+                    # Make printing interval always at least one
+                    printing_interval = max(total / 5,1);
+                
+                # Train model per minibatch
+                batch_range = range(0,total,model.minibatch_size);
+                if (model.fake_minibatch):
+                    batch_range = range(0,total);
+                for k in batch_range:
+                    if (model.time_training_batch):
+                        start = time.clock();
+                    
+                    data = batch_train[k:k+model.minibatch_size];
+                    label = batch_train_labels[k:k+model.minibatch_size];
+                    
+                    if (model.fake_minibatch):
+                        data = batch_train[k:k+1];
+                        label = batch_train_labels[k:k+1];
+                    
+                    if (len(data) < model.minibatch_size):
+                        missing_datapoints = model.minibatch_size - data.shape[0];
+                        data = np.concatenate((data,np.zeros((missing_datapoints, batch_train.shape[1], batch_train.shape[2]))), axis=0);
+                        label = np.concatenate((label,np.zeros((missing_datapoints, batch_train_labels.shape[1], batch_train_labels.shape[2]))), axis=0);
+                    
+                    # Swap axes of index in sentence and datapoint for Theano purposes
+                    data = np.swapaxes(data, 0, 1);
+                    label = np.swapaxes(label, 0, 1);
+                    # Run training
+                    model.sgd(data, label, parameters['learning_rate']);
+                    
+                    if (not no_print and k % printing_interval == 0):
+                        print("# %d / %d" % (k, total));
+                        if (model.time_training_batch):
+                            duration = time.clock() - start;
+                            print("%d seconds" % duration);
+                    
+                b += 1;
+                batch = dataset.get_train_batch(batch_size);
+            
+            # Update stats
+            total_datapoints_processed += len(batch_train);
+            
+            # Intermediate testing if this was not the last iteration of training
+            # and we have passed the testing threshold
+            if (r != repetition_size-1):
+                if (total_datapoints_processed >= next_testing_threshold):
+                    if (verboseOutputter is not None):
+                        for varname in model.vars:
+                            varsum = model.vars[varname].get_value().sum();
+                            verboseOutputter['write']("summed %s: %.8f" % (varname, varsum));
+                            if (varsum == 0.0):
+                                verboseOutputter['write']("!!!!! Variable sum value is equal to zero!");
+                                verboseOutputter['write']("=> name = %s, value:\n%s" % (varname, str(model.vars[varname].get_value())));
+                    
+                    test(model, dataset, parameters, start_time, verboseOutputter=verboseOutputter);
+                    # Save weights to pickles
+                    if (saveModels):
+                        saveVars = model.vars.items();
+                        save_to_pickle('saved_models/%s_%d.model' % (exp_name, b), saveVars, settings=parameters);
+                    next_testing_threshold += parameters['test_interval'] * repetition_size;
 
 def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=False, verboseOutputter=None, no_print_progress=False):
     # Test

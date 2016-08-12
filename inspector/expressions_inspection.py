@@ -17,12 +17,20 @@ data = {'modelSet': False};
 
 @app.route("/")
 def index():
-    data['availableModels'] = [];
-    os.path.walk('../saved_models',lambda _,__,fs: data['availableModels'].extend(fs),None);
-    data['availableModels'] = filter(lambda f: f[-6:] == '.model',data['availableModels']);
-    data['availableModels'] = map(lambda f: f[:-6],data['availableModels']);
+    data['availableModels'] = availableModels();
     return flask.render_template('index.html', data=data);
 
+@app.route('/api/models', methods =['GET'])
+def models():
+    data['availableModels'] = availableModels();
+    return flask.jsonify({'success': True, 'models': data['availableModels']});
+
+def availableModels():
+    availableModels = [];
+    os.path.walk('../saved_models',lambda _,__,fs: availableModels.extend(fs),None);
+    availableModels = filter(lambda f: f[-6:] == '.model',availableModels);
+    return map(lambda f: f[:-6],availableModels);
+ 
 @app.route("/api/load", methods =['POST'])
 def load():
     """
@@ -71,7 +79,10 @@ def loadModel(name):
     if (not os.path.isfile(filepath)):
         return False;
     data['modelName'] = name;
-    savedVars, settings = load_from_pickle_with_filename(filepath);
+    result = load_from_pickle_with_filename(filepath);
+    if (result is False):
+        return False;
+    savedVars, settings = result;
     settings['dataset'] = "." + settings['dataset'];
     data['dataset'], data['rnn'] = tools.model.constructModels(settings, 0, None);
     data['modelSet'] = data['rnn'].loadVars(dict(savedVars)); 

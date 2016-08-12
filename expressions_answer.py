@@ -55,18 +55,20 @@ if (__name__ == '__main__'):
         print("WARNING! RUNNING WITHOUT GPU USAGE!");
     
     # Construct models
-    dataset, rnn = tools.model.constructModels(parameters, seed, verboseOutputter);
+    datasets, rnn = tools.model.constructModels(parameters, seed, verboseOutputter);
     
     ### From here the experiment should be the same every time
     
     # Start experiment clock
     start = time.clock();
     
-    # Train
-    train(rnn, dataset, parameters, name, start, saveModels=saveModels, targets=not parameters['single_digit'], verboseOutputter=verboseOutputter);
+    # Train on all datasets in succession
+    train(rnn, datasets, parameters, name, start, saveModels=saveModels, targets=not parameters['single_digit'], verboseOutputter=verboseOutputter);
     
-    # Final test
-    test(rnn, dataset, parameters, start, show_prediction_conf_matrix=False);
+    print("Training all datasets finished!");
+    
+    # Final test on last dataset
+    test(rnn, datasets[-1], parameters, start, show_prediction_conf_matrix=False);
     
     # Save weights to pickles
     if (saveModels):

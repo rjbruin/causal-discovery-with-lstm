@@ -36,7 +36,10 @@ def load_from_pickle(f):
     _ = f.readline();
     settings = arg.processCommandLineArguments(f.readline().strip().split(" "), None);
     
-    savedVars = pickle.load(f);
+    try:
+        savedVars = pickle.load(f);
+    except IndexError:
+        return False;
     
     f.close();
     

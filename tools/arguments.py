@@ -9,6 +9,11 @@ import json;
 def processString(val):
     return val;
 
+def processFalseOrString(val):
+    if (val == 'False' or val == 'None'):
+        return False;
+    return val;
+
 def processInt(val):
     return int(val);
 
@@ -52,7 +57,12 @@ argumentProcessors = {'name': processString,
                       'print_sample': processBool,
                       'extreme_verbose': processBool,
                       'layers': processInt,
-                      'predict_expressions': processBool
+                      'predict_expressions': processBool,
+                      'multipart_dataset': processBool,
+                      'multipart_1': processString,
+                      'multipart_2': processFalseOrString,
+                      'multipart_3': processFalseOrString,
+                      'multipart_4': processFalseOrString
                       }
 defaults = {'report_to_tracker': True,
             'dataset': './data/expressions_positive_integer_answer_shallow',
@@ -80,7 +90,12 @@ defaults = {'report_to_tracker': True,
             'print_sample': False,
             'extreme_verbose': False,
             'layers': 1,
-            'predict_expressions': False
+            'predict_expressions': False,
+            'multipart_dataset': False,
+            'multipart_1': "",
+            'multipart_2': False,
+            'multipart_3': False,
+            'multipart_4': False
             }
 
 def processKeyValue(key,value):

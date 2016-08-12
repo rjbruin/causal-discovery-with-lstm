@@ -9,13 +9,13 @@ from models.Dataset import Dataset
 
 class GeneratedExpressionDataset(Dataset):
     
-    def __init__(self, sourceFolder, preload=True, add_x=False, 
+    def __init__(self, trainSource, testSource, preload=True, add_x=False, 
                  single_digit=False, single_class=False, balanced=False,
                  correction=False, 
                  test_batch_size=10000, train_batch_size=10000,
                  max_training_size=False, max_testing_size=False,
                  sample_testing_size=False, predictExpressions=False):
-        self.sources = [sourceFolder + '/train.txt', sourceFolder + '/test.txt']
+        self.sources = [trainSource, testSource];
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
         self.max_training_size = max_training_size;
@@ -70,6 +70,7 @@ class GeneratedExpressionDataset(Dataset):
         self.locations = [0, 0];
         self.lengths = [self.filelength(self.sources[self.TRAIN]), self.filelength(self.sources[self.TEST])];
         # Set test batch settings
+        self.train_done = False;
         self.test_done = False;
         
         if (preload):
@@ -164,6 +165,9 @@ class GeneratedExpressionDataset(Dataset):
         Loads and returns the next training batch based on the size indicated 
         by the caller of the method. On overflow the dataset wraps around.
         """
+        if (self.train_done):
+            self.train_done = False;
+            return False;
         if (self.preloaded):
             # Determine the range of dataset to use for this iteration
             if (self.locations[self.TRAIN] + size > self.lengths[self.TRAIN]):
@@ -173,10 +177,17 @@ class GeneratedExpressionDataset(Dataset):
                 indices = range(self.locations[self.TRAIN],self.locations[self.TRAIN]+size);
             # Update the location of the pointer of the dataset
             self.locations[self.TRAIN] = (self.locations[self.TRAIN] + size) % self.lengths[self.TRAIN];
+            self.train_done = True;
             return self.train[indices], self.train_targets[indices], self.train_labels[indices], self.train_expressions[indices];
         else:
+            # Truncate the batch to be maximally the remaining part of the repetition
+            if (self.locations[self.TEST]+size > self.lengths[self.TRAIN]):
+                size = self.lengths[self.TRAIN] % size;
+            
             data, loc = self.load(self.sources[self.TRAIN], size, self.locations[self.TRAIN]);
             self.locations[self.TRAIN] = loc;
+            if (self.locations[self.TEST] >= self.lengths[self.TRAIN] or self.locations[self.TEST] == 0):
+                self.train_done = True;
             return data;
     
     def get_test_batch(self):
