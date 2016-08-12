@@ -16,14 +16,14 @@ from tools.file import save_to_pickle;
 from tools.data import get_batch_statistics
 
 def constructModels(parameters, seed, verboseOutputter):
-    if (parameters['multipart_dataset']):
-        extensions = [parameters['multipart_1']]
-        if (parameters['multipart_2'] is not False):
-            extensions.append(parameters['multipart_2']);
-            if (parameters['multipart_3'] is not False):
-                extensions.append(parameters['multipart_3']);
-                if (parameters['multipart_4'] is not False):
-                    extensions.append(parameters['multipart_4']);
+    if (parameters['multipart_dataset'] is not False):
+        nr_extensions = parameters['multipart_dataset'];
+        extensions = [];
+        for i in range(nr_extensions):
+            if (parameters['multipart_%d' % (i+1)] == False):
+                extensions.append("");
+            else:
+                extensions.append(parameters['multipart_%d' % (i+1)]);
         train_paths = map(lambda f: "%s/train%s.txt" % (parameters['dataset'], f), extensions);
         test_paths = map(lambda f: "%s/test%s.txt" % (parameters['dataset'], f), extensions);
     else:
