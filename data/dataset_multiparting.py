@@ -7,11 +7,15 @@ Created on 7 mrt. 2016
 import os;
 
 if __name__ == '__main__':
-    dataset = './expressions_positive_integer_answer_shallow';
+    dataset = './expressions_positive_integer_answer_deep';
     
     # [(filter function, postfix)]
     filters = [(lambda expression: expression.count('(') == 0,'_depth_0'),
-               (lambda expression: expression.count('(') <= 1,'_depth_1')]; 
+               (lambda expression: expression.count('(') <= 1,'_depth_1'),
+               (lambda expression: expression.count('(') <= 2,'_depth_2'),
+               (lambda expression: expression.count('(') <= 3,'_depth_3'),
+               (lambda expression: expression.count('(') <= 4,'_depth_4'),
+               (lambda expression: expression.count('(') <= 5,'_depth_5')]; 
     
     for file in ['train', 'test']:
         for func, postfix in filters:
