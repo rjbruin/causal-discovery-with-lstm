@@ -7,6 +7,6 @@
         "minibatch_size": "64",
         "n_max_digits": "17",
         "sample_testing_size": "10000",
-        "decoder": True
+        "decoder": "True"
     }
 ]
