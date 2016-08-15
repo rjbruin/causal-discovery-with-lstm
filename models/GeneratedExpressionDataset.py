@@ -14,7 +14,8 @@ class GeneratedExpressionDataset(Dataset):
                  correction=False, 
                  test_batch_size=10000, train_batch_size=10000,
                  max_training_size=False, max_testing_size=False,
-                 sample_testing_size=False, predictExpressions=False):
+                 sample_testing_size=False, predictExpressions=False,
+                 fillX=False):
         self.sources = [trainSource, testSource];
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
@@ -30,7 +31,7 @@ class GeneratedExpressionDataset(Dataset):
             self.processor = self.processSampleSingleClass;
         elif (predictExpressions):
             self.processor = self.processSamplePredictExpression;
-        elif (correction):
+        elif (correction or fillX):
             self.processor = self.processSampleCorrection;
         else:
             self.processor = self.processSampleMultiDigit;
@@ -45,7 +46,7 @@ class GeneratedExpressionDataset(Dataset):
         for digit in range(self.digits_range):
             self.oneHot[str(digit)] = digit;
         symbols = ['+','-','*','/','(',')','='];
-        if (add_x):
+        if (add_x or fillX):
             symbols.append('x');
         i = max(self.oneHot.values())+1;
         for sym in symbols:
