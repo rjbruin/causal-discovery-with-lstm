@@ -72,8 +72,13 @@ if __name__ == '__main__':
         if ('report_to_tracker' in exp):
             report = exp['report_to_tracker'] == 'True';
         if (report):
+            if ('multipart_dataset' in exp):
+                datasets = exp['multipart_dataset'];
+            else:
+                datasets = 1;
             data = {'url': "http://rjbruin.nl/experimenttracker/api/postExperiment.php", 
-                    'exp': exp['name'], 'key': api_key, 'totalProgress': exp['repetitions']}
+                    'exp': exp['name'], 'key': api_key, 'totalProgress': exp['repetitions'],
+                    'datasets': datasets}
             try:
                 r = requests.post(data['url'], data, headers=request_headers);
                 if (r.json() != "false"):
@@ -99,17 +104,20 @@ if __name__ == '__main__':
         
         currentBatch = 1;
         currentIteration = 1;
+        currentDataset = 1;
         while (p.poll() == None):
             out = p.stdout.readline().strip();
             if (len(out) > 0):
                 print(out);
                 if (out[:5] == 'Batch'):
                     currentBatch = int(out.split(" ")[1]);
-                    currentIteration = int(out.split(" ")[5][:-1]);
+                    currentIteration = int(out.split(" ")[3]);
+                    currentDataset = int(out.split(" ")[7]);
                 if (report and all(map(lambda f: f(out), report_to_tracker_criteria))):
                     # Compose data object
                     data = {'url': "http://rjbruin.nl/experimenttracker/api/post.php", 
-                            'exp': experimentId, 'msg': out, 'atProgress': currentIteration, 'key': api_key};
+                            'exp': experimentId, 'msg': out, 'atProgress': currentIteration, 
+                            'atDataset': currentDataset, 'key': api_key};
                     # Add data to stack of data to send
                     trackerStack.append(data);
                     # Retrieve new stack containing all failed requests
