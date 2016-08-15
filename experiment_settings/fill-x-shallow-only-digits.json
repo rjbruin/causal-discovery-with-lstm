@@ -1,0 +1,11 @@
+[
+    {
+        "name": "fill-x-sod",
+        "script": "expressions_answer.py",
+        "dataset": "./data/expressions_fill_x_shallow_only_digits",
+        "repetitions": "500",
+        "minibatch_size": "64",
+        "n_max_digits": "17",
+        "sample_testing_size": "10000"
+    }
+]
