@@ -3,6 +3,7 @@
         "name": "fill-x-sod",
         "script": "expressions_answer.py",
         "dataset": "./data/expressions_fill_x_shallow_only_digits",
+        "fill_x": "True",
         "repetitions": "500",
         "minibatch_size": "64",
         "n_max_digits": "17",
