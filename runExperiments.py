@@ -78,7 +78,7 @@ if __name__ == '__main__':
                 datasets = 1;
             data = {'url': "http://rjbruin.nl/experimenttracker/api/postExperiment.php", 
                     'exp': exp['name'], 'key': api_key, 'totalProgress': exp['repetitions'],
-                    'datasets': datasets}
+                    'totalDatasets': datasets}
             try:
                 r = requests.post(data['url'], data, headers=request_headers);
                 if (r.json() != "false"):
