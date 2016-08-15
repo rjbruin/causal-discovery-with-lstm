@@ -6,9 +6,9 @@ Created on 15 jun. 2016
 import numpy as np;
 
 import unittest
-from model.RecurrentNeuralNetwork import RecurrentNeuralNetwork
+from models.RecurrentNeuralNetwork import RecurrentNeuralNetwork
 from test.FakeDataset import FakeDataset;
-from tools.model import train, test_and_save
+from tools.model import train, test
 import time
 from tools import arguments
 
@@ -83,7 +83,7 @@ class Test(unittest.TestCase):
         
         start = time.clock();
         train(model, dataset, parameters, 'testRNN', start, saveModels=False);
-        stats = test_and_save(model, dataset, parameters, start);
+        stats = test(model, dataset, parameters, start);
         
 #         # Train using n repetitions
 #         for k in range(repetitions):
