@@ -78,6 +78,13 @@ class GeneratedExpressionDataset(Dataset):
         self.train_done = False;
         self.test_done = False;
         
+        if (predictExpressions):
+            # We need to save all expressions by answer for the fast lookup of
+            # nearest labels
+            self.preload(onlyStoreLookupByInput=True);
+        else:
+            self.outputByInput = None;
+        
         if (preload):
             self.preloaded = self.preload();
             if (not self.preloaded):
@@ -85,18 +92,36 @@ class GeneratedExpressionDataset(Dataset):
         else:
             self.preloaded = False;
     
-    def preload(self):
-#         try:
-        self.train, self.train_targets, self.train_labels, self.train_expressions = \
+    def preload(self, onlyStoreLookupByInput=False):
+        """
+        Preloads the dataset into memory. If onlyStoreLookupByInput is True,
+        the data is not stored but only saved into the dictionary outputByInput
+        which can be used to lookup all outputs for a given unique input. In
+        this case only the training data is stored.
+        """
+        train, train_targets, train_labels, train_expressions = \
             self.loadFile(self.sources[self.TRAIN], 
                           location_index=self.TRAIN, 
                           file_length=self.lengths[self.TRAIN]);
-        self.test, self.test_targets, self.test_labels, self.test_expressions = \
+        
+        if (onlyStoreLookupByInput):
+            self.outputByInput = {};
+            for expression in train_expressions:
+                left_hand_expression, right_hand_expression = expression.split("=");
+                if (left_hand_expression not in self.outputByInput):
+                    self.outputByInput[left_hand_expression] = [];
+                self.outputByInput[left_hand_expression].append(right_hand_expression);
+        else:
+            test, test_targets, test_labels, test_expressions = \
             self.loadFile(self.sources[self.TEST], 
                           location_index=self.TEST, 
                           file_length=self.lengths[self.TEST]);
-#         except Exception:
-#             return False;
+            self.train, self.train_targets, self.train_labels, self.train_expressions =\
+                train, train_targets, train_labels, train_expressions;
+            self.test, self.test_targets, self.test_labels, self.test_expressions =\
+                test, test_targets, test_labels, test_expressions;
+        
+        
         return True;
     
     def filelength(self, source):
@@ -401,15 +426,16 @@ class GeneratedExpressionDataset(Dataset):
     
     def findAnswer(self, onehot_encodings):
         answer_allzeros = map(lambda d: d.sum() == 0.0, onehot_encodings);
-        if (all(lambda d: not d,answer_allzeros)):
+        if (all(map(lambda d: not d,answer_allzeros))):
             answer_length = onehot_encodings.shape[0];
         else:
-            answer_length = answer_allzeros.index(True)
-        answer_onehot = np.argmax(onehot_encodings[:answer_length],0);
+            answer_length = answer_allzeros.index(True) - 1;
+        answer_onehot = np.argmax(onehot_encodings[:answer_length],1);
         
-        answer = 0;
-        for j, digit in enumerate(answer_onehot):
-            answer += int(digit) * (answer_length - j);
+        answer = '';
+        for i in range(answer_onehot.shape[0]):
+            if (answer_onehot[i] < self.EOS_symbol_index):
+                answer += self.findSymbol[answer_onehot[i]];
         
         return answer;
     
@@ -419,14 +445,6 @@ class GeneratedExpressionDataset(Dataset):
         Returns a tree 
         """
         return ExpressionNode.fromStr(expression);
-    
-    def findNearestCorrectExpression(self, structure, answer):
-        """
-        Find the nearest expression that computes to the given answer from the
-        given expression.
-        """
-        # TODO: implement
-        pass
     
     def encodeExpression(self, structure):
         str_repr = str(structure);

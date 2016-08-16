@@ -357,8 +357,11 @@ class RecurrentNeuralNetwork(RecurrentModel):
         if (not self.single_digit and training_labels.shape[1] > self.n_max_digits):
             raise ValueError("n_max_digits too small! Increase to %d" % training_labels.shape[1]);
     
-    def sgd(self, data, label, learning_rate):
-        return self._sgd(data, label, learning_rate);
+    def sgd(self, dataset, data, label, learning_rate, nearestExpression=False):
+        if (nearestExpression):
+            self.sgd_nearest_expression(dataset, data, label, learning_rate);
+        else:
+            return self._sgd(data, label, learning_rate);
         
     def predict(self, data):
         """
@@ -379,24 +382,54 @@ class RecurrentNeuralNetwork(RecurrentModel):
         return prediction, {'right_hand_symbol_indices': right_hand_symbol_indices,
                             'right_hand': right_hand};
     
-    def sgd_nearest_expression(self, dataset, data, learning_rate):
-        predictions, other = self.predict(data);
+    def sgd_nearest_expression(self, dataset, data, label, learning_rate):
+        unswapped_data = np.swapaxes(data, 0, 1);
+        unswapped_label = np.swapaxes(label, 0, 1);
+        predictions, _ = self.predict(unswapped_data);
         
-        target = np.zeros((data.shape[0],self.n_max_digits,self.decoding_output_dim));
+        target = np.zeros((unswapped_data.shape[0],self.n_max_digits,self.decoding_output_dim));
         # Find labels for all predictions
         for i, prediction in enumerate(predictions):
-            expression = map(lambda i: dataset.findSymbol[i], prediction);
-            structure = dataset.findExpressionStructure(expression);
+            answer = dataset.findAnswer(unswapped_data[i]);
+            expression = [];
+            for index in prediction:
+                if (index >= dataset.EOS_symbol_index):
+                    break;
+                expression.append(dataset.findSymbol[index]);
             
-            # Find the relevant part of the data (the answer)
-            answer = dataset.findAnswer(data[i]);
-            nearest = dataset.findNearestCorrectExpression(structure, answer);
-            encoded_nearest = dataset.encodeExpression(nearest);
-            # Set subtenstor
-            for j,index in enumerate(encoded_nearest):
-                target[i,j] = index;
+            # Find the nearest expression (in string difference) from all 
+            # expressions stored for this answer
+            if (answer in dataset.outputByInput):
+                nearest = '';
+                nearestScore = 100000;
+                for neighbourExpr in dataset.outputByInput[answer]:
+                    # Compute string difference
+                    score = 0;
+                    for k in range(len(neighbourExpr)):
+                        if (len(expression) <= k):
+                            score += 1;
+                        elif (neighbourExpr[k] != expression[k]):
+                            score += 1;
+                    score += max(0,len(expression) - len(neighbourExpr));
+                    
+                    if (score < nearestScore):
+                        nearest = neighbourExpr;
+                        nearestScore = score;
+                
+                encoded_nearest = dataset.encodeExpression(nearest);
+                
+                # Set subtenstor
+                for j,vector in enumerate(encoded_nearest):
+                    if (j >= self.n_max_digits):
+                        break;
+                    target[i,j] = vector;
+            else:
+                # No replacement label was found, use the original label
+                target[i] = unswapped_label[i];
         
-        return self.sgd(data, target, learning_rate);
+        target = np.swapaxes(target, 0, 1);
+        
+        return self._sgd(data, target, learning_rate);
     
     def verboseOutput(self, prediction, other):
         self.verboseOutputter['write']("Prediction: %s\nright_hand_symbol_indices: %s\nright_hand: %s" 

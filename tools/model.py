@@ -130,7 +130,7 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
                     data = np.swapaxes(data, 0, 1);
                     label = np.swapaxes(label, 0, 1);
                     # Run training
-                    model.sgd(data, label, parameters['learning_rate']);
+                    model.sgd(dataset, data, label, parameters['learning_rate'], nearestExpression=parameters['predict_expressions']);
                     
                     if (not no_print and k % printing_interval == 0):
                         print("# %d / %d" % (k, total));
