@@ -69,16 +69,6 @@ for i, path in enumerate(filepaths):
         args = line.split();
         if (len(args) >= 2):
             if (args[0] == 'Batch'):
-                if (batchNr != 0):
-                    # First store previous batch
-                    x = batchNr;
-                    if (x_label == X_EPOCHS):
-                        x = epoch;
-                    elif (x_label == X_TIME):
-                        x = duration;
-                    batch_scores.append((x,score));
-                    if (digit_score is not None):
-                        batch_digit_scores.append((x,digit_score));
                 # Continue with next batch
                 batchNr = int(args[1]);
                 #epoch = int(args[3]);
@@ -87,8 +77,24 @@ for i, path in enumerate(filepaths):
                 duration = int(args[1]);
             elif (args[0] == 'Score:'):
                 score = float(args[1]);
+                if (batchNr != 0):
+                    # Store scores
+                    x = batchNr;
+                    if (x_label == X_EPOCHS):
+                        x = epoch;
+                    elif (x_label == X_TIME):
+                        x = duration;
+                    batch_scores.append((x,score));
             elif (line[0:18] == 'Digit-based score:'):
                 digit_score = float(args[2]);
+                if (batchNr != 0):
+                    # Store scores
+                    x = batchNr;
+                    if (x_label == X_EPOCHS):
+                        x = epoch;
+                    elif (x_label == X_TIME):
+                        x = duration;
+                    batch_digit_scores.append((x,digit_score));
         
         # Go to next line
         line = f.readline();
