@@ -8,6 +8,8 @@ from flask import Flask, request;
 import os,flask;
 import numpy as np;
 
+from models.GeneratedExpressionDataset import GeneratedExpressionDataset;
+
 import tools.model;
 from tools.file import load_from_pickle_with_filename
 
@@ -53,7 +55,10 @@ def predictSample():
     if ('sample' in request.form):
         sample = request.form['sample'];
         response['sample'] = sample;
-        sample += "=0";
+        if (data['dataset'].fill_x):
+            sample += ";1";
+        else:
+            sample += "=0";
         datasample, _, _, _, _ = data['dataset'].processor(sample,[],[],[],[]);
         response['data'] = datasample[0].tolist();
         
@@ -66,7 +71,7 @@ def predictSample():
         response['prediction'] = prediction[0].tolist();
         response['predictionPretty'] = "";
         for index in response['prediction']:
-            if (index == 17):
+            if (index == data['dataset'].EOS_symbol_index):
                 response['predictionPretty'] += "_";
             else:
                 response['predictionPretty'] += data['dataset'].findSymbol[index];
@@ -84,7 +89,8 @@ def loadModel(name):
         return False;
     savedVars, settings = result;
     settings['dataset'] = "." + settings['dataset'];
-    data['dataset'], data['rnn'] = tools.model.constructModels(settings, 0, None);
+    datasets, data['rnn'] = tools.model.constructModels(settings, 0, None);
+    data['dataset'] = datasets[-1];
     data['modelSet'] = data['rnn'].loadVars(dict(savedVars)); 
     if (data['modelSet']):
         data['modelInfo'] = settings;
