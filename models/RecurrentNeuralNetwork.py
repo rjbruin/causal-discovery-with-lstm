@@ -378,7 +378,26 @@ class RecurrentNeuralNetwork(RecurrentModel):
         
         return prediction, {'right_hand_symbol_indices': right_hand_symbol_indices,
                             'right_hand': right_hand};
+    
+    def sgd_nearest_expression(self, dataset, data, learning_rate):
+        predictions, other = self.predict(data);
         
+        target = np.zeros((data.shape[0],self.n_max_digits,self.decoding_output_dim));
+        # Find labels for all predictions
+        for i, prediction in enumerate(predictions):
+            expression = map(lambda i: dataset.findSymbol[i], prediction);
+            structure = dataset.findExpressionStructure(expression);
+            
+            # Find the relevant part of the data (the answer)
+            answer = dataset.findAnswer(data[i]);
+            nearest = dataset.findNearestCorrectExpression(structure, answer);
+            encoded_nearest = dataset.encodeExpression(nearest);
+            # Set subtenstor
+            for j,index in enumerate(encoded_nearest):
+                target[i,j] = index;
+        
+        return self.sgd(data, target, learning_rate);
+    
     def verboseOutput(self, prediction, other):
         self.verboseOutputter['write']("Prediction: %s\nright_hand_symbol_indices: %s\nright_hand: %s" 
                                        % (str(prediction), str(other['right_hand_symbol_indices']), 

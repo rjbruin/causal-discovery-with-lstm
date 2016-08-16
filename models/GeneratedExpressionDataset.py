@@ -23,6 +23,8 @@ class GeneratedExpressionDataset(Dataset):
         self.max_testing_size = max_testing_size;
         self.sample_testing_size = sample_testing_size;
         
+        self.fill_x = fillX;
+        
         # Set the method that should process the lines of the dataset
         self.processor = self.processSample;
         if (add_x):
@@ -31,7 +33,9 @@ class GeneratedExpressionDataset(Dataset):
             self.processor = self.processSampleSingleClass;
         elif (predictExpressions):
             self.processor = self.processSamplePredictExpression;
-        elif (correction or fillX):
+        elif (fillX):
+            self.processor = self.processSampleFillX;
+        elif (correction):
             self.processor = self.processSampleCorrection;
         else:
             self.processor = self.processSampleMultiDigit;
@@ -364,6 +368,11 @@ class GeneratedExpressionDataset(Dataset):
         
         return self.processSampleMultiDigit(line, data, targets, labels, expressions);
     
+    def processSampleFillX(self, line, data, targets, labels, expressions):
+        line = line.strip();
+        left, right = line.split(";");
+        return self.processSampleCorrection(right + ";" + left, data, targets, labels, expressions);
+    
     def processSampleCorrection(self, line, data, targets, labels, expressions):
         line = line.strip();
         old_expression, new_expression = line.split(";");
@@ -389,3 +398,155 @@ class GeneratedExpressionDataset(Dataset):
         expressions.append(new_expression);
         
         return data, targets, labels, expressions, 1;
+    
+    def findAnswer(self, onehot_encodings):
+        answer_allzeros = map(lambda d: d.sum() == 0.0, onehot_encodings);
+        if (all(lambda d: not d,answer_allzeros)):
+            answer_length = onehot_encodings.shape[0];
+        else:
+            answer_length = answer_allzeros.index(True)
+        answer_onehot = np.argmax(onehot_encodings[:answer_length],0);
+        
+        answer = 0;
+        for j, digit in enumerate(answer_onehot):
+            answer += int(digit) * (answer_length - j);
+        
+        return answer;
+    
+    def findExpressionStructure(self, expression):
+        """
+        Give a list of characters representing integers and operators.
+        Returns a tree 
+        """
+        return ExpressionNode.fromStr(expression);
+    
+    def findNearestCorrectExpression(self, structure, answer):
+        """
+        Find the nearest expression that computes to the given answer from the
+        given expression.
+        """
+        # TODO: implement
+        pass
+    
+    def encodeExpression(self, structure):
+        str_repr = str(structure);
+        data = np.zeros((len(str_repr),self.data_dim));
+        for i,symbol in enumerate(str_repr):
+            data[i,self.oneHot[symbol]] = 1.0;
+        return data;
+        
+        
+class ExpressionNode(object):
+    
+    TYPE_DIGIT = 0;
+    TYPE_OPERATOR = 1;
+    
+    OP_PLUS = 0;
+    OP_MINUS = 1;
+    OP_MULTIPLY = 2;
+    OP_DIVIDE = 3;
+    OPERATOR_SIZE = 4;
+    
+    OP_FUNCTIONS = [lambda x, y: x + y,
+                    lambda x, y: x - y,
+                    lambda x, y: x * y,
+                    lambda x, y: x / y];
+    
+    operators = range(OPERATOR_SIZE);
+    
+    def __init__(self, nodeType, value):
+        self.nodeType = nodeType;
+        self.value = value;
+    
+    def createDigit(self, maxIntValue):
+        # Create terminal child (digit)
+        self.nodeType = self.TYPE_DIGIT;
+        self.value = np.random.randint(maxIntValue);
+    
+    def getValue(self):
+        if (self.nodeType == self.TYPE_DIGIT):
+            return self.value;
+        else:
+            if (self.value == self.OP_PLUS):
+                return self.left.getValue() + self.right.getValue();
+            elif (self.value == self.OP_MINUS):
+                return self.left.getValue() - self.right.getValue();
+            elif (self.value == self.OP_MULTIPLY):
+                return self.left.getValue() * self.right.getValue();
+            elif (self.value == self.OP_DIVIDE):
+                return self.left.getValue() / float(self.right.getValue());
+            else:
+                raise ValueError("Invalid operator type");
+    
+    def __str__(self):
+        return self.getStr(True);
+    
+    @staticmethod
+    def fromStr(expression):
+        i = 0;
+        if (expression[i] == '('):
+            subclause = ExpressionNode.getClause(expression[i:]);
+            left = ExpressionNode.fromStr(subclause);
+            j = i + len(subclause) + 2;
+        else:
+            left = ExpressionNode(ExpressionNode.TYPE_DIGIT, int(expression[i]));
+            j = i+1;
+        op_type = ExpressionNode.getOperator(expression[j]);
+        operator = ExpressionNode(ExpressionNode.TYPE_OPERATOR, op_type);
+        j = j+1;
+        if (expression[j] == '('):
+            subclause = ExpressionNode.getClause(expression[j:]);
+            right = ExpressionNode.fromStr(subclause);
+        else:
+            right = ExpressionNode(ExpressionNode.TYPE_DIGIT, int(expression[j]));
+        
+        operator.left = left;
+        operator.right = right;
+        
+        return operator;
+    
+    @staticmethod
+    def getClause(expr):
+        openedBrackets = 0;
+        for j_sub, s in enumerate(expr[1:]):
+            if (s == '('):
+                openedBrackets += 1;
+            if (s == ')'):
+                openedBrackets -= 1;
+            if (openedBrackets == -1):
+                return expr[1:j_sub+1];
+    
+    def getStr(self, upperLevel=False):
+        if (self.nodeType == self.TYPE_DIGIT):
+            return str(self.value);
+        else:
+            output = "";
+            if (not upperLevel):
+                output += "(";
+            
+            if (self.value == self.OP_PLUS):
+                output += self.left.getStr() + "+" + self.right.getStr();
+            elif (self.value == self.OP_MINUS):
+                output += self.left.getStr() + "-" + self.right.getStr();
+            elif (self.value == self.OP_MULTIPLY):
+                output += self.left.getStr() + "*" + self.right.getStr();
+            elif (self.value == self.OP_DIVIDE):
+                output += self.left.getStr() + "/" + self.right.getStr();
+            else:
+                raise ValueError("Invalid operator type");
+            
+            if (not upperLevel):
+                output += ")";
+            
+            return output;
+    
+    @staticmethod
+    def getOperator(op_str):
+        if (op_str == "+"):
+            return ExpressionNode.OP_PLUS;
+        elif (op_str == "-"):
+            return ExpressionNode.OP_MINUS;
+        elif (op_str == "*"):
+            return ExpressionNode.OP_MULTIPLY;
+        elif (op_str == "/"):
+            return ExpressionNode.OP_DIVIDE;
