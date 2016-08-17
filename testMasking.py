@@ -3,6 +3,8 @@ Created on 17 aug. 2016
 
 @author: Robert-Jan
 '''
+import sys;
+
 import theano;
 import theano.tensor as T;
 from theano.ifelse import ifelse;
@@ -33,7 +35,7 @@ if __name__ == '__main__':
     data_dim = 10;
     hidden_dim = 16;
     output_dim = 10;
-    clipping = False;
+    clipping = sys.argv[1] == 'True';
     
     print("Initializing model...");
     

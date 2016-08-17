@@ -148,9 +148,8 @@ class RecurrentNeuralNetwork(RecurrentModel):
         if (single_digit):
             self._predict = theano.function([X], prediction);
         else:
-            right_hand_symbol_indices = T.argmax(right_hand,axis=2);
             self._predict = theano.function([X], [prediction, 
-                                                  right_hand_symbol_indices,
+                                                  prediction,
                                                   right_hand]);
         
         # Defining stochastic gradient descent
