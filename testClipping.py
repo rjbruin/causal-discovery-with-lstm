@@ -12,15 +12,42 @@ import numpy as np;
 
 from profiler import profiler;
 
-def rnn_predict(current_X, previous_hidden, hWo, hWh, XWh):
+def rnn_predict(current_X, last_Y, previous_hidden, hWo, hWh, XWh):
     if (clipping):
-        zero = T.constant(0.0, dtype='float64');
-        summation = T.sum(current_X);
+        # If the input is zero we copy the hidden layer
+        zero = T.constant(0.0, dtype='float64', name='zero');
+        summation = T.sum(current_X,1);
         check = T.eq(summation,zero);
-        hidden = ifelse(check,T.nnet.sigmoid(previous_hidden.dot(hWh) + current_X.dot(XWh)),previous_hidden);
+        hidden = T.zeros_like(previous_hidden);
+        new_hidden = T.nnet.sigmoid(previous_hidden.dot(hWh) + current_X.dot(XWh));
+        for i in range(minibatch_size):
+            hidden = T.set_subtensor(hidden[i], ifelse(check[i],previous_hidden[i],new_hidden[i]));
+        
+        # If the input is zero we copy the last prediction
+        Ys = T.nnet.softmax(hidden.dot(hWo));
+        for i in range(minibatch_size):
+            Ys = T.set_subtensor(Ys[i], ifelse(check[i],last_Y[i],Ys[i]));
     else:
         hidden = T.nnet.sigmoid(previous_hidden.dot(hWh) + current_X.dot(XWh));
-    Ys = T.nnet.softmax(hidden.dot(hWo));
+        Ys = T.nnet.softmax(hidden.dot(hWo));
+    
+    return Ys, hidden;
+
+def rnn_decode(last_Y, previous_hidden, hWo, hWh, XWh):
+    if (clipping):
+        hidden = T.nnet.sigmoid(previous_hidden.dot(hWh) + last_Y.dot(XWh));
+        
+        # If the previously predicted symbol is EOS we repeat it
+        Ys = T.nnet.softmax(hidden.dot(hWo));
+        eos_ind = T.constant(eos_index, dtype='int64');
+        lastY_argmax_inds = T.argmax(last_Y, 1);
+        check = T.eq(lastY_argmax_inds,eos_ind); 
+        for i in range(minibatch_size):
+            Ys = T.set_subtensor(Ys[i], ifelse(check[i],last_Y[i],Ys[i]));
+    else:
+        hidden = T.nnet.sigmoid(previous_hidden.dot(hWh) + last_Y.dot(XWh));
+        Ys = T.nnet.softmax(hidden.dot(hWo));
+    
     return Ys, hidden;
 
 def crossentropy_2d(coding_dist, true_dist, accumulated_score):
@@ -52,9 +79,8 @@ if __name__ == '__main__':
     learning_rate = 0.05;
     input_length = 5;
     output_length = 5;
-    data_dim = 10;
+    data_dim = 6;
     hidden_dim = 16;
-    output_dim = 10;
     clipping = True;
     
     key = None;
@@ -73,6 +99,11 @@ if __name__ == '__main__':
     
     print("Initializing model %s clipping..." % ("with" if clipping else "without"));
     
+    # Final index is EOS symbol
+    eos_index = data_dim;
+    data_dim += 1;
+    output_dim = data_dim;
+    
     # X is 3-dimensional: 1) index in sentence, 2) datapoint, 3) dimensionality of data
     X = T.dtensor3('X');
     # targets is 3-dimensional: 1) index in sentence, 2) datapoint, 3) encodings
@@ -81,27 +112,30 @@ if __name__ == '__main__':
     
     # Define variables
     XWh = theano.shared(name='XWh', value=np.random.uniform(-np.sqrt(1.0/data_dim),np.sqrt(1.0/data_dim),(data_dim,hidden_dim)));
-    hWh = theano.shared(name='XWh', value=np.random.uniform(-np.sqrt(1.0/hidden_dim),np.sqrt(1.0/hidden_dim),(hidden_dim,hidden_dim)));
-    hWo = theano.shared(name='XWh', value=np.random.uniform(-np.sqrt(1.0/hidden_dim),np.sqrt(1.0/hidden_dim),(hidden_dim,output_dim)));
+    hWh = theano.shared(name='hWh', value=np.random.uniform(-np.sqrt(1.0/hidden_dim),np.sqrt(1.0/hidden_dim),(hidden_dim,hidden_dim)));
+    hWo = theano.shared(name='hWo', value=np.random.uniform(-np.sqrt(1.0/hidden_dim),np.sqrt(1.0/hidden_dim),(hidden_dim,output_dim)));
     
     # Forward pass: compile encoding phase
-    init_values = (None, {'initial': np.zeros((minibatch_size,hidden_dim))});
+    init_values = ({'initial': np.zeros((minibatch_size,data_dim))}, 
+                   {'initial': np.zeros((minibatch_size,hidden_dim))});
     [Y_1, hidden], _ = theano.scan(fn=rnn_predict,
                             sequences=({'input': X}),
                             # Input a zero hidden layer
                             outputs_info=init_values,
-                            non_sequences=(hWo, hWh, XWh));
+                            non_sequences=(hWo, hWh, XWh),
+                            name='encoding');
     
     # Forward pass: compile decoding phase
     init_values = ({'initial': Y_1[-1], 'taps': [-1]},
                    {'initial': hidden[-1], 'taps': [-1]});
 #     init_values = ({'initial': Y_1[-1]},
 #                    {'initial': hidden[-1]});
-    [Ys, _], _ = theano.scan(fn=rnn_predict,
+    [Ys, _], _ = theano.scan(fn=rnn_decode,
                              # Inputs the last hidden layer and the last predicted symbol
                              outputs_info=init_values,
                              non_sequences=(hWo, hWh, XWh),
-                             n_steps=output_length-1)
+                             n_steps=output_length-1,
+                             name='decoding')
     
     
     # Forward pass: determine prediction
@@ -137,9 +171,11 @@ if __name__ == '__main__':
     targets = np.zeros((n_data_samples, input_length, data_dim));
     for i in range(len(data)):
         onehot_indices = np.random.random_integers(0,data_dim-1,(input_length));
-        input_sample_length = np.random.randint(1,input_length);
+        input_sample_length = np.random.randint(1,input_length-1);
         data[i,range(input_sample_length),onehot_indices[:input_sample_length]] = 1.0;
+        data[i,range(input_sample_length,input_length),eos_index] = 1.0;
         targets[i,range(input_sample_length),onehot_indices[:input_sample_length]] = 1.0;
+        targets[i,range(input_sample_length,input_length),eos_index] = 1.0;
         labels = np.argmax(targets,2);
     
     print("Training model...");
