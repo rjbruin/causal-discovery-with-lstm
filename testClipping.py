@@ -17,16 +17,13 @@ def rnn_predict(current_X, last_Y, previous_hidden, hWo, hWh, XWh):
         # If the input is zero we copy the hidden layer
         zero = T.constant(0.0, dtype='float64', name='zero');
         summation = T.sum(current_X,1);
-        check = T.eq(summation,zero);
-        hidden = T.zeros_like(previous_hidden);
-        new_hidden = T.nnet.sigmoid(previous_hidden.dot(hWh) + current_X.dot(XWh));
-        for i in range(minibatch_size):
-            hidden = T.set_subtensor(hidden[i], ifelse(check[i],previous_hidden[i],new_hidden[i]));
+        check = T.eq(summation,zero).nonzero();
+        hidden = T.nnet.sigmoid(previous_hidden.dot(hWh) + current_X.dot(XWh));
+        hidden = T.set_subtensor(hidden[check], previous_hidden[check]);
         
         # If the input is zero we copy the last prediction
         Ys = T.nnet.softmax(hidden.dot(hWo));
-        for i in range(minibatch_size):
-            Ys = T.set_subtensor(Ys[i], ifelse(check[i],last_Y[i],Ys[i]));
+        Ys = T.set_subtensor(Ys[check], last_Y[check]);
     else:
         hidden = T.nnet.sigmoid(previous_hidden.dot(hWh) + current_X.dot(XWh));
         Ys = T.nnet.softmax(hidden.dot(hWo));
@@ -41,9 +38,8 @@ def rnn_decode(last_Y, previous_hidden, hWo, hWh, XWh):
         Ys = T.nnet.softmax(hidden.dot(hWo));
         eos_ind = T.constant(eos_index, dtype='int64');
         lastY_argmax_inds = T.argmax(last_Y, 1);
-        check = T.eq(lastY_argmax_inds,eos_ind); 
-        for i in range(minibatch_size):
-            Ys = T.set_subtensor(Ys[i], ifelse(check[i],last_Y[i],Ys[i]));
+        check = T.eq(lastY_argmax_inds,eos_ind).nonzero(); 
+        Ys = T.set_subtensor(Ys[check], last_Y[check]);
     else:
         hidden = T.nnet.sigmoid(previous_hidden.dot(hWh) + last_Y.dot(XWh));
         Ys = T.nnet.softmax(hidden.dot(hWo));
@@ -181,22 +177,22 @@ if __name__ == '__main__':
     print("Training model...");
     
     # Train model
-    profiler.start('training');
     for i in range(repetitions):
         print("Batch %d (repetition %d of %d, dataset 1 of 1)" % (i+1, i+1, repetitions));
         
         # Shuffle data indices
         inds = range(len(data));
-        np.random.shuffle(inds);
+        #np.random.shuffle(inds);
         
         # Train one repetition of minibatches
+        profiler.start('training');
         for j in range(0,len(inds),minibatch_size):
             train_data = np.swapaxes(data[j:j+minibatch_size],0,1);
             train_targets = np.swapaxes(targets[j:j+minibatch_size],0,1);
             sgd(train_data, train_targets, learning_rate);
+        profiler.stop('training');
         
         # Perform intermediate testing
         test();
-    profiler.stop('training');
     
     profiler.profile();
