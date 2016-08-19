@@ -1,0 +1,9 @@
+[
+    {
+        "name": "test-clipping",
+        "script": "testClipping.py",
+        "repetitions": "100",
+        "n_data_samples": "100000",
+        "clipping": "False"
+    }
+]
