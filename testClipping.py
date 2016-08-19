@@ -69,8 +69,8 @@ def test():
                 if (prediction[j,k] == labels[i+j,k]):
                     digit_score += 1.0;
     
-    print("Score: %.2f percent" % ((score / (len(data)*minibatch_size))*100));
-    print("Digit-based score: %.2f percent" % ((digit_score / (len(data)*minibatch_size*output_length))*100))
+    print("Score: %.2f percent" % ((score / len(data))*100));
+    print("Digit-based score: %.2f percent" % ((digit_score / (len(data)*output_length))*100))
 
 if __name__ == '__main__':
     repetitions = 1000;
