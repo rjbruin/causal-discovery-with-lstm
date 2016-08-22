@@ -6,7 +6,7 @@ Created on 25 jul. 2016
 
 import numpy as np;
 
-from model.Dataset import Dataset
+from models.Dataset import Dataset
 
 class FakeDataset(Dataset):
     '''
@@ -33,11 +33,16 @@ class FakeDataset(Dataset):
         self.EOS_symbol_index = EOS_symbol_index;
         
         self.testStatus = False;
+        self.trainStatus = False;
     
     def get_train_batch(self, size=None):
+        if (self.trainStatus):
+            self.trainStatus = False;
+            return False;
         if (size is None):
             size = self.lengths[0];
         batch_indices = np.random.random_integers(0,len(self.data)-1,size);
+        self.trainStatus = True;
         return self.data[batch_indices], self.targets[batch_indices], self.labels[batch_indices], self.expressions[batch_indices];
     
     def get_test_batch(self):

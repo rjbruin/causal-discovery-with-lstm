@@ -71,8 +71,8 @@ for i, path in enumerate(filepaths):
             if (args[0] == 'Batch'):
                 # Continue with next batch
                 batchNr = int(args[1]);
-                #epoch = int(args[3]);
-                epoch = int(args[5][:-1]);
+                epoch = int(args[3]);
+                #epoch = int(args[5][:-1]);
             elif (args[0] == 'Duration:'):
                 duration = int(args[1]);
             elif (args[0] == 'Score:'):
