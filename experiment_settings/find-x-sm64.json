@@ -1,0 +1,12 @@
+[
+    {
+        "name": "find-x-sm64",
+        "script": "expressions_answer.py",
+        "dataset": "./data/expressions_positive_integer_answer_shallow",
+        "repetitions": "500",
+        "minibatch_size": "64",
+        "n_max_digits": "1",
+        "sample_testing_size": "10000",
+        "find_x": "True"
+    }
+]
