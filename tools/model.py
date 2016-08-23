@@ -163,14 +163,14 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
                             verboseOutputter['write']("!!!!! Variable sum value is equal to zero!");
                             verboseOutputter['write']("=> name = %s, value:\n%s" % (varname, str(model.vars[varname].get_value())));
                 
-                test(model, dataset, parameters, start_time, verboseOutputter=verboseOutputter);
+                test(model, dataset, parameters, start_time, verboseOutputter=verboseOutputter, print_samples=parameters['debug']);
                 # Save weights to pickles
                 if (saveModels):
                     saveVars = model.vars.items();
                     save_to_pickle('saved_models/%s_%d.model' % (exp_name, b), saveVars, settings=parameters);
                 next_testing_threshold += parameters['test_interval'] * repetition_size;
 
-def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=False, verboseOutputter=None, no_print_progress=False):
+def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=False, verboseOutputter=None, no_print_progress=False, print_samples=False):
     # Test
     print("Testing...");
         
@@ -186,6 +186,7 @@ def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=Fal
     
     # Predict
     batch = dataset.get_test_batch();
+    printed_samples = False;
     while (batch != False):
         # Get data from batch
         test_data, test_targets, test_labels, test_expressions = batch;
@@ -232,6 +233,14 @@ def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=Fal
                 targets = np.concatenate((targets,np.zeros((missing_datapoints, test_targets.shape[1], test_targets.shape[2]))), axis=0);
             
             prediction, other = model.predict(data);
+            
+            # Print samples
+            if (print_samples and not printed_samples):
+                for i in range(prediction.shape[0]):
+                    print("# Input: %s" % "".join((map(lambda x: dataset.findSymbol[x], np.argmax(data[i],len(data.shape)-2)))));
+                    print("# Label: %s" % "".join((map(lambda x: dataset.findSymbol[x], np.argmax(targets[i],len(data.shape)-2)))));
+                    print("# Output: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction[i])));
+                printed_samples = True;
             
             if (triggerVerbose):
                 model.verboseOutput(prediction, other);

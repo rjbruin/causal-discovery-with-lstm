@@ -56,16 +56,18 @@ class GeneratedExpressionDataset(Dataset):
         for sym in symbols:
             self.oneHot[sym] = i;
             i += 1;
+        # EOS
+        self.oneHot['_'] = i;
         
         self.operators = self.oneHot.keys();
         self.findSymbol = {v: k for (k,v) in self.oneHot.items()};
         self.key_indices = {k: i for (i,k) in enumerate(self.operators)};
         
-        # Data dimension = number of symbols + optional EOS
-        self.data_dim = self.digits_range + len(symbols);
-        if (not single_digit):
-            # Add EOS
-            self.data_dim += 1;
+        # Data dimension = number of symbols (including EOS)
+        self.data_dim = self.digits_range + len(symbols) + 1;
+        if (single_digit):
+            # Remove EOS
+            self.data_dim -= 1;
         # We predict the same symbols as we have as input, so input and data
         # dimension are equal
         self.output_dim = self.data_dim;
@@ -346,22 +348,22 @@ class GeneratedExpressionDataset(Dataset):
         # Get expression from line
         expression = line.strip();
         # Generate encodings for data and target for each index in expression
-        for i in range(len(expression)):
-            X = np.zeros((len(expression),self.data_dim));
-            for j, literal in enumerate(expression):
-                if (i != j):
-                    X[j,self.oneHot[literal]] = 1.0;
-            X[i,self.oneHot['x']] = 1.0;
-            target = np.zeros(self.data_dim);
-            target[self.oneHot[expression[i]]] = 1.0;
-            
-            # Set training variables
-            data.append(X);
-            targets.append(np.array([target]));
-            labels.append(self.oneHot[expression[i]]);
-            expressions.append(expression);
+        i = np.random.randint(0,len(expression));
+        X = np.zeros((len(expression),self.data_dim));
+        for j, literal in enumerate(expression):
+            if (i != j):
+                X[j,self.oneHot[literal]] = 1.0;
+        X[i,self.oneHot['x']] = 1.0;
+        target = np.zeros(self.data_dim);
+        target[self.oneHot[expression[i]]] = 1.0;
         
-        return data, targets, labels, expressions, i+1;
+        # Set training variables
+        data.append(X);
+        targets.append(np.array([target]));
+        labels.append(self.oneHot[expression[i]]);
+        expressions.append(expression);
+        
+        return data, targets, labels, expressions, 1;
     
     def processSampleMultiDigit(self, line, data, targets, labels, expressions):
         expression = line.strip();

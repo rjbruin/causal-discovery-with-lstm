@@ -31,6 +31,7 @@ def processFalseOrInt(val):
 
 
 argumentProcessors = {'name': processString,
+                      'debug': processBool,
                       'report_to_tracker': processBool,
                       'dataset': processString,
                       'single_digit': processBool,
@@ -70,6 +71,7 @@ argumentProcessors = {'name': processString,
                       'multipart_4_reps': processFalseOrInt
                       }
 defaults = {'report_to_tracker': True,
+            'debug': False,
             'dataset': './data/expressions_positive_integer_answer_shallow',
             'single_digit': False,
             'single_class': False,
