@@ -234,10 +234,7 @@ class GeneratedExpressionDataset(Dataset):
         batch size. After this, calling the method returns False and the 
         dataset prepares itself for a new testing iteration.
         """
-        # Limit part of dataset used to max_testing_size if necessary
         length = self.lengths[self.TEST];
-        if (self.max_testing_size is not False and self.max_testing_size < length):
-            length = self.max_testing_size;
         
         # Terminate this batching iteration if the test is marked as done
         if (self.test_done):
