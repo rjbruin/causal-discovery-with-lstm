@@ -1,11 +1,12 @@
 [
     {
-        "name": "sm64-sample-regular",
+        "name": "sm64-learning-rate-0001",
         "script": "expressions_answer.py",
         "dataset": "./data/expressions_positive_integer_answer_shallow",
         "repetitions": "500",
         "minibatch_size": "64",
         "n_max_digits": "7",
-        "sample_testing_size": "10000"
+        "sample_testing_size": "10000",
+        "learning_rate": "0.001"
     }
 ]
