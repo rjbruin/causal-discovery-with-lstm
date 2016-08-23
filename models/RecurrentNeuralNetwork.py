@@ -141,8 +141,9 @@ class RecurrentNeuralNetwork(RecurrentModel):
           
         
         
-        # Automatic backward pass for all models: gradients    
-        derivatives = T.grad(error, self.vars.values());
+        # Automatic backward pass for all models: gradients
+        variables = self.vars.keys();
+        derivatives = T.grad(error, map(lambda var: self.vars[var], variables));
            
         # Defining prediction
         if (single_digit):
@@ -154,8 +155,8 @@ class RecurrentNeuralNetwork(RecurrentModel):
         
         # Defining stochastic gradient descent
         learning_rate = T.dscalar('learning_rate');
-        updates = [(var,var-learning_rate*der) for (var,der) in zip(self.vars.values(),derivatives)];
-        self._sgd = theano.function([X, label, learning_rate], [], 
+        updates = [(var,var-learning_rate*der) for (var,der) in zip(map(lambda var: self.vars[var], variables),derivatives)];
+        self._sgd = theano.function([X, label, learning_rate], [summed_error], 
                                    updates=updates,
                                    allow_input_downcast=True)
         
@@ -358,7 +359,7 @@ class RecurrentNeuralNetwork(RecurrentModel):
     
     def sgd(self, dataset, data, label, learning_rate, nearestExpression=False):
         if (nearestExpression):
-            self.sgd_nearest_expression(dataset, data, label, learning_rate);
+            return self.sgd_nearest_expression(dataset, data, label, learning_rate);
         else:
             return self._sgd(data, label, learning_rate);
         

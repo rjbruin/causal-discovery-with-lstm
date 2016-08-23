@@ -13,7 +13,6 @@ from models.RecurrentNeuralNetwork import RecurrentNeuralNetwork;
 
 from tools.statistics import str_statistics;
 from tools.file import save_to_pickle;
-from tools.data import get_batch_statistics
 
 def constructModels(parameters, seed, verboseOutputter):
     if (parameters['multipart_dataset'] is not False):
@@ -74,19 +73,24 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
         if (reps is False):
             reps = parameters['repetitions'];
         
-        # Compute number of batches
-        batch_size, repetition_size, _, _ = get_batch_statistics(dataset, reps, parameters);
+        # Compute batching variables
+        repetition_size = dataset.lengths[dataset.TRAIN];
+        if (parameters['train_batch_size'] is not False):
+            batch_size = min(parameters['train_batch_size'],repetition_size);
+        else:
+            batch_size = min(dataset.lengths[dataset.TRAIN],repetition_size);
         next_testing_threshold = parameters['test_interval'] * repetition_size;
         
         total_datapoints_processed = 0;
         b = 0;
         
-        for r in range(reps * (repetition_size/batch_size)):
+        for r in range(reps):
+            total_error = 0.0;
             batch = dataset.get_train_batch(batch_size);
             while (batch is not False):
                 # Print progress and save to raw results file
                 progress = "Batch %d (repetition %d of %d, dataset %d of %d) (samples processed after batch: %d)" % \
-                    (b+1,int(total_datapoints_processed/repetition_size)+1,reps,d+1,len(datasets),total_datapoints_processed+batch_size);
+                    (b+1,r+1,reps,d+1,len(datasets),total_datapoints_processed+batch_size);
                 print(progress);
                 if (verboseOutputter is not None):
                     verboseOutputter['write'](progress);
@@ -130,7 +134,8 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
                     data = np.swapaxes(data, 0, 1);
                     label = np.swapaxes(label, 0, 1);
                     # Run training
-                    model.sgd(dataset, data, label, parameters['learning_rate'], nearestExpression=parameters['predict_expressions']);
+                    outputs = model.sgd(dataset, data, label, parameters['learning_rate'], nearestExpression=parameters['predict_expressions']);
+                    total_error += outputs[0][-1];
                     
                     if (not no_print and k % printing_interval == 0):
                         print("# %d / %d" % (k, total));
@@ -138,30 +143,32 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
                             duration = time.clock() - start;
                             print("%d seconds" % duration);
                     
+                # Update stats
+                total_datapoints_processed += len(batch_train);
+                
                 b += 1;
                 batch = dataset.get_train_batch(batch_size);
             
-            # Update stats
-            total_datapoints_processed += len(batch_train);
+            # Report on error
+            print("Total error: %.2f" % total_error);
             
             # Intermediate testing if this was not the last iteration of training
             # and we have passed the testing threshold
-            if (r != repetition_size-1):
-                if (total_datapoints_processed >= next_testing_threshold):
-                    if (verboseOutputter is not None):
-                        for varname in model.vars:
-                            varsum = model.vars[varname].get_value().sum();
-                            verboseOutputter['write']("summed %s: %.8f" % (varname, varsum));
-                            if (varsum == 0.0):
-                                verboseOutputter['write']("!!!!! Variable sum value is equal to zero!");
-                                verboseOutputter['write']("=> name = %s, value:\n%s" % (varname, str(model.vars[varname].get_value())));
-                    
-                    test(model, dataset, parameters, start_time, verboseOutputter=verboseOutputter);
-                    # Save weights to pickles
-                    if (saveModels):
-                        saveVars = model.vars.items();
-                        save_to_pickle('saved_models/%s_%d.model' % (exp_name, b), saveVars, settings=parameters);
-                    next_testing_threshold += parameters['test_interval'] * repetition_size;
+            if (r != repetition_size-1 and total_datapoints_processed >= next_testing_threshold):
+                if (verboseOutputter is not None):
+                    for varname in model.vars:
+                        varsum = model.vars[varname].get_value().sum();
+                        verboseOutputter['write']("summed %s: %.8f" % (varname, varsum));
+                        if (varsum == 0.0):
+                            verboseOutputter['write']("!!!!! Variable sum value is equal to zero!");
+                            verboseOutputter['write']("=> name = %s, value:\n%s" % (varname, str(model.vars[varname].get_value())));
+                
+                test(model, dataset, parameters, start_time, verboseOutputter=verboseOutputter);
+                # Save weights to pickles
+                if (saveModels):
+                    saveVars = model.vars.items();
+                    save_to_pickle('saved_models/%s_%d.model' % (exp_name, b), saveVars, settings=parameters);
+                next_testing_threshold += parameters['test_interval'] * repetition_size;
 
 def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=False, verboseOutputter=None, no_print_progress=False):
     # Test
