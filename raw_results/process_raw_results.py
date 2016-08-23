@@ -14,6 +14,7 @@ import numpy as np
 # Constants
 COLORS = ['b-','r-','g-','c-','m-','y-','k-'];
 DIGIT_COLORS = map(lambda c: c[:-1] + ":", COLORS);
+LOSS_COLORS = map(lambda c: c[:-1] + ".", COLORS);
 X_LABELS = ['iterations x 100,000','epochs','time (s) x 100,000'];
 X_ITERATIONS = 0;
 X_EPOCHS = 1;
@@ -50,6 +51,7 @@ for i in range(len(sys.argv)-1):
 # Process
 scores = [];
 digit_scores = [];
+losses = [];
 durations = [];
 for i, path in enumerate(filepaths):
     f = open(path, 'r');
@@ -64,6 +66,7 @@ for i, path in enumerate(filepaths):
     
     batch_scores = [];
     batch_digit_scores = [];
+    batch_losses = [];
     while (line != ''):
         # Process line
         args = line.split();
@@ -95,6 +98,16 @@ for i, path in enumerate(filepaths):
                     elif (x_label == X_TIME):
                         x = duration;
                     batch_digit_scores.append((x,digit_score));
+            elif (line[0:12] == 'Total error:'):
+                loss = float(args[2]);
+                if (batchNr != 0):
+                    # Store scores
+                    x = batchNr;
+                    if (x_label == X_EPOCHS):
+                        x = epoch;
+                    elif (x_label == X_TIME):
+                        x = duration;
+                    batch_losses.append((x,loss));
         
         # Go to next line
         line = f.readline();
@@ -103,6 +116,8 @@ for i, path in enumerate(filepaths):
     scores.append(batch_scores);
     if (len(batch_digit_scores) > 0):
         digit_scores.append(batch_digit_scores);
+    if (len(batch_losses) > 0):
+        losses.append(batch_losses);
     print("Scores: %s" % ", ".join(map(str, batch_scores)));
 
 # Plot    
@@ -120,6 +135,14 @@ for i,batch in enumerate(digit_scores):
     x, y = zip(*batch);
     ax1.plot(x, y, DIGIT_COLORS[i]);
     labels_to_plot.append(digit_labels[i]);
+
+# Plot losses
+for i,batch in enumerate(losses):
+    x, y = zip(*batch);
+    ax2 = ax1.twinx();
+    ax2.plot(x, y, LOSS_COLORS[i]);
+    ax2.set_ylabel('total loss')
+    labels_to_plot.append(losses[i]);
 
 # Final settings, saving and showing of figure
 ax1.set_xlabel(X_LABELS[x_label]);
