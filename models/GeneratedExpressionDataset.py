@@ -74,6 +74,10 @@ class GeneratedExpressionDataset(Dataset):
         # Store locations and sizes for both train and testing
         self.locations = [0, 0];
         self.lengths = [self.filelength(self.sources[self.TRAIN]), self.filelength(self.sources[self.TEST])];
+        if (self.max_training_size is not False):
+            self.lengths[self.TRAIN] = self.max_training_size;
+        if (self.max_testing_size is not False):
+            self.lengths[self.TEST] = self.max_testing_size;
         # Set test batch settings
         self.train_done = False;
         self.test_done = False;
@@ -154,16 +158,16 @@ class GeneratedExpressionDataset(Dataset):
         while i < size:
             data, targets, labels, expressions, count = self.processor(line, data, targets, labels, expressions);
             i += count;
-            line_number += 1;
             
             line = f.readline();
+            line_number += 1;
             # Skip empty lines and restart file at the end (if the end of file
             # is not also end of reading
             if (line == ""):
                 # http://stackoverflow.com/questions/3906137/why-cant-i-call-read-twice-on-an-open-file
                 f.seek(0);
-                line_number = 0;
                 line = f.readline();
+                line_number = 0;
         
         f.close();
         
@@ -177,6 +181,8 @@ class GeneratedExpressionDataset(Dataset):
     def fill_ndarray(self, data, axis):
         if (axis <= 0):
             raise ValueError("Max length axis cannot be the first axis!");
+        if (len(data) == 0):
+            raise ValueError("Data is empty!");
         max_length = max(map(lambda a: a.shape[axis-1], data));
         nd_data = np.zeros((len(data), max_length, self.data_dim));
         for i,datapoint in enumerate(data):
@@ -197,6 +203,7 @@ class GeneratedExpressionDataset(Dataset):
         """
         if (self.train_done):
             self.train_done = False;
+            self.locations[self.TRAIN] = 0;
             return False;
         if (self.preloaded):
             # Determine the range of dataset to use for this iteration
@@ -211,12 +218,12 @@ class GeneratedExpressionDataset(Dataset):
             return self.train[indices], self.train_targets[indices], self.train_labels[indices], self.train_expressions[indices];
         else:
             # Truncate the batch to be maximally the remaining part of the repetition
-            if (self.locations[self.TEST]+size > self.lengths[self.TRAIN]):
-                size = self.lengths[self.TRAIN] % size;
+            if (self.locations[self.TRAIN] + size > self.lengths[self.TRAIN]):
+                size -= (self.locations[self.TRAIN] + size) - self.lengths[self.TRAIN];
             
             data, loc = self.load(self.sources[self.TRAIN], size, self.locations[self.TRAIN]);
             self.locations[self.TRAIN] = loc;
-            if (self.locations[self.TEST] >= self.lengths[self.TRAIN] or self.locations[self.TEST] == 0):
+            if (self.locations[self.TRAIN] >= self.lengths[self.TRAIN] or self.locations[self.TRAIN] == 0):
                 self.train_done = True;
             return data;
     
