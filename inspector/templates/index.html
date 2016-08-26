@@ -23,17 +23,17 @@ $(document).ready( function() {
 	formatDatasetForm = function() {
 		var repr = "<div class='col-md-6' id='datasetContainer'>";
 		repr += "<h2>Run prediction on dataset</h2><form id='datasetForm' class='form-horizontal'>";
-		repr += "<div class='form-group'><label for='sample' class='col-sm-3 control-label'>Select a dataset</label>";
-		repr += "<div class='col-sm-9'><select name='sample' class='form-control'>";
-		repr += "<option value='deep'>Deep</option>";
-		repr += "<option value='shallow'>Shallow</option>";
-		repr += "</select></div></div>";
+		//repr += "<div class='form-group'><label for='sample' class='col-sm-3 control-label'>Select a dataset</label>";
+		//repr += "<div class='col-sm-9'><select name='sample' class='form-control'>";
+		//repr += "<option value='deep'>Deep</option>";
+		//repr += "<option value='shallow'>Shallow</option>";
+		//repr += "</select></div></div>";
 		
-		repr += "<div class='form-group'><label for='sample' class='col-sm-3 control-label'>Select a part</label>";
-		repr += "<div class='col-sm-9'><select name='sample' class='form-control'>";
-		repr += "<option value='training'>Training</option>";
-		repr += "<option value='testing'>Testing</option>";
-		repr += "</select></div></div>";
+		//repr += "<div class='form-group'><label for='sample' class='col-sm-3 control-label'>Select a part</label>";
+		//repr += "<div class='col-sm-9'><select name='sample' class='form-control'>";
+		//repr += "<option value='training'>Training</option>";
+		//repr += "<option value='testing'>Testing</option>";
+		//repr += "</select></div></div>";
 		
 		repr += "<button class='btn btn-default pull-right'>Predict</button>";
 		repr += "</form></div>";
@@ -80,7 +80,9 @@ $(document).ready( function() {
 	initDashboard = function() {
 		$("#loadModelForm").remove();
 		$("#dashboard").html(formatPredictionForm());
+		$("#dashboard").append(formatDatasetForm());
 		setupPredictionForm();
+		setupDatasetForm();
 		$("#modelInfo").html('');
 		// Add button to reset model
 		var btn = $("<button id='resetDashboard' class='btn btn-default pull-right'>Reset model</button>");
@@ -147,6 +149,35 @@ $(document).ready( function() {
 					console.log("error!");
 					$("#predictionForm button").removeAttr('disabled');
 					$("#predictionForm input").parent().addClass("has-error");
+				}
+			});
+			$(this).find("button").attr('disabled','');
+			$(this).find("input").parent().removeClass("has-error");
+		});
+	}
+	
+	setupDatasetForm = function() {
+		$("#datasetForm").submit( function(e) {
+			e.preventDefault();
+			$.ajax({
+				url: './api/predict/testset',
+				method: 'GET',
+				success: function(response) {
+					if (response.success) {
+						console.log("success!");
+						console.log(response);
+						$("#datasetForm button").removeAttr('disabled');
+						// Show results
+						// TODO
+					} else {
+						console.log("no success!");
+						$("#datasetForm input").parent().addClass("has-error");
+						$("#datasetForm button").removeAttr('disabled');
+					}
+				}, error: function(response) {
+					console.log("error!");
+					$("#datasetForm button").removeAttr('disabled');
+					$("#datasetForm input").parent().addClass("has-error");
 				}
 			});
 			$(this).find("button").attr('disabled','');

@@ -16,7 +16,7 @@ class ExpressionNode(object):
     OP_MINUS = 1;
     OP_MULTIPLY = 2;
     OP_DIVIDE = 3;
-    OPERATOR_SIZE = 4;
+    OPERATOR_SIZE = 2;
     
     operators = range(OPERATOR_SIZE);
     
@@ -132,14 +132,14 @@ class ExpressionNode(object):
             
             return output;
 
-def generateExpressions(baseFilePath, n, test_percentage, filters, minRecursionDepth=1, maxRecursionDepth=2, terminalProb=0.5, verbose=False):
+def generateExpressions(baseFilePath, n, test_percentage, filters, minRecursionDepth=1, maxRecursionDepth=2, terminalProb=0.5, maxIntValue=10, verbose=False):
     savedExpressions = {};
     sequential_fails = 0;
     fail_limit = 1000000000;
     
     print("Generating expressions...");
     while len(savedExpressions) < n and sequential_fails < fail_limit:
-        expression = ExpressionNode.randomExpression(0, minRecursionDepth, maxRecursionDepth, terminalProb);
+        expression = ExpressionNode.randomExpression(0, minRecursionDepth, maxRecursionDepth, terminalProb, maxIntValue=maxIntValue);
         full_expression = str(expression) + "=" + str(int(expression.getValue()));
         # Check if expression already exists
 #         if (full_expression in savedExpressions):
@@ -218,14 +218,14 @@ def writeToFiles(expressions,baseFilePath,test_percentage,isList=False):
 
 if __name__ == '__main__':
     # Settings
-    folder = 'expressions_positive_integer_answer_deep_large';
+    folder = 'expressions_limited_digits_shallow';
     test_size = 0.10;
-    n = 5000000;
+    n = 1000000;
     currentRecursionDepth = 0;
     minRecursionDepth = 1;
-    maxRecursionDepth = 3;
-    maxIntValue = 10;
-    terminalProb = 0.5;
+    maxRecursionDepth = 4;
+    maxIntValue = 3;
+    terminalProb = 0.4;
     filters = [lambda x: x.getValue() % 1.0 == 0, # Value must be integer
                #lambda x: x.getValue() < 10, # Value must be single-digit
                lambda x: x.getValue() >= 0
@@ -244,4 +244,4 @@ if __name__ == '__main__':
         raise ValueError("Test part of dataset already present");
     
     #generateAllExpressions(folder, test_size, filters, minRecursionDepth, maxRecursionDepth, maxIntValue);
-    generateExpressions(folder, n, test_size, filters, minRecursionDepth=minRecursionDepth, maxRecursionDepth=maxRecursionDepth, terminalProb=terminalProb, verbose=False);
+    generateExpressions(folder, n, test_size, filters, minRecursionDepth=minRecursionDepth, maxRecursionDepth=maxRecursionDepth, terminalProb=terminalProb, maxIntValue=maxIntValue, verbose=False);

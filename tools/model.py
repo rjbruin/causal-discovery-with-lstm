@@ -31,9 +31,10 @@ def constructModels(parameters, seed, verboseOutputter):
     
     datasets = [];
     for i in range(len(train_paths)):
+        single_digit = parameters['single_digit'] or parameters['find_x'];
         dataset = GeneratedExpressionDataset(train_paths[i], test_paths[i], 
                                              add_x=parameters['find_x'],
-                                             single_digit=parameters['single_digit'], 
+                                             single_digit=single_digit, 
                                              single_class=parameters['single_class'],
                                              correction=parameters['correction'],
                                              preload=parameters['preload'],
@@ -51,7 +52,7 @@ def constructModels(parameters, seed, verboseOutputter):
                                 n_max_digits=parameters['n_max_digits'], minibatch_size=parameters['minibatch_size']);
     else:
         rnn = RecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
-                                         lstm=parameters['lstm'], single_digit=parameters['single_digit'],
+                                         lstm=parameters['lstm'], single_digit=parameters['single_digit'] or parameters['find_x'],
                                          minibatch_size=parameters['minibatch_size'],
                                          n_max_digits=parameters['n_max_digits'],
                                          time_training_batch=parameters['time_training_batch'],
@@ -96,12 +97,10 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
                     verboseOutputter['write'](progress);
                 
                 # Get the part of the dataset for this batch
-                batch_train, batch_train_targets, batch_train_labels, _ = batch;
-                if (not model.single_digit):
-                    batch_train_labels = batch_train_targets;
+                batch_train, batch_train_targets, _, _ = batch;
                 
                 # Perform specific model sanity checks before training this batch
-                model.sanityChecks(batch_train, batch_train_labels);
+                model.sanityChecks(batch_train, batch_train_targets);
                 
                 # Set printing interval
                 total = len(batch_train);
@@ -119,23 +118,24 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
                         start = time.clock();
                     
                     data = batch_train[k:k+model.minibatch_size];
-                    label = batch_train_labels[k:k+model.minibatch_size];
+                    target = batch_train_targets[k:k+model.minibatch_size];
                     
                     if (model.fake_minibatch):
                         data = batch_train[k:k+1];
-                        label = batch_train_labels[k:k+1];
+                        target = batch_train_targets[k:k+1];
                     
                     if (len(data) < model.minibatch_size):
                         missing_datapoints = model.minibatch_size - data.shape[0];
                         data = np.concatenate((data,np.zeros((missing_datapoints, batch_train.shape[1], batch_train.shape[2]))), axis=0);
-                        label = np.concatenate((label,np.zeros((missing_datapoints, batch_train_labels.shape[1], batch_train_labels.shape[2]))), axis=0);
+                        target = np.concatenate((target,np.zeros((missing_datapoints, batch_train_targets.shape[1], batch_train_targets.shape[2]))), axis=0);
                     
                     # Swap axes of index in sentence and datapoint for Theano purposes
                     data = np.swapaxes(data, 0, 1);
-                    label = np.swapaxes(label, 0, 1);
+                    if (not model.single_digit):
+                        target = np.swapaxes(target, 0, 1);
                     # Run training
-                    outputs = model.sgd(dataset, data, label, parameters['learning_rate'], nearestExpression=parameters['predict_expressions']);
-                    total_error += outputs[0][-1];
+                    outputs = model.sgd(dataset, data, target, parameters['learning_rate'], nearestExpression=parameters['predict_expressions']);
+                    total_error += outputs[0];
                     
                     if (not no_print and k % printing_interval == 0):
                         print("# %d / %d" % (k, total));
@@ -238,8 +238,13 @@ def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=Fal
             if (print_samples and not printed_samples):
                 for i in range(prediction.shape[0]):
                     print("# Input: %s" % "".join((map(lambda x: dataset.findSymbol[x], np.argmax(data[i],len(data.shape)-2)))));
-                    print("# Label: %s" % "".join((map(lambda x: dataset.findSymbol[x], np.argmax(targets[i],len(data.shape)-2)))));
-                    print("# Output: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction[i])));
+                    if (model.single_digit):
+                        print("# Label: %s" % "".join(dataset.findSymbol[np.argmax(targets[i])]));
+                        print("# Output: %s" % "".join(dataset.findSymbol[prediction[i]]));
+                    else:
+                        print("# Label: %s" % "".join((map(lambda x: dataset.findSymbol[x], np.argmax(targets[i],len(data.shape)-2)))));
+                        print("# Output: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction[i])));
+                    
                 printed_samples = True;
             
             if (triggerVerbose):
@@ -267,16 +272,11 @@ def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=Fal
         batch = dataset.get_test_batch();
     
     # Print statistics
-    if (parameters['single_digit']):
-        if (show_prediction_conf_matrix):
-            stats_str = str_statistics(start_time, stats['score'], 
-                                       stats['prediction_histogram'], 
-                                       stats['groundtruth_histogram'], 
-                                       stats['prediction_confusion_matrix']);
-        else:
-            stats_str = str_statistics(start_time, stats['score'], 
-                                       stats['prediction_histogram'], 
-                                       stats['groundtruth_histogram']);
+    if (model.single_digit):
+        stats_str = str_statistics(start_time, stats['score'],
+                                   stats['prediction_histogram'], 
+                                   stats['groundtruth_histogram'],
+                                   digit_score=stats['digit_score']);
     else:
         stats_str = str_statistics(start_time, stats['score'], 
                                    digit_score=stats['digit_score'], 

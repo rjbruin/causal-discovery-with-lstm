@@ -79,6 +79,12 @@ def predictSample():
         
     return flask.jsonify(response);
 
+@app.route("/api/predict/testset", methods=['GET'])
+def predictTestset():
+    response = {'success': False};
+    tools.model.test(data['rnn'],data['dataset'],data['modelInfo'], 0);
+    return flask.jsonify(response);
+
 def loadModel(name):
     filepath = "../saved_models/%s.model" % name;
     if (not os.path.isfile(filepath)):

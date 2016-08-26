@@ -54,9 +54,9 @@ if __name__ == '__main__':
     
     # Check if values can be stored
     experiment_outputPaths = [];
-    for exp in experiments:
+    for i, exp in enumerate(experiments):
         # Ask for name
-        newName = raw_input("Experiment 1 name (%s): " % exp['name']);
+        newName = raw_input("Experiment %d name (%s): " % (i+1,exp['name']));
         if (newName != ''):
             exp['name'] = newName;
         outputPath = './raw_results/%s-%s.txt' % (exp['name'], time.strftime("%d-%m-%Y_%H-%M-%S"));
@@ -68,6 +68,8 @@ if __name__ == '__main__':
     # Run experiments
     trackerStack = [];
     for i,exp in enumerate(experiments):
+        print("Beginning experiment %s\n" % exp['name']);
+        
         report = True;
         if ('report_to_tracker' in exp):
             report = exp['report_to_tracker'] == 'True';

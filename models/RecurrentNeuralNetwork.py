@@ -124,9 +124,9 @@ class RecurrentNeuralNetwork(RecurrentModel):
         # Set up inputs to prediction and SGD
         # X is 3-dimensional: 1) index in sentence, 2) datapoint, 3) dimensionality of data
         X = T.dtensor3('X');
-        if (single_digit):
+        if (self.single_digit):
             # targets is 2-dimensional: 1) datapoint, 2) label for each answer
-            label = T.imatrix('label');
+            label = T.dmatrix('label');
         else:
             # targets is 3-dimensional: 1) index in sentence, 2) datapoint, 3) encodings
             label = T.dtensor3('label');
@@ -135,9 +135,9 @@ class RecurrentNeuralNetwork(RecurrentModel):
         
         # Call the specific initializing function for this specific model
         if (self.layers > 1):
-            prediction, right_hand, padded_label, summed_error, error = self.init_multiple_layers(X, label, varSettings);
+            prediction, right_hand, error = self.init_multiple_layers(X, label, varSettings);
         else:
-            prediction, right_hand, padded_label, summed_error, error = self.init_other(X, label, varSettings);
+            prediction, right_hand, error = self.init_other(X, label, varSettings);
           
         
         
@@ -146,17 +146,14 @@ class RecurrentNeuralNetwork(RecurrentModel):
         derivatives = T.grad(error, map(lambda var: self.vars[var], variables));
            
         # Defining prediction
-        if (single_digit):
-            self._predict = theano.function([X], prediction);
-        else:
-            self._predict = theano.function([X], [prediction, 
-                                                  prediction,
-                                                  right_hand]);
+        self._predict = theano.function([X], [prediction, 
+                                              prediction,
+                                              right_hand]);
         
         # Defining stochastic gradient descent
         learning_rate = T.dscalar('learning_rate');
         updates = [(var,var-learning_rate*der) for (var,der) in zip(map(lambda var: self.vars[var], variables),derivatives)];
-        self._sgd = theano.function([X, label, learning_rate], [summed_error], 
+        self._sgd = theano.function([X, label, learning_rate], [error], 
                                    updates=updates,
                                    allow_input_downcast=True)
         
@@ -192,9 +189,9 @@ class RecurrentNeuralNetwork(RecurrentModel):
         # digit at each step as X
         if (self.single_digit):
             # We only predict on the final Y because for now we only predict the final digit in the expression
-            # Takes the argmax over the last dimension, resulting in a vector of predictions
+            # Takes the argmax over the last dimension, resulting in a vector representing one predicted symbol
             prediction = T.argmax(Y_1[-1], 1);
-            #error = T.nnet.categorical_crossentropy(Y_1[-1].reshape((1,self.minibatch_size)), label);
+            right_hand = Y_1[-1];
             # Perform crossentropy calculation for each datapoint and take the mean
             error = T.mean(T.nnet.categorical_crossentropy(Y_1[-1], label));
         else:
@@ -232,7 +229,7 @@ class RecurrentNeuralNetwork(RecurrentModel):
                                           outputs_info={'initial': accumulator, 'taps': [-1]})
             error = summed_error[-1];
         
-        return prediction, right_hand, padded_label, summed_error, error;
+        return prediction, right_hand, error;
     
     def init_multiple_layers(self, X, label, varSettings):
         # Set scan functions and arguments
@@ -283,7 +280,7 @@ class RecurrentNeuralNetwork(RecurrentModel):
                                      # Inputs the last hidden layer and the last predicted symbol
                                      outputs_info=init_values,
                                      non_sequences=predict_parameters + predict_parameters_2,
-                                     n_steps=self.n_max_digits)
+                                     n_steps=self.n_max_digits-1)
             
             if (self.decoder):
                 raise ValueError("Decoder not implemented yet for multiple layers!");
@@ -354,7 +351,7 @@ class RecurrentNeuralNetwork(RecurrentModel):
         Sanity checks to be called before training a batch. Throws exceptions 
         if things are not right.
         """
-        if (not self.single_digit and training_labels.shape[1] > self.n_max_digits):
+        if (not self.single_digit and training_labels.shape[1] > (self.n_max_digits+1)):
             raise ValueError("n_max_digits too small! Increase to %d" % training_labels.shape[1]);
     
     def sgd(self, dataset, data, label, learning_rate, nearestExpression=False):
@@ -368,19 +365,17 @@ class RecurrentNeuralNetwork(RecurrentModel):
         Perform necessary models-specific transformations and call the actual 
         prediction function of the model.
         """
-        if (self.single_digit):
-            # Swap axes of index in sentence and datapoint for Theano purposes
-            prediction = self.predict(np.swapaxes(data, 0, 1));
-        else:
-            prediction, right_hand_symbol_indices, right_hand = \
-                self._predict(np.swapaxes(data, 0, 1));
+        # Swap axes of index in sentence and datapoint for Theano purposes
+        data = np.swapaxes(data, 0, 1);
         
-        prediction = np.swapaxes(prediction, 0, 1);
+        prediction, _, right_hand = \
+            self._predict(data);
+        
         # Swap sentence index and datapoints back
-        right_hand_symbol_indices = np.swapaxes(right_hand_symbol_indices, 0, 1);
+        if (not self.single_digit):
+            prediction = np.swapaxes(prediction, 0, 1);
         
-        return prediction, {'right_hand_symbol_indices': right_hand_symbol_indices,
-                            'right_hand': right_hand};
+        return prediction, {'right_hand': right_hand};
     
     def sgd_nearest_expression(self, dataset, data, label, learning_rate):
         unswapped_data = np.swapaxes(data, 0, 1);
@@ -432,9 +427,8 @@ class RecurrentNeuralNetwork(RecurrentModel):
         return self._sgd(data, target, learning_rate);
     
     def verboseOutput(self, prediction, other):
-        self.verboseOutputter['write']("Prediction: %s\nright_hand_symbol_indices: %s\nright_hand: %s" 
-                                       % (str(prediction), str(other['right_hand_symbol_indices']), 
-                                          str(other['right_hand'])));
+        self.verboseOutputter['write']("Prediction: %s\nright_hand: %s" 
+                                       % (str(prediction), str(other['right_hand'])));
     
     def batch_statistics(self, stats, prediction, labels, targets, expressions, 
                          other, test_n, dataset,
@@ -443,8 +437,15 @@ class RecurrentNeuralNetwork(RecurrentModel):
         # Statistics
         for j in range(0,test_n):
             if (self.single_digit):
-                if (prediction[j] == np.argmax(labels[j])):
+                if (prediction[j] == labels[j]):
                     stats['correct'] += 1;
+                    stats['digit_correct'] += 1;
+                stats['digit_prediction_size'] += 1;
+                
+                stats['prediction_histogram'][int(prediction[j])] += 1;
+                stats['groundtruth_histogram'][int(labels[j])] += 1;
+                stats['prediction_confusion_matrix']\
+                    [int(labels[j]),int(prediction[j])] += 1;
             else:
                 # Get the labels
                 argmax_target = np.argmax(targets[j],axis=1);
@@ -464,28 +465,15 @@ class RecurrentNeuralNetwork(RecurrentModel):
                         stats['digit_correct'] += 1.0;
                     stats['digit_prediction_size'] += 1;
                     
-            if (self.single_digit):
-                stats['prediction_histogram'][int(prediction[j])] += 1;
-                stats['groundtruth_histogram'][np.argmax(labels[j])] += 1;
-                stats['prediction_confusion_matrix']\
-                    [np.argmax(labels[j]),int(prediction[j])] += 1;
-                if ('operator_scores' not in excludeStats):
-                    stats['operator_scores'] = \
-                        self.operator_scores(expressions[j], 
-                                             int(prediction[j])==np.argmax(labels[j]),
-                                             dataset.operators,
-                                             dataset.key_indices,
-                                             stats['operator_scores']);
-            else:
                 # Taking argmax over symbols for each sentence returns 
                 # the location of the highest index, which is the first 
                 # EOS symbol
-                eos_location = np.argmax(other['right_hand_symbol_indices'][j]);
+                eos_location = np.argmax(prediction[j]);
                 # Check for edge case where no EOS was found and zero was returned
                 if (eos_symbol_index is None):
                     eos_symbol_index = dataset.EOS_symbol_index;
-                if (other['right_hand_symbol_indices'][j,eos_location] != eos_symbol_index):
-                    stats['prediction_size_histogram'][other['right_hand_symbol_indices'][j].shape[0]] += 1;
+                if (prediction[j,eos_location] != eos_symbol_index):
+                    stats['prediction_size_histogram'][prediction[j].shape[0]] += 1;
                 else:
                     stats['prediction_size_histogram'][int(eos_location)] += 1;
                 for digit_prediction in prediction[j]:
@@ -499,8 +487,7 @@ class RecurrentNeuralNetwork(RecurrentModel):
         Adds general statistics to the statistics generated per batch.
         """
         stats['score'] = stats['correct'] / float(stats['prediction_size']);
-        if (not self.single_digit):
-            stats['digit_score'] = stats['digit_correct'] / float(stats['digit_prediction_size']);
+        stats['digit_score'] = stats['digit_correct'] / float(stats['digit_prediction_size']);
         
         return stats;
     

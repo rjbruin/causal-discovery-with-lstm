@@ -24,6 +24,8 @@ class GeneratedExpressionDataset(Dataset):
         self.sample_testing_size = sample_testing_size;
         
         self.fill_x = fillX;
+        self.add_x = add_x;
+        self.single_digit = single_digit;
         
         # Set the method that should process the lines of the dataset
         self.processor = self.processSample;
@@ -57,7 +59,8 @@ class GeneratedExpressionDataset(Dataset):
             self.oneHot[sym] = i;
             i += 1;
         # EOS
-        self.oneHot['_'] = i;
+        if (not single_digit):
+            self.oneHot['_'] = i;
         
         self.operators = self.oneHot.keys();
         self.findSymbol = {v: k for (k,v) in self.oneHot.items()};
@@ -68,10 +71,10 @@ class GeneratedExpressionDataset(Dataset):
         if (single_digit):
             # Remove EOS
             self.data_dim -= 1;
+        self.EOS_symbol_index = self.data_dim-1;
         # We predict the same symbols as we have as input, so input and data
         # dimension are equal
         self.output_dim = self.data_dim;
-        self.EOS_symbol_index = self.data_dim-1;
         
         # Store locations and sizes for both train and testing
         self.locations = [0, 0];
@@ -117,6 +120,7 @@ class GeneratedExpressionDataset(Dataset):
                 if (left_hand_expression not in self.outputByInput):
                     self.outputByInput[left_hand_expression] = [];
                 self.outputByInput[left_hand_expression].append(right_hand_expression);
+            self.locations[self.TRAIN] = 0;
         else:
             test, test_targets, test_labels, test_expressions = \
             self.loadFile(self.sources[self.TEST], 
@@ -175,7 +179,10 @@ class GeneratedExpressionDataset(Dataset):
         
         # Convert list of ndarrays to a proper ndarray so minibatching will work later
         data = self.fill_ndarray(data, 1);
-        targets = self.fill_ndarray(targets, 1);
+        if (self.add_x or self.single_digit):
+            targets = np.array(targets);
+        else:
+            targets = self.fill_ndarray(targets, 1);
         
         # Return (data, new location)
         return (data, targets, np.array(labels), np.array(expressions)), line_number;
@@ -229,7 +236,7 @@ class GeneratedExpressionDataset(Dataset):
                 self.train_done = True;
             return data;
     
-    def get_test_batch(self):
+    def get_test_batch(self, no_sampling=False):
         """
         Computes, loads and returns the next training batch. On overflow the
         dataset returns the final batch which may be smaller than the regular
@@ -247,7 +254,7 @@ class GeneratedExpressionDataset(Dataset):
             return False;
         
         # Set up batching range
-        if (self.sample_testing_size is not False):
+        if (not no_sampling and self.sample_testing_size is not False):
             batch_size = self.sample_testing_size;
             if (length - batch_size <= 0):
                 batch_size = length;
@@ -268,7 +275,7 @@ class GeneratedExpressionDataset(Dataset):
                     self.test_labels[testingRange[0]:testingRange[1]], \
                     self.test_expressions[testingRange[0]:testingRange[1]];
         else:
-            if (self.sample_testing_size is not False):
+            if (not no_sampling and self.sample_testing_size is not False):
                 # Load in the relevant part and return
                 results, _ = self.load(self.sources[self.TEST], self.sample_testing_size, testingRange[0]);
                 self.test_done = True;
@@ -345,6 +352,10 @@ class GeneratedExpressionDataset(Dataset):
         return data, targets, labels, expressions, 1;
     
     def processSampleWithX(self, line, data, targets, labels, expressions):
+        """
+        Processes a sample to include a random 'x' symbol and gives the symbol
+        this 'x' replaces as the single digit label.
+        """
         # Get expression from line
         expression = line.strip();
         # Generate encodings for data and target for each index in expression
@@ -359,7 +370,7 @@ class GeneratedExpressionDataset(Dataset):
         
         # Set training variables
         data.append(X);
-        targets.append(np.array([target]));
+        targets.append(target);
         labels.append(self.oneHot[expression[i]]);
         expressions.append(expression);
         
