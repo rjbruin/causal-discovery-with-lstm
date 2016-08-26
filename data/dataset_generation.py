@@ -223,7 +223,7 @@ if __name__ == '__main__':
     n = 1000000;
     currentRecursionDepth = 0;
     minRecursionDepth = 1;
-    maxRecursionDepth = 4;
+    maxRecursionDepth = 3;
     maxIntValue = 3;
     terminalProb = 0.4;
     filters = [lambda x: x.getValue() % 1.0 == 0, # Value must be integer

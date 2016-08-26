@@ -127,7 +127,10 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
                     if (len(data) < model.minibatch_size):
                         missing_datapoints = model.minibatch_size - data.shape[0];
                         data = np.concatenate((data,np.zeros((missing_datapoints, batch_train.shape[1], batch_train.shape[2]))), axis=0);
-                        target = np.concatenate((target,np.zeros((missing_datapoints, batch_train_targets.shape[1], batch_train_targets.shape[2]))), axis=0);
+                        if (not model.single_digit):
+                            target = np.concatenate((target,np.zeros((missing_datapoints, batch_train_targets.shape[1], batch_train_targets.shape[2]))), axis=0);
+                        else:
+                            target = np.concatenate((target,np.zeros((missing_datapoints, batch_train_targets.shape[1]))), axis=0);
                     
                     # Swap axes of index in sentence and datapoint for Theano purposes
                     data = np.swapaxes(data, 0, 1);
