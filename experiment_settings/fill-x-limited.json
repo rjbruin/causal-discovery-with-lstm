@@ -1,0 +1,12 @@
+[
+    {
+        "name": "fill-x-lds",
+        "script": "expressions_answer.py",
+        "dataset": "./data/expressions_fill_x_limited_digits_shallow",
+        "fill_x": "True",
+        "repetitions": "500",
+        "minibatch_size": "64",
+        "n_max_digits": "17",
+        "sample_testing_size": "10000"
+    }
+]
