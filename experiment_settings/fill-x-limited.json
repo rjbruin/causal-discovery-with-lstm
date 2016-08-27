@@ -6,7 +6,7 @@
         "fill_x": "True",
         "repetitions": "500",
         "minibatch_size": "64",
-        "n_max_digits": "17",
+        "n_max_digits": "31",
         "sample_testing_size": "10000"
     }
 ]

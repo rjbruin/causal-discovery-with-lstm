@@ -233,7 +233,10 @@ def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=Fal
                 test_n = data.shape[0];
                 missing_datapoints = model.minibatch_size - test_n;
                 data = np.concatenate((data,np.zeros((missing_datapoints, test_data.shape[1], test_data.shape[2]))), axis=0);
-                targets = np.concatenate((targets,np.zeros((missing_datapoints, test_targets.shape[1], test_targets.shape[2]))), axis=0);
+                if (not model.single_digit):
+                    targets = np.concatenate((targets,np.zeros((missing_datapoints, test_targets.shape[1], test_targets.shape[2]))), axis=0);
+                else:
+                    targets = np.concatenate((targets,np.zeros((missing_datapoints, test_targets.shape[1]))), axis=0);
             
             prediction, other = model.predict(data);
             
