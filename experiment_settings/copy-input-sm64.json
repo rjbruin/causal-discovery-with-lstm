@@ -1,0 +1,11 @@
+[
+    {
+        "name": "copy-input-sm64",
+        "script": "expressions_answer.py",
+        "dataset": "./data/expressions_positive_integer_answer_shallow",
+        "repetitions": "500",
+        "minibatch_size": "64",
+        "sample_testing_size": "10000",
+        "copy_input": "True"
+    }
+]
