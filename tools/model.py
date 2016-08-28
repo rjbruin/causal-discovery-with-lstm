@@ -44,7 +44,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                              max_testing_size=parameters['max_testing_size'],
                                              sample_testing_size=parameters['sample_testing_size'],
                                              predictExpressions=parameters['predict_expressions'],
-                                             fillX=parameters['fill_x']);
+                                             fillX=parameters['fill_x'],
+                                             copyInput=parameters['copy_input']);
         datasets.append(dataset);
     
     if (parameters['random_baseline']):

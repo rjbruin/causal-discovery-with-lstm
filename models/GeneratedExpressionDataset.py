@@ -15,7 +15,7 @@ class GeneratedExpressionDataset(Dataset):
                  test_batch_size=10000, train_batch_size=10000,
                  max_training_size=False, max_testing_size=False,
                  sample_testing_size=False, predictExpressions=False,
-                 fillX=False):
+                 copyInput=False, fillX=False):
         self.sources = [trainSource, testSource];
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
@@ -26,6 +26,7 @@ class GeneratedExpressionDataset(Dataset):
         self.fill_x = fillX;
         self.add_x = add_x;
         self.single_digit = single_digit;
+        self.copyInput = copyInput;
         
         # Set the method that should process the lines of the dataset
         self.processor = self.processSample;
@@ -39,6 +40,8 @@ class GeneratedExpressionDataset(Dataset):
             self.processor = self.processSampleFillX;
         elif (correction):
             self.processor = self.processSampleCorrection;
+        elif (copyInput):
+            self.processor = self.processSampleCopyInput;
         else:
             self.processor = self.processSampleMultiDigit;
         
@@ -372,6 +375,25 @@ class GeneratedExpressionDataset(Dataset):
         data.append(X);
         targets.append(target);
         labels.append(self.oneHot[expression[i]]);
+        expressions.append(expression);
+        
+        return data, targets, labels, expressions, 1;
+    
+    def processSampleCopyInput(self, line, data, targets, labels, expressions):
+        expression = line.strip();
+        
+        # Old expression = data
+        expression_embeddings = np.zeros((len(expression)+1,self.data_dim));
+        for i, literal in enumerate(expression):
+            expression_embeddings[i,self.oneHot[literal]] = 1.0;
+        
+        # Add EOS's
+        expression_embeddings[-1,self.EOS_symbol_index] = 1.0;
+        
+        # Append data
+        data.append(expression_embeddings);
+        labels.append(np.argmax(expression_embeddings, axis=1));
+        targets.append(expression_embeddings);
         expressions.append(expression);
         
         return data, targets, labels, expressions, 1;
