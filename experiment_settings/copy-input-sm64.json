@@ -6,6 +6,7 @@
         "repetitions": "500",
         "minibatch_size": "64",
         "sample_testing_size": "10000",
-        "copy_input": "True"
+        "copy_input": "True",
+        "n_max_digits": "17"
     }
 ]
