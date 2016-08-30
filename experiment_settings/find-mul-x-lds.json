@@ -1,11 +1,11 @@
 [
     {
-        "name": "find-x-lds",
+        "name": "find-mul-x-lds",
         "script": "expressions_answer.py",
         "dataset": "./data/expressions_limited_digits_shallow",
         "repetitions": "500",
         "minibatch_size": "64",
         "sample_testing_size": "10000",
-        "find_x": "True"
+        "find_multiple_x": "True"
     }
 ]

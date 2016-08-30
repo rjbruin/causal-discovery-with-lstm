@@ -9,7 +9,7 @@ from models.Dataset import Dataset
 
 class GeneratedExpressionDataset(Dataset):
     
-    def __init__(self, trainSource, testSource, preload=True, add_x=False, 
+    def __init__(self, trainSource, testSource, preload=True, add_x=False, add_multiple_x=False,
                  single_digit=False, single_class=False, balanced=False,
                  correction=False, 
                  test_batch_size=10000, train_batch_size=10000,
@@ -25,6 +25,7 @@ class GeneratedExpressionDataset(Dataset):
         
         self.fill_x = fillX;
         self.add_x = add_x;
+        self.add_multiple_x = add_multiple_x;
         self.single_digit = single_digit;
         self.copyInput = copyInput;
         
@@ -32,6 +33,8 @@ class GeneratedExpressionDataset(Dataset):
         self.processor = self.processSample;
         if (add_x):
             self.processor = self.processSampleWithX;
+        elif (add_multiple_x):
+            self.processor = self.processSampleWithMultipleX;
         elif (single_class):
             self.processor = self.processSampleSingleClass;
         elif (predictExpressions):
@@ -55,7 +58,7 @@ class GeneratedExpressionDataset(Dataset):
         for digit in range(self.digits_range):
             self.oneHot[str(digit)] = digit;
         symbols = ['+','-','*','/','(',')','='];
-        if (add_x or fillX):
+        if (add_x or fillX or add_multiple_x):
             symbols.append('x');
         i = max(self.oneHot.values())+1;
         for sym in symbols:
@@ -375,6 +378,37 @@ class GeneratedExpressionDataset(Dataset):
         data.append(X);
         targets.append(target);
         labels.append(self.oneHot[expression[i]]);
+        expressions.append(expression);
+        
+        return data, targets, labels, expressions, 1;
+    
+    def processSampleWithMultipleX(self, line, data, targets, labels, expressions):
+        """
+        Processes a sample to include a random 'x' symbol and gives the symbol
+        this 'x' replaces as the single digit label.
+        """
+        # Get expression from line
+        expression = line.strip();
+        # Generate encodings for data and target for each index in expression
+        X = np.zeros((len(expression),self.data_dim));
+        xs = [];
+        for _ in range(np.random.randint(1,3)):
+            xs.append(np.random.randint(0,len(expression)));
+        for j, literal in enumerate(expression):
+            if (j not in xs):
+                X[j,self.oneHot[literal]] = 1.0;
+            else:
+                X[j,self.oneHot['x']] = 1.0;
+        
+        target = np.zeros((len(xs)+1,self.data_dim));
+        for i,x in enumerate(sorted(xs)):
+            target[i,self.oneHot[expression[x]]] = 1.0;
+        target[len(xs),self.EOS_symbol_index] = 1.0;
+        
+        # Set training variables
+        data.append(X);
+        targets.append(target);
+        labels.append(np.argmax(target, axis=1));
         expressions.append(expression);
         
         return data, targets, labels, expressions, 1;

@@ -34,6 +34,7 @@ def constructModels(parameters, seed, verboseOutputter):
         single_digit = parameters['single_digit'] or parameters['find_x'];
         dataset = GeneratedExpressionDataset(train_paths[i], test_paths[i], 
                                              add_x=parameters['find_x'],
+                                             add_multiple_x=parameters['find_multiple_x'],
                                              single_digit=single_digit, 
                                              single_class=parameters['single_class'],
                                              correction=parameters['correction'],
