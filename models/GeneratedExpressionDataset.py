@@ -15,7 +15,7 @@ class GeneratedExpressionDataset(Dataset):
                  test_batch_size=10000, train_batch_size=10000,
                  max_training_size=False, max_testing_size=False,
                  sample_testing_size=False, predictExpressions=False,
-                 copyInput=False, fillX=False):
+                 copyInput=False, fillX=False, use_GO_symbol=False):
         self.sources = [trainSource, testSource];
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
@@ -60,24 +60,24 @@ class GeneratedExpressionDataset(Dataset):
         symbols = ['+','-','*','/','(',')','='];
         if (add_x or fillX or add_multiple_x):
             symbols.append('x');
+        if (not single_digit):
+            # EOS and <GO> symbol to start off prediction
+            symbols.extend(['_','G']);
         i = max(self.oneHot.values())+1;
         for sym in symbols:
             self.oneHot[sym] = i;
             i += 1;
-        # EOS
-        if (not single_digit):
-            self.oneHot['_'] = i;
         
         self.operators = self.oneHot.keys();
         self.findSymbol = {v: k for (k,v) in self.oneHot.items()};
         self.key_indices = {k: i for (i,k) in enumerate(self.operators)};
         
-        # Data dimension = number of symbols (including EOS)
-        self.data_dim = self.digits_range + len(symbols) + 1;
-        if (single_digit):
-            # Remove EOS
-            self.data_dim -= 1;
-        self.EOS_symbol_index = self.data_dim-1;
+        # Data dimension = number of symbols
+        self.data_dim = self.digits_range + len(symbols);
+        self.EOS_symbol_index = self.data_dim-2;
+        self.GO_symbol_index = None;
+        if (not single_digit):
+            self.GO_symbol_index = self.data_dim-1;
         # We predict the same symbols as we have as input, so input and data
         # dimension are equal
         self.output_dim = self.data_dim;

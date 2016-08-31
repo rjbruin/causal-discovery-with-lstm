@@ -46,7 +46,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                              sample_testing_size=parameters['sample_testing_size'],
                                              predictExpressions=parameters['predict_expressions'],
                                              fillX=parameters['fill_x'],
-                                             copyInput=parameters['copy_input']);
+                                             copyInput=parameters['copy_input'],
+                                             use_GO_symbol=parameters['all_decoder_prediction']);
         datasets.append(dataset);
     
     if (parameters['random_baseline']):
@@ -60,7 +61,9 @@ def constructModels(parameters, seed, verboseOutputter):
                                          time_training_batch=parameters['time_training_batch'],
                                          decoder=parameters['decoder'],
                                          verboseOutputter=verboseOutputter,
-                                         layers=parameters['layers']);
+                                         layers=parameters['layers'],
+                                         all_decoder_prediction=parameters['all_decoder_prediction'],
+                                         GO_symbol_index=dataset.GO_symbol_index);
     
     return datasets, rnn;
 

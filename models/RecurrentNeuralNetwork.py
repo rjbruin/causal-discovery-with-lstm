@@ -17,9 +17,9 @@ class RecurrentNeuralNetwork(RecurrentModel):
 
 
     def __init__(self, data_dim, hidden_dim, output_dim, minibatch_size, 
-                 lstm=False, weight_values={}, single_digit=True, EOS_symbol_index=None,
+                 lstm=False, weight_values={}, single_digit=True, EOS_symbol_index=None, GO_symbol_index=None,
                  n_max_digits=24, time_training_batch=False, decoder=False,
-                 verboseOutputter=None, layers=1, mn=False):
+                 verboseOutputter=None, layers=1, mn=False, all_decoder_prediction=False):
         '''
         Initialize all Theano models.
         '''
@@ -34,6 +34,10 @@ class RecurrentNeuralNetwork(RecurrentModel):
         self.single_digit = single_digit;
         self.decoder = decoder;
         self.verboseOutputter = verboseOutputter;
+        self.all_decoder_prediction = all_decoder_prediction;
+        
+        self.EOS_symbol_index = EOS_symbol_index;
+        self.GO_symbol_index = GO_symbol_index;
         
         # Set dimensions
         self.data_dim = data_dim;
@@ -196,8 +200,19 @@ class RecurrentNeuralNetwork(RecurrentModel):
             error = T.mean(T.nnet.categorical_crossentropy(Y_1[-1], label));
         else:
             # Add predictions until EOS to Y
-            # The maximum number of digits to predict is n_max_digits
-            init_values = ({'initial': Y_1[-1], 'taps': [-1]},
+            init_X = Y_1[-1];
+            # n_steps is one less than n_max_digits because we use the last 
+            # output of the encoder as the first decoder output
+            n_steps = self.n_max_digits-1; 
+            if (self.all_decoder_prediction):
+                if (self.GO_symbol_index is None):
+                    raise ValueError("GO symbol index not set!");
+                init_X = T.zeros((self.prediction_output_dim,self.minibatch_size), dtype='float64');
+                init_X = T.set_subtensor(init_X[self.GO_symbol_index],T.ones(self.minibatch_size));
+                init_X = T.swapaxes(init_X, 0, 1);
+                n_steps = self.n_max_digits;
+            
+            init_values = ({'initial': init_X, 'taps': [-1]},
                            {'initial': hidden[-1], 'taps': [-1]});
             if (self.decoder):
                 # When decoding we start the decoder with zeros as input and
@@ -205,12 +220,12 @@ class RecurrentNeuralNetwork(RecurrentModel):
                 # This is why we had to change the prediction output dimension
                 # size to match the hidden dimension size
                 init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim), dtype='float64'), 'taps': [-1]},
-                               {'initial': Y_1[-1], 'taps': [-1]});
+                               {'initial': init_X, 'taps': [-1]});
             [Ys, _], _ = theano.scan(fn=predict_function,
                                      # Inputs the last hidden layer and the last predicted symbol
                                      outputs_info=init_values,
                                      non_sequences=decode_parameters,
-                                     n_steps=self.n_max_digits)
+                                     n_steps=n_steps)
             
             if (self.decoder):
                 right_hand = Ys;
