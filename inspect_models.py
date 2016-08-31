@@ -8,7 +8,7 @@ Run this script in debug mode to inspect the variables loaded.
 
 import sys;
 
-from model.RecurrentNeuralNetwork import RecurrentNeuralNetwork;
+from model.RecurrentNeuralNetwork import TheanoRecurrentNeuralNetwork;
 from model.GeneratedExpressionDataset import GeneratedExpressionDataset;
 from tools.file import load_from_pickle;
 
@@ -31,7 +31,7 @@ def read_from_file(modelName):
     dataset = GeneratedExpressionDataset(settings['dataset'], 
                                          single_digit=settings['single_digit'],
                                          single_class=settings['single_class']);
-    rnn = RecurrentNeuralNetwork(dataset.data_dim, settings['hidden_dim'], dataset.output_dim, 
+    rnn = TheanoRecurrentNeuralNetwork(dataset.data_dim, settings['hidden_dim'], dataset.output_dim, 
                                  lstm=settings['lstm'], weight_values=savedVars, 
                                  single_digit=settings['single_digit']);
     

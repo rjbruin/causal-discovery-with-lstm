@@ -9,7 +9,7 @@ import time;
 
 from models.GeneratedExpressionDataset import GeneratedExpressionDataset;
 from models.RandomBaseline import RandomBaseline;
-from models.RecurrentNeuralNetwork import RecurrentNeuralNetwork;
+from models.TheanoRecurrentNeuralNetwork import TheanoRecurrentNeuralNetwork
 
 from tools.statistics import str_statistics;
 from tools.file import save_to_pickle;
@@ -54,7 +54,7 @@ def constructModels(parameters, seed, verboseOutputter):
         rnn = RandomBaseline(parameters['single_digit'], seed, dataset,
                                 n_max_digits=parameters['n_max_digits'], minibatch_size=parameters['minibatch_size']);
     else:
-        rnn = RecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
+        rnn = TheanoRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
                                          lstm=parameters['lstm'], single_digit=parameters['single_digit'] or parameters['find_x'],
                                          minibatch_size=parameters['minibatch_size'],
                                          n_max_digits=parameters['n_max_digits'],

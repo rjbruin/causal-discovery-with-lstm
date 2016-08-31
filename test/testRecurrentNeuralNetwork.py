@@ -6,7 +6,7 @@ Created on 15 jun. 2016
 import numpy as np;
 
 import unittest
-from models.RecurrentNeuralNetwork import RecurrentNeuralNetwork
+from models import TheanoRecurrentNeuralNetwork.RecurrentNeuralNetwork
 from test.FakeDataset import FakeDataset;
 from tools.model import train, test
 import time
@@ -46,7 +46,7 @@ class Test(unittest.TestCase):
         minibatch_size = 6;
         
         # Model initialization
-        model = RecurrentNeuralNetwork(data_dim, hidden_dim, output_dim, 
+        model = TheanoRecurrentNeuralNetwork(data_dim, hidden_dim, output_dim, 
                                        minibatch_size,
                                        single_digit=False, lstm=lstm,
                                        decoder=decoder,

@@ -28,7 +28,7 @@ if __name__ == '__main__':
     
     # Construct models
     dataset = ge_dataset.GeneratedExpressionDataset(dataset_path);
-    rnn = rnn.RecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim, 
+    rnn = rnn.TheanoRecurrentNeuralNetwork(dataset.data_dim, hidden_dim, dataset.output_dim, 
                                      lstm=lstm, weight_values=models_dict);
     
     s = range(len(dataset.test));
