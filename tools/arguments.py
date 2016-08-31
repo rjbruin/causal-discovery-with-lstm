@@ -71,7 +71,8 @@ argumentProcessors = {'name': processString,
                       'multipart_3_reps': processFalseOrInt,
                       'multipart_4': processFalseOrString,
                       'multipart_4_reps': processFalseOrInt,
-                      'all_decoder_prediction': processBool
+                      'all_decoder_prediction': processBool,
+                      'fixed_decoder_inputs': processBool
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -113,7 +114,8 @@ defaults = {'report_to_tracker': True,
             'multipart_3_reps': False,
             'multipart_4': False,
             'multipart_4_reps': False,
-            'all_decoder_prediction': False
+            'all_decoder_prediction': False,
+            'fixed_decoder_inputs': False
             }
 
 def processKeyValue(key,value):

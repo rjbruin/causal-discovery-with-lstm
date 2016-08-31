@@ -138,28 +138,36 @@ class RecurrentNeuralNetwork(RecurrentModel):
         
         
         # Call the specific initializing function for this specific model
-        if (self.layers > 1):
-            prediction, right_hand, error = self.init_multiple_layers(X, label, varSettings);
-        else:
-            prediction, right_hand, error = self.init_other(X, label, varSettings);
+#         if (self.layers > 1):
+#             prediction, right_hand, error = self.init_multiple_layers(X, label, varSettings);
+#         else:
+        prediction, prediction_fixed_input, right_hand, right_hand_fixed_input, error, error_fixed_input = self.init_other(X, label, varSettings);
           
         
         
         # Automatic backward pass for all models: gradients
         variables = self.vars.keys();
         derivatives = T.grad(error, map(lambda var: self.vars[var], variables));
+        derivatives_fixed_input = T.grad(error_fixed_input, map(lambda var: self.vars[var], variables));
            
         # Defining prediction
         self._predict = theano.function([X], [prediction, 
                                               prediction,
                                               right_hand]);
+        self._predict_fixed_input = theano.function([X, label], [prediction_fixed_input, 
+                                                          prediction_fixed_input,
+                                                          right_hand_fixed_input]);
         
         # Defining stochastic gradient descent
         learning_rate = T.dscalar('learning_rate');
         updates = [(var,var-learning_rate*der) for (var,der) in zip(map(lambda var: self.vars[var], variables),derivatives)];
+        updates_fixed_input = [(var,var-learning_rate*der) for (var,der) in zip(map(lambda var: self.vars[var], variables),derivatives_fixed_input)];
         self._sgd = theano.function([X, label, learning_rate], [error], 
                                    updates=updates,
                                    allow_input_downcast=True)
+        self._sgd_with_fixed_decoder_input = theano.function([X, label, learning_rate], [error_fixed_input], 
+                                                             updates=updates_fixed_input,
+                                                             allow_input_downcast=True)
         
         super(RecurrentNeuralNetwork, self).__init__();
     
@@ -226,16 +234,30 @@ class RecurrentNeuralNetwork(RecurrentModel):
                                      outputs_info=init_values,
                                      non_sequences=decode_parameters,
                                      n_steps=n_steps)
+            [Ys_fixed_input, _], _ = theano.scan(fn=predict_function,
+                                                 sequences=label,
+                                                 # Inputs the last hidden layer and the last predicted symbol
+                                                 outputs_info=(None, {'initial': hidden[-1], 'taps': [-1]}),
+                                                 non_sequences=decode_parameters,
+                                                 n_steps=self.n_max_digits)
             
             if (self.decoder):
                 right_hand = Ys;
+                right_hand_fixed_input = Ys_fixed_input;
             else: 
-                # The right hand is now the last output of the recurrence function
-                # joined with the sequential output of the prediction function
-                right_hand = T.join(0,Y_1[-1].reshape((1,self.minibatch_size,self.decoding_output_dim)),Ys);
+                if (self.all_decoder_prediction):
+                    # The right hand of the expression is the output of the decoder
+                    right_hand = Ys;
+                    right_hand_fixed_input = Ys_fixed_input;
+                else:
+                    # The right hand is now the last output of the recurrence function
+                    # joined with the sequential output of the prediction function
+                    right_hand = T.join(0,Y_1[-1].reshape((1,self.minibatch_size,self.decoding_output_dim)),Ys);
+                    right_hand_fixed_input = T.join(0,Y_1[-1].reshape((1,self.minibatch_size,self.decoding_output_dim)),Ys_fixed_input);
             
             # We predict the final n symbols (all symbols predicted as output from input '=')
             prediction = T.argmax(right_hand, axis=2);
+            prediction_fixed_input = T.argmax(right_hand_fixed_input, axis=2);
             padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim)));
             
             accumulator = theano.shared(np.float64(0.), name='accumulatedError');
@@ -243,8 +265,14 @@ class RecurrentNeuralNetwork(RecurrentModel):
                                           sequences=(right_hand,padded_label),
                                           outputs_info={'initial': accumulator, 'taps': [-1]})
             error = summed_error[-1];
+            
+            accumulator_fixed_input = theano.shared(np.float64(0.), name='accumulatedError');
+            summed_error_fixed_input, _ = theano.scan(fn=self.crossentropy_2d,
+                                          sequences=(right_hand_fixed_input,padded_label),
+                                          outputs_info={'initial': accumulator_fixed_input, 'taps': [-1]})
+            error_fixed_input = summed_error_fixed_input[-1];
         
-        return prediction, right_hand, error;
+        return prediction, prediction_fixed_input, right_hand, right_hand_fixed_input, error, error_fixed_input;
     
     def init_multiple_layers(self, X, label, varSettings):
         # Set scan functions and arguments
@@ -369,11 +397,14 @@ class RecurrentNeuralNetwork(RecurrentModel):
         if (not self.single_digit and training_labels.shape[1] > (self.n_max_digits+1)):
             raise ValueError("n_max_digits too small! Increase to %d" % training_labels.shape[1]);
     
-    def sgd(self, dataset, data, label, learning_rate, nearestExpression=False):
+    def sgd(self, dataset, data, label, learning_rate, nearestExpression=False, useFixedDecoderInputs=False):
         if (nearestExpression):
-            return self.sgd_nearest_expression(dataset, data, label, learning_rate);
+            return self.sgd_nearest_expression(dataset, data, label, learning_rate, useFixedDecoderInputs=useFixedDecoderInputs);
         else:
-            return self._sgd(data, label, learning_rate);
+            if (useFixedDecoderInputs):
+                return self._sgd_with_fixed_decoder_input(data, label, learning_rate);
+            else:
+                return self._sgd(data, label, learning_rate);
         
     def predict(self, data):
         """
@@ -392,7 +423,7 @@ class RecurrentNeuralNetwork(RecurrentModel):
         
         return prediction, {'right_hand': right_hand};
     
-    def sgd_nearest_expression(self, dataset, data, label, learning_rate):
+    def sgd_nearest_expression(self, dataset, data, label, learning_rate, useFixedDecoderInputs=False):
         unswapped_data = np.swapaxes(data, 0, 1);
         unswapped_label = np.swapaxes(label, 0, 1);
         predictions, _ = self.predict(unswapped_data);
@@ -439,7 +470,10 @@ class RecurrentNeuralNetwork(RecurrentModel):
         
         target = np.swapaxes(target, 0, 1);
         
-        return self._sgd(data, target, learning_rate);
+        if (useFixedDecoderInputs):
+            return self._sgd_with_fixed_decoder_input(data, target, learning_rate);
+        else:
+            return self._sgd(data, target, learning_rate);
     
     def verboseOutput(self, prediction, other):
         self.verboseOutputter['write']("Prediction: %s\nright_hand: %s" 
