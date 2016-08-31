@@ -54,6 +54,7 @@ if __name__ == '__main__':
     
     # Check if values can be stored
     experiment_outputPaths = [];
+    experiment_args = [];
     for i, exp in enumerate(experiments):
         # Ask for name
         newName = raw_input("Experiment %d name (%s): " % (i+1,exp['name']));
@@ -64,6 +65,11 @@ if __name__ == '__main__':
         if (os.path.exists(outputPath)):
             exp['name'] = exp['name'] + '-';
         experiment_outputPaths.append(outputPath);
+        
+        # Ask for extra args
+        extraArgs = raw_input("(optional) Add extra/overwriting parameters (e.g. '--key value'): ");
+        experiment_args.append(extraArgs);
+        
     
     # Run experiments
     trackerStack = [];
@@ -93,12 +99,13 @@ if __name__ == '__main__':
                 raise ValueError("Posting experiment to tracker failed!");
             
         outputPath = experiment_outputPaths[i];
+        extraArgs = experiment_args[i];
         args = ['python',exp['script']];
         for key,value in exp.items():
             if (key not in ['script','name']):
                 args.append("--" + key);
                 args.append(str(value));
-        joined_args = " ".join(args);
+        joined_args = " ".join(args) + " " + extraArgs;
         if (gpu):
             joined_args = "THEANO_FLAGS=device=gpu " + joined_args;
         print("Command string: %s" % (joined_args));
