@@ -17,9 +17,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
 
     def __init__(self, data_dim, hidden_dim, output_dim, minibatch_size, 
-                 lstm=False, weight_values={}, single_digit=True, EOS_symbol_index=None, GO_symbol_index=None,
-                 n_max_digits=24, time_training_batch=False, decoder=False,
-                 verboseOutputter=None, layers=1, mn=False, all_decoder_prediction=False):
+                 lstm=False, weight_values={}, single_digit=False, 
+                 EOS_symbol_index=None, GO_symbol_index=None, n_max_digits=24, 
+                 decoder=False, verboseOutputter=None, layers=1, mn=False, 
+                 all_decoder_prediction=False):
         '''
         Initialize all Theano models.
         '''
@@ -28,7 +29,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.single_digit = single_digit;
         self.minibatch_size = minibatch_size;
         self.n_max_digits = n_max_digits;
-        self.time_training_batch = time_training_batch;
         self.lstm = lstm;
         self.mn = mn;
         self.single_digit = single_digit;
