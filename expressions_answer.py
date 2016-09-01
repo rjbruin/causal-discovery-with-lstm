@@ -7,7 +7,6 @@ Created on 16 feb. 2016
 import time;
 import sys;
 
-import models.TheanoRecurrentNeuralNetwork as rnn
 import tools.model;
 
 from tools.file import save_to_pickle;
