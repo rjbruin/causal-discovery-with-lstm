@@ -36,8 +36,6 @@ class TensorflowRecurrentNeuralNetwork(RecurrentModel):
         self.GO_symbol_index = GO_symbol_index;
         
         # Feature support checks
-        if (self.single_digit):
-            raise ValueError("Feature single_digit = True not supported!");
         if (self.mn):
             raise ValueError("Feature memory networks not supported!");
         if (self.minibatch_size == 1):
@@ -63,6 +61,7 @@ class TensorflowRecurrentNeuralNetwork(RecurrentModel):
         # Set up Tensorflow model
         self.x = tf.placeholder(tf.float32, [self.input_n_max_digits, self.minibatch_size, self.data_dim], name='x');
         self.target = tf.placeholder(tf.float32, [self.n_max_digits, self.minibatch_size, self.decoding_output_dim], name='targets');
+        self.target_single_digit = tf.placeholder(tf.float32, [self.minibatch_size, self.decoding_output_dim], name='targets');
         self.learning_rate = tf.placeholder(tf.float32, ());
         
         # Set cell type
@@ -85,11 +84,13 @@ class TensorflowRecurrentNeuralNetwork(RecurrentModel):
             for i in range(self.input_n_max_digits):
                 state, _ = cell_type('encoding_cell', x_unpacked[i], state, withOutput=False);            
         
-        if (not self.all_decoder_prediction):
+        if (not self.all_decoder_prediction or self.single_digit):
             with tf.variable_scope('encoding_prediction'):
                 hWo = tf.get_variable('hWo', [self.hidden_dim, self.decoding_output_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
                 bo = tf.get_variable('bo', initializer=tf.zeros_initializer([self.decoding_output_dim]));
             input = tf.nn.softmax(tf.matmul(state,hWo) + bo);
+            if (self.single_digit):
+                self.y_single_digit = input;
         
         # Decoding
         if (self.decoder):
@@ -115,7 +116,11 @@ class TensorflowRecurrentNeuralNetwork(RecurrentModel):
         # Error computation
         # Cross entropy over 3 dimensions
         entropy_per_digit = -tf.reduce_sum(self.target * tf.log(self.y), reduction_indices=[2]);
-        self.cross_entropy = tf.reduce_mean(entropy_per_digit);
+        entropy_single_digit = -tf.reduce_sum(self.target_single_digit * tf.log(self.y_single_digit), reduction_indices=[1]);
+        if (not self.single_digit):
+            self.cross_entropy = tf.reduce_mean(entropy_per_digit);
+        else:
+            self.cross_entropy = tf.reduce_mean(entropy_single_digit);
         self.train_step = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.cross_entropy);
         #train_step = tf.train.AdamOptimizer(self.learning_rate).minimize(cross_entropy);
 
@@ -140,18 +145,25 @@ class TensorflowRecurrentNeuralNetwork(RecurrentModel):
         if (useFixedDecoderInputs):
             raise ValueError("Feature useFixedDecoderInputs = True not supported!");
         with self.session.as_default():
-            _, error = self.session.run([self.train_step, self.cross_entropy], feed_dict={self.x: data, self.target: labels, self.learning_rate: learning_rate});
+            if (not self.single_digit):
+                _, error = self.session.run([self.train_step, self.cross_entropy], feed_dict={self.x: data, self.target: labels, self.learning_rate: learning_rate});
+            else:
+                _, error = self.session.run([self.train_step, self.cross_entropy], feed_dict={self.x: data, self.target_single_digit: labels, self.learning_rate: learning_rate});
         return [error];
     
     def predict(self, data):
         data = np.swapaxes(data, 0, 1);
     
         with self.session.as_default():
-            y_numpy = self.y.eval(feed_dict={self.x: data});
-            y_unswapped = np.swapaxes(y_numpy, 0, 1);
-            y_predictions = np.argmax(y_unswapped,2);
+            if (not self.single_digit):
+                y = self.y.eval(feed_dict={self.x: data});
+                y = np.swapaxes(y, 0, 1);
+                y_predictions = np.argmax(y,2);
+            else:
+                y = self.y_single_digit.eval(feed_dict={self.x: data});
+                y_predictions = np.argmax(y,1);
         
-        return y_predictions, y_unswapped;
+        return y_predictions, {'right_hand': y};
     
     def writeVerboseOutput(self):
         pass # TO DO: implement

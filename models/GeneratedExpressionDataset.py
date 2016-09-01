@@ -150,10 +150,13 @@ class GeneratedExpressionDataset(Dataset):
         data_length = 0;
         target_length = 0;
         line = f.readline();
-        while (line != ""):
+        while (line.strip() != ""):
             length += 1;
             line = f.readline();
-            data, target, label, expression, _ = self.processor(line, [], [], [], []);
+            try:
+                data, target, label, expression, _ = self.processor(line.strip(), [], [], [], []);
+            except Exception:
+                print(line);
             if (data[0].shape[0] > data_length):
                 data_length = data[0].shape[0];
             if (target[0].shape[0] > target_length):
@@ -186,7 +189,7 @@ class GeneratedExpressionDataset(Dataset):
             line_number += 1;
             # Skip empty lines and restart file at the end (if the end of file
             # is not also end of reading
-            if (line == ""):
+            if (line.strip() == ""):
                 # http://stackoverflow.com/questions/3906137/why-cant-i-call-read-twice-on-an-open-file
                 f.seek(0);
                 line = f.readline();
