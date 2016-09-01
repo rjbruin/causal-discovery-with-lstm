@@ -7,11 +7,9 @@ Created on 16 feb. 2016
 import time;
 import sys;
 
-import tools.model;
-
 from tools.file import save_to_pickle;
 from tools.arguments import processCommandLineArguments;
-from tools.model import train, test;
+from tools.model import train, test, constructModels;
 from tools.gpu import using_gpu; # @UnresolvedImport
 
 import numpy as np;
@@ -56,7 +54,7 @@ if (__name__ == '__main__'):
         print("WARNING! RUNNING WITHOUT GPU USAGE!");
     
     # Construct models
-    datasets, rnn = tools.model.constructModels(parameters, seed, verboseOutputter);
+    datasets, rnn = constructModels(parameters, seed, verboseOutputter);
     
     ### From here the experiment should be the same every time
     
