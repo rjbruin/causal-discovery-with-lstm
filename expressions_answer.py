@@ -37,11 +37,13 @@ if (__name__ == '__main__'):
     # Set up extreme verbose output
     # Can always be called but will not do anything if not needed
     if (parameters['extreme_verbose']):
+        if (parameters['tensorflow']):
+            raise ValueError("Feature extreme_verbose = True not supported in combination with tensorflow = True!");
         verboseOutputter = {'name': './verbose_output/%s.debug' % name};
         verboseOutputter['f'] = lambda: open(verboseOutputter['name'],'a');
         verboseOutputter['write'] = lambda s: writeToVerbose(verboseOutputter, s);
     else:
-        verboseOutputter = {'write': lambda s: False};
+        verboseOutputter = None;
     
     # Ask for seed if running random baseline
     seed = 0;
@@ -72,5 +74,5 @@ if (__name__ == '__main__'):
     
     # Save weights to pickles
     if (saveModels):
-        saveVars = rnn.vars.items();
+        saveVars = rnn.getVars();
         save_to_pickle('saved_models/%s.model' % name, saveVars);

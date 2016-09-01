@@ -10,6 +10,7 @@ import time;
 from models.GeneratedExpressionDataset import GeneratedExpressionDataset;
 from models.RandomBaseline import RandomBaseline;
 from models.TheanoRecurrentNeuralNetwork import TheanoRecurrentNeuralNetwork
+from models.TensorflowRecurrentNeuralNetwork import TensorflowRecurrentNeuralNetwork
 
 from tools.statistics import str_statistics;
 from tools.file import save_to_pickle;
@@ -53,12 +54,22 @@ def constructModels(parameters, seed, verboseOutputter):
     if (parameters['random_baseline']):
         rnn = RandomBaseline(parameters['single_digit'], seed, dataset,
                                 n_max_digits=parameters['n_max_digits'], minibatch_size=parameters['minibatch_size']);
+    elif (parameters['tensorflow']):
+        rnn = TensorflowRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
+                                         lstm=parameters['lstm'], single_digit=parameters['single_digit'] or parameters['find_x'],
+                                         minibatch_size=parameters['minibatch_size'],
+                                         n_max_digits=dataset.target_length,
+                                         input_n_max_digits=dataset.data_length,
+                                         decoder=parameters['decoder'],
+                                         verboseOutputter=verboseOutputter,
+                                         layers=parameters['layers'],
+                                         all_decoder_prediction=parameters['all_decoder_prediction'],
+                                         GO_symbol_index=dataset.GO_symbol_index);
     else:
         rnn = TheanoRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
                                          lstm=parameters['lstm'], single_digit=parameters['single_digit'] or parameters['find_x'],
                                          minibatch_size=parameters['minibatch_size'],
                                          n_max_digits=parameters['n_max_digits'],
-                                         time_training_batch=parameters['time_training_batch'],
                                          decoder=parameters['decoder'],
                                          verboseOutputter=verboseOutputter,
                                          layers=parameters['layers'],
@@ -119,7 +130,7 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
                 if (model.fake_minibatch):
                     batch_range = range(0,total);
                 for k in batch_range:
-                    if (model.time_training_batch):
+                    if (parameters['time_training_batch']):
                         start = time.clock();
                     
                     data = batch_train[k:k+model.minibatch_size];
@@ -149,7 +160,7 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
                     
                     if (not no_print and k % printing_interval == 0):
                         print("# %d / %d" % (k, total));
-                        if (model.time_training_batch):
+                        if (parameters['time_training_batch']):
                             duration = time.clock() - start;
                             print("%d seconds" % duration);
                     
@@ -166,17 +177,18 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
             # and we have passed the testing threshold
             if (r != repetition_size-1 and total_datapoints_processed >= next_testing_threshold):
                 if (verboseOutputter is not None):
-                    for varname in model.vars:
-                        varsum = model.vars[varname].get_value().sum();
-                        verboseOutputter['write']("summed %s: %.8f" % (varname, varsum));
+                    # TO DO: TensorflowRecurrentNeuralNetwork not supported!
+                    for var in model.getVars():
+                        varsum = var.get_value().sum();
+                        model.writeVerboseOutput("summed %s: %.8f" % (varname, varsum));
                         if (varsum == 0.0):
-                            verboseOutputter['write']("!!!!! Variable sum value is equal to zero!");
-                            verboseOutputter['write']("=> name = %s, value:\n%s" % (varname, str(model.vars[varname].get_value())));
+                            model.writeVerboseOutput("!!!!! Variable sum value is equal to zero!");
+                            model.writeVerboseOutput("=> name = %s, value:\n%s" % (varname, str(self.vars[varname].get_value())));
                 
                 test(model, dataset, parameters, start_time, verboseOutputter=verboseOutputter, print_samples=parameters['debug']);
                 # Save weights to pickles
                 if (saveModels):
-                    saveVars = model.vars.items();
+                    saveVars = model.getVars();
                     save_to_pickle('saved_models/%s_%d.model' % (exp_name, b), saveVars, settings=parameters);
                 next_testing_threshold += parameters['test_interval'] * repetition_size;
 
@@ -201,9 +213,9 @@ def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=Fal
         # Get data from batch
         test_data, test_targets, test_labels, test_expressions = batch;
         
-        if (verboseOutputter is not None):
-            verboseOutputter['write']("%s samples in this test batch" % len(test_data));
-            verboseOutputter['write']("example: %s" % (str(test_data[0])));
+        if (model.verboseOutputter is not None):
+            model.writeVerboseOutput("%s samples in this test batch" % len(test_data));
+            model.writeVerboseOutput("example: %s" % (str(test_data[0])));
         
         # Set trigger var for extreme verbose
         if (model.verboseOutputter is not None):
@@ -261,7 +273,8 @@ def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=Fal
                 printed_samples = True;
             
             if (triggerVerbose):
-                model.verboseOutput(prediction, other);
+                model.writeVerboseOutput("Prediction: %s\nright_hand: %s" 
+                                         % (str(prediction), str(other['right_hand'])));
                 # Only trigger this for the first sample, so reset the var 
                 # to prevent further verbose outputting
                 triggerVerbose = False;
@@ -278,8 +291,8 @@ def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=Fal
         stats = model.total_statistics(stats);
         
         if (model.verboseOutputter is not None and stats['score'] == 0.0):
-            model.verboseOutputter['write']("!!!!! Precision is zero\nargmax of prediction size histogram = %d\ntest_data:\n%s" 
-                                            % (np.argmax(stats['prediction_size_histogram']),str(test_data)));
+            model.writeVerboseOutput("!!!!! Precision is zero\nargmax of prediction size histogram = %d\ntest_data:\n%s" 
+                                     % (np.argmax(stats['prediction_size_histogram']),str(test_data)));
         
         # Get new batch
         batch = dataset.get_test_batch();

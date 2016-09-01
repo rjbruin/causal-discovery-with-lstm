@@ -34,9 +34,13 @@ class RecurrentModel(object):
     def predict(self, data, labels, targets):
         pass
     
-    def verboseOutput(self, prediction, other):
-        self.verboseOutputter['write']("Prediction: %s\nright_hand: %s" 
-                                       % (str(prediction), str(other['right_hand'])));
+    def writeVerboseOutput(self, message):
+        if (self.verboseOutputter is not None):
+            self.verboseOutputter['write'](message);
+    
+    @abstractmethod
+    def getVars(self):
+        pass
     
     def batch_statistics(self, stats, prediction, labels, targets, expressions, 
                          other, test_n, dataset,

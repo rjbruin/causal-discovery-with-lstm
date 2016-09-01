@@ -475,6 +475,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         else:
             return self._sgd(data, target, learning_rate);
     
+    def getVars(self):
+        return self.vars.items();
+    
     @staticmethod
     def operator_scores(expression, correct, operators, 
                         key_indices, op_scores):

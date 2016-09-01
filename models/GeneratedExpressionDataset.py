@@ -84,7 +84,11 @@ class GeneratedExpressionDataset(Dataset):
         
         # Store locations and sizes for both train and testing
         self.locations = [0, 0];
-        self.lengths = [self.filelength(self.sources[self.TRAIN]), self.filelength(self.sources[self.TEST])];
+        train_length, train_data_length, train_target_length = self.filemeta(self.sources[self.TRAIN]);
+        test_length, test_data_length, test_target_length = self.filemeta(self.sources[self.TEST]);
+        self.data_length = max(train_data_length, test_data_length);
+        self.target_length = max(train_target_length, test_target_length);
+        self.lengths = [train_length, test_length];
         if (self.max_training_size is not False):
             self.lengths[self.TRAIN] = self.max_training_size;
         if (self.max_testing_size is not False):
@@ -140,15 +144,22 @@ class GeneratedExpressionDataset(Dataset):
         
         return True;
     
-    def filelength(self, source):
+    def filemeta(self, source):
         f = open(source, 'r');
         length = 0;
+        data_length = 0;
+        target_length = 0;
         line = f.readline();
         while (line != ""):
             length += 1;
             line = f.readline();
+            data, target, label, expression, _ = self.processor(line, [], [], [], []);
+            if (data[0].shape[0] > data_length):
+                data_length = data[0].shape[0];
+            if (target[0].shape[0] > target_length):
+                target_length = target[0].shape[0];
         
-        return length;
+        return length, data_length, target_length;
     
     def load(self, source, size, location):
         f = open(source,'r');
