@@ -36,8 +36,6 @@ class TensorflowRecurrentNeuralNetwork(RecurrentModel):
         self.GO_symbol_index = GO_symbol_index;
         
         # Feature support checks
-        if (self.lstm):
-            raise ValueError("Feature LSTM = True not supported!");
         if (self.single_digit):
             raise ValueError("Feature single_digit = True not supported!");
         if (self.mn):
@@ -67,28 +65,12 @@ class TensorflowRecurrentNeuralNetwork(RecurrentModel):
         self.target = tf.placeholder(tf.float32, [self.n_max_digits, self.minibatch_size, self.decoding_output_dim], name='targets');
         self.learning_rate = tf.placeholder(tf.float32, ());
         
-        def init_rnn_cell(scope, data_dim, hidden_dim, output_dim):
-            with tf.variable_scope(scope):
-                XWh = tf.get_variable('XWh', [data_dim, hidden_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
-                hWh = tf.get_variable('hWh', [hidden_dim, hidden_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
-                hWo = tf.get_variable('hWo', [hidden_dim, output_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
-                bh = tf.get_variable('bh', initializer=tf.zeros_initializer([hidden_dim]));
-                bo = tf.get_variable('bo', initializer=tf.zeros_initializer([output_dim]));
-        
-        def rnn_cell(scope, input, state, withOutput=True):
-            with tf.variable_scope(scope, reuse=True):
-                XWh = tf.get_variable('XWh');
-                hWh = tf.get_variable('hWh');
-                bh = tf.get_variable('bh');
-                if (withOutput):
-                    hWo = tf.get_variable('hWo');
-                    bo = tf.get_variable('bo');
-            input_gate = tf.matmul(input,XWh);
-            state = tf.tanh(input_gate + tf.matmul(state,hWh) + bh);
-            output = None;
-            if (withOutput):
-                output = tf.nn.softmax(tf.matmul(state, hWo) + bo);
-            return state, output;
+        # Set cell type
+        init_cell_type = init_rnn_cell;
+        cell_type = rnn_cell;
+        if (self.lstm):
+            init_cell_type = init_lstm_cell;
+            cell_type = lstm_cell;
         
         # Encoding
         if (self.decoder):
@@ -96,13 +78,12 @@ class TensorflowRecurrentNeuralNetwork(RecurrentModel):
             init_hidden = tf.zeros([self.minibatch_size, self.hidden_dim]);
             _, state = tf.nn.rnn(self.encoding_cell, tf.unpack(self.x, axis=0), initial_state=init_hidden);
         else:
-            init_rnn_cell('encoding_cell', self.data_dim, self.hidden_dim, self.prediction_output_dim);
+            init_cell_type('encoding_cell', self.data_dim, self.hidden_dim, self.prediction_output_dim);
             state = tf.zeros([self.minibatch_size, self.hidden_dim]);
             x_unpacked = tf.unpack(self.x, axis=0);
             
             for i in range(self.input_n_max_digits):
-                state, _ = rnn_cell('encoding_cell', x_unpacked[i], state, withOutput=False);
-            
+                state, _ = cell_type('encoding_cell', x_unpacked[i], state, withOutput=False);            
         
         if (not self.all_decoder_prediction):
             with tf.variable_scope('encoding_prediction'):
@@ -112,10 +93,10 @@ class TensorflowRecurrentNeuralNetwork(RecurrentModel):
         
         # Decoding
         if (self.decoder):
-            init_rnn_cell('decoding_cell', self.prediction_output_dim, self.hidden_dim, self.decoding_output_dim);
-            decoding_cell = lambda inp, st: rnn_cell('decoding_cell', inp, st);
+            init_cell_type('decoding_cell', self.prediction_output_dim, self.hidden_dim, self.decoding_output_dim);
+            decoding_cell = lambda inp, st: cell_type('decoding_cell', inp, st);
         else:
-            decoding_cell = lambda inp, st: rnn_cell('encoding_cell', inp, st);
+            decoding_cell = lambda inp, st: cell_type('encoding_cell', inp, st);
         
         y_array = []
         if (self.all_decoder_prediction):
@@ -177,28 +158,90 @@ class TensorflowRecurrentNeuralNetwork(RecurrentModel):
     
     def getVars(self):
         if (self.decoder):
-            with tf.variable_scope('decoding_cell', reuse=True):
-                XWh = tf.get_variable('XWh', [self.decoding_output_dim, self.hidden_dim]);
-                hWh = tf.get_variable('hWh', [self.hidden_dim, self.hidden_dim]);
-                hWo = tf.get_variable('hWo', [self.hidden_dim, self.decoding_output_dim]);
-                bh = tf.get_variable('bh');
-                bo = tf.get_variable('bo');
-            # TO DO: include encoding_cell
-            #with tf.variable_scope('Linear', reuse=True):
-            #    Matrix = tf.get_variable('Matrix');
-            #    Bias = tf.get_variable('Bias');
-            #Matrix_val, Bias_val, XWh_val, hWh_val, hWo_val, bh_val, bo_val = self.session.run([Matrix, Bias, XWh, hWh, hWo, bh, bo]);
-            #return {'Matrix': Matrix_val, 'Bias': Bias_val, 'XWh': XWh_val, 'hWh': hWh_val, 'hWo': hWo_val, 'bh': bh_val, 'bo': bo_val};
-        
-            XWh_val, hWh_val, hWo_val, bh_val, bo_val = self.session.run([XWh, hWh, hWo, bh, bo]);
-            return {'XWh': XWh_val, 'hWh': hWh_val, 'hWo': hWo_val, 'bh': bh_val, 'bo': bo_val};
+            if (self.lstm):
+                vars = init_lstm_cell('decoding_cell', self.data_dim, self.hidden_dim, self.decoding_output_dim, justLoad=True);
+            else:
+                vars = init_rnn_cell('decoding_cell', self.data_dim, self.hidden_dim, self.decoding_output_dim, justLoad=True);
         else:
-            with tf.variable_scope('encoding_cell', reuse=True):
-                XWh = tf.get_variable('XWh', [self.decoding_output_dim, self.hidden_dim]);
-                hWh = tf.get_variable('hWh', [self.hidden_dim, self.hidden_dim]);
-                hWo = tf.get_variable('hWo', [self.hidden_dim, self.decoding_output_dim]);
-                bh = tf.get_variable('bh');
-                bo = tf.get_variable('bo');
+            if (self.lstm):
+                vars = init_lstm_cell('encoding_cell', self.data_dim, self.hidden_dim, self.prediction_output_dim, justLoad=True);
+            else:
+                vars = init_rnn_cell('encoding_cell', self.data_dim, self.hidden_dim, self.prediction_output_dim, justLoad=True);
         
-            XWh_val, hWh_val, hWo_val, bh_val, bo_val = self.session.run([XWh, hWh, hWo, bh, bo]);
-            return {'XWh': XWh_val, 'hWh': hWh_val, 'hWo': hWo_val, 'bh': bh_val, 'bo': bo_val};
+        vars_vals = self.session.run(vars);
+        return {var.name: vars_vals[i] for (i,var) in enumerate(vars)};
+        
+def init_rnn_cell(scope, data_dim, hidden_dim, output_dim, justLoad=False):
+    """
+    Call with reuse=True if you want to get the variables instead of initializing them.
+    """
+    with tf.variable_scope(scope, reuse=justLoad):
+        XWh = tf.get_variable('XWh', [data_dim, hidden_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
+        hWh = tf.get_variable('hWh', [hidden_dim, hidden_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
+        hWo = tf.get_variable('hWo', [hidden_dim, output_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
+        bh = tf.get_variable('bh', initializer=tf.zeros_initializer([hidden_dim]));
+        bo = tf.get_variable('bo', initializer=tf.zeros_initializer([output_dim]));
+    return [XWh, hWh, hWo, bh, bo];
+
+def init_lstm_cell(scope, data_dim, hidden_dim, output_dim, justLoad=False):
+    with tf.variable_scope(scope, reuse=justLoad):
+        XWf = tf.get_variable('XWf', [data_dim, hidden_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
+        hWf = tf.get_variable('hWf', [hidden_dim, hidden_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
+        XWi = tf.get_variable('XWi', [data_dim, hidden_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
+        hWi = tf.get_variable('hWi', [hidden_dim, hidden_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
+        XWc = tf.get_variable('XWc', [data_dim, hidden_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
+        hWc = tf.get_variable('hWc', [hidden_dim, hidden_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
+        XWo = tf.get_variable('XWo', [data_dim, hidden_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
+        hWo = tf.get_variable('hWo', [hidden_dim, hidden_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
+        hWy = tf.get_variable('hWy', [hidden_dim, output_dim], initializer=tf.truncated_normal_initializer(stddev=0.1));
+    return [XWf, hWf, XWi, hWi, XWc, hWc, XWo, hWo, hWy];
+
+def rnn_cell(scope, input, state, withOutput=True):
+    with tf.variable_scope(scope, reuse=True):
+        XWh = tf.get_variable('XWh');
+        hWh = tf.get_variable('hWh');
+        bh = tf.get_variable('bh');
+        if (withOutput):
+            hWo = tf.get_variable('hWo');
+            bo = tf.get_variable('bo');
+    input_gate = tf.matmul(input,XWh);
+    state = tf.tanh(input_gate + tf.matmul(state,hWh) + bh);
+    output = None;
+    if (withOutput):
+        output = tf.nn.softmax(tf.matmul(state, hWo) + bo);
+    return state, output;
+
+def lstm_cell(scope, input, state, withOutput=True):
+    with tf.variable_scope(scope, reuse=True):
+        XWf = tf.get_variable('XWf');
+        hWf = tf.get_variable('hWf');
+        XWi = tf.get_variable('XWi');
+        hWi = tf.get_variable('hWi');
+        XWc = tf.get_variable('XWc');
+        hWc = tf.get_variable('hWc');
+        XWo = tf.get_variable('XWo');
+        hWo = tf.get_variable('hWo');
+        if (withOutput):
+            hWy = tf.get_variable('hWy');
+    """
+    forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + current_X.dot(XWf));
+    input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + current_X.dot(XWi));
+    candidate_cell = T.tanh(previous_hidden.dot(hWc) + current_X.dot(XWc));
+    cell = forget_gate * previous_hidden + input_gate * candidate_cell;
+    output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + current_X.dot(XWo));
+    hidden = output_gate * cell;
+    Y_output = T.nnet.softmax(hidden.dot(hWY));
+    return Y_output, hidden;
+    """
+    forget_gate = tf.sigmoid(tf.matmul(state,hWf) + tf.matmul(input,XWf));
+    input_gate = tf.sigmoid(tf.matmul(state,hWi) + tf.matmul(input,XWi));
+    candidate_cell = tf.tanh(tf.matmul(state,hWc) + tf.matmul(input,XWc));
+    cell = forget_gate * state + input_gate * candidate_cell;
+    output_gate = tf.sigmoid(tf.matmul(state,hWo) + tf.matmul(input,XWo));
+    state = output_gate * cell;
+    
+    output = None;
+    if (withOutput):
+        output = tf.nn.softmax(tf.matmul(state,hWy));
+    
+    return state, output;
