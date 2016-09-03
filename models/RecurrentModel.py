@@ -72,7 +72,7 @@ class RecurrentModel(object):
                     # Correct if prediction and target length match and 
                     # prediction and target up to target length are the same
                     stats['correct'] += 1.0;
-                for k,digit in enumerate(prediction[j][:len(argmax_target)]):
+                for k,digit in enumerate(prediction[j][:target_length]):
                     if (digit == np.argmax(targets[j][k])):
                         stats['digit_correct'] += 1.0;
                     stats['digit_prediction_size'] += 1;

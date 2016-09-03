@@ -17,25 +17,24 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
 
     def __init__(self, data_dim, hidden_dim, output_dim, minibatch_size, 
-                 lstm=False, weight_values={}, single_digit=False, 
+                 lstm=True, weight_values={}, single_digit=False, 
                  EOS_symbol_index=None, GO_symbol_index=None, n_max_digits=24, 
-                 decoder=False, verboseOutputter=None, layers=1, mn=False, 
-                 all_decoder_prediction=False):
+                 decoder=False, verboseOutputter=None):
         '''
         Initialize all Theano models.
         '''
         # Store settings in self since the initializing functions will need them
-        self.layers = layers;
         self.single_digit = single_digit;
         self.minibatch_size = minibatch_size;
         self.n_max_digits = n_max_digits;
         self.lstm = lstm;
-        self.mn = mn;
         self.single_digit = single_digit;
         self.decoder = decoder;
         self.verboseOutputter = verboseOutputter;
-        self.all_decoder_prediction = all_decoder_prediction;
         
+        if (not self.lstm):
+            raise ValueError("Feature LSTM = False is no longer supported!");
+                
         self.EOS_symbol_index = EOS_symbol_index;
         self.GO_symbol_index = GO_symbol_index;
         
@@ -47,9 +46,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             self.hidden_dim_2 = hidden_dim;
         self.decoding_output_dim = output_dim;
         self.prediction_output_dim = output_dim;
-        # Change output dim of prediction phase if decoding
-        if (self.decoder):
-            self.prediction_output_dim = self.hidden_dim;
         
         # Set up settings for fake minibatching
         self.fake_minibatch = False;
@@ -61,58 +57,29 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         # Set up shared variables
         varSettings = [];
-        if (self.layers == 1):
-            if (self.mn):
-                varSettings.append(('qWu_B',self.query_dim,self.memory_dim));
-                varSettings.append(('xWm_A',self.data_dim,self.memory_dim));
-                varSettings.append(('xWc_C',self.data_dim,self.memory_dim));
-                varSettings.append(('ouWy_W',self.memory_dim,self.output_dim));
-            elif (not self.lstm):
-                varSettings.append(('XWh',self.data_dim,self.hidden_dim));
-                varSettings.append(('hWh',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('hWo',self.hidden_dim,self.decoding_output_dim));
-            else:
-                varSettings.append(('hWf',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('XWf',self.data_dim,self.hidden_dim));
-                varSettings.append(('hWi',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('XWi',self.data_dim,self.hidden_dim));
-                varSettings.append(('hWc',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('XWc',self.data_dim,self.hidden_dim));
-                varSettings.append(('hWo',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('XWo',self.data_dim,self.hidden_dim));
-                varSettings.append(('hWY',self.hidden_dim,self.prediction_output_dim));
-                if (decoder):
-                    # Add variables for the decoding phase
-                    # All these variables begin with 'D' so they can be 
-                    # automatically filtered to be used as parameters
-                    varSettings.append(('DhWf',self.hidden_dim,self.hidden_dim));
-                    varSettings.append(('DXWf',self.data_dim,self.hidden_dim));
-                    varSettings.append(('DhWi',self.hidden_dim,self.hidden_dim));
-                    varSettings.append(('DXWi',self.data_dim,self.hidden_dim));
-                    varSettings.append(('DhWc',self.hidden_dim,self.hidden_dim));
-                    varSettings.append(('DXWc',self.data_dim,self.hidden_dim));
-                    varSettings.append(('DhWo',self.hidden_dim,self.hidden_dim));
-                    varSettings.append(('DXWo',self.data_dim,self.hidden_dim));
-                    varSettings.append(('DhWY',self.hidden_dim,self.decoding_output_dim));
-        elif (self.layers == 2):
-            varSettings.append(('hWf',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('XWf',self.data_dim,self.hidden_dim));
-            varSettings.append(('hWi',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('XWi',self.data_dim,self.hidden_dim));
-            varSettings.append(('hWc',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('XWc',self.data_dim,self.hidden_dim));
-            varSettings.append(('hWo',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('XWo',self.data_dim,self.hidden_dim));
-            varSettings.append(('hWh2',self.hidden_dim,self.hidden_dim_2));
-            varSettings.append(('sh2Wf',self.hidden_dim_2,self.hidden_dim_2));
-            varSettings.append(('shWf',self.hidden_dim,self.hidden_dim_2));
-            varSettings.append(('sh2Wi',self.hidden_dim_2,self.hidden_dim_2));
-            varSettings.append(('shWi',self.hidden_dim,self.hidden_dim_2));
-            varSettings.append(('sh2Wc',self.hidden_dim_2,self.hidden_dim_2));
-            varSettings.append(('shWc',self.hidden_dim,self.hidden_dim_2));
-            varSettings.append(('sh2Wo',self.hidden_dim_2,self.hidden_dim_2));
-            varSettings.append(('shWo',self.hidden_dim,self.hidden_dim_2));
-            varSettings.append(('sh2WY',self.hidden_dim_2,self.prediction_output_dim));
+        varSettings.append(('hWf',self.hidden_dim,self.hidden_dim));
+        varSettings.append(('XWf',self.data_dim,self.hidden_dim));
+        varSettings.append(('hWi',self.hidden_dim,self.hidden_dim));
+        varSettings.append(('XWi',self.data_dim,self.hidden_dim));
+        varSettings.append(('hWc',self.hidden_dim,self.hidden_dim));
+        varSettings.append(('XWc',self.data_dim,self.hidden_dim));
+        varSettings.append(('hWo',self.hidden_dim,self.hidden_dim));
+        varSettings.append(('XWo',self.data_dim,self.hidden_dim));
+        if (self.decoder):
+            # Add variables for the decoding phase
+            # All these variables begin with 'D' so they can be 
+            # automatically filtered to be used as parameters
+            varSettings.append(('DhWf',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('DXWf',self.data_dim,self.hidden_dim));
+            varSettings.append(('DhWi',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('DXWi',self.data_dim,self.hidden_dim));
+            varSettings.append(('DhWc',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('DXWc',self.data_dim,self.hidden_dim));
+            varSettings.append(('DhWo',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('DXWo',self.data_dim,self.hidden_dim));
+            varSettings.append(('DhWY',self.hidden_dim,self.decoding_output_dim));
+        else:
+            varSettings.append(('hWY',self.hidden_dim,self.prediction_output_dim));
         
         # Contruct variables
         self.vars = {};
@@ -135,214 +102,181 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             # targets is 3-dimensional: 1) index in sentence, 2) datapoint, 3) encodings
             label = T.dtensor3('label');
         
+        first_hidden = T.zeros((self.minibatch_size,self.hidden_dim), dtype='float64');
+        if (self.single_digit):
+            [outputs, hidden], _ = theano.scan(fn=self.lstm_predict_single,
+                                               sequences=X,
+                                               # Input a zero hidden layer
+                                               outputs_info=(None, {'initial': first_hidden, 'taps': [-1]}),
+                                               non_sequences=[self.vars[k[0]] for k in filter(lambda name: name[0][0] != 'D', varSettings)])
+            
+            # We only predict on the final Y because for now we only predict the final digit in the expression
+            # Takes the argmax over the last dimension, resulting in a vector representing one predicted symbol
+            prediction = T.argmax(outputs[-1], 1);
+            right_hand = outputs[-1];
+            # Perform crossentropy calculation for each datapoint and take the mean
+            error = T.mean(T.nnet.categorical_crossentropy(outputs[-1], label));
+        else:
+            # Set scan functions and arguments
+            encode_function = self.lstm_predict_single_no_output;
+            # Set the prediction parameters to be either the prediction 
+            # weights or the decoding weights depending on the setting 
+            encode_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] != 'D' and name[0] != 'hWY', varSettings)];
+            if (self.decoder):
+                decode_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] == 'D', varSettings)];
+                decode_function = self.lstm_predict_single;
+            else:
+                decode_parameters = encode_parameters + [self.vars['hWY']];
+                decode_function = self.lstm_predict_single;
+            
+            hidden, _ = theano.scan(fn=encode_function,
+                                               sequences=X,
+                                               # Input a zero hidden layer
+                                               outputs_info=({'initial': first_hidden, 'taps': [-1]}),
+                                               non_sequences=encode_parameters)
         
-        
-        # Call the specific initializing function for this specific model
-#         if (self.layers > 1):
-#             prediction, right_hand, error = self.init_multiple_layers(X, label, varSettings);
-#         else:
-        prediction, prediction_fixed_input, right_hand, right_hand_fixed_input, error, error_fixed_input = self.init_other(X, label, varSettings);
+            if (self.GO_symbol_index is None):
+                raise ValueError("GO symbol index not set!");
+            init_X = T.zeros((self.prediction_output_dim,self.minibatch_size), dtype='float64');
+            init_X = T.set_subtensor(init_X[self.GO_symbol_index],T.ones(self.minibatch_size));
+            init_X = T.swapaxes(init_X, 0, 1);
+            n_steps = self.n_max_digits;
+            
+            init_values = ({'initial': init_X, 'taps': [-1]},
+                           {'initial': hidden[-1], 'taps': [-1]});
+            [right_hand, _], _ = theano.scan(fn=decode_function,
+                                     # Inputs the last hidden layer and the last predicted symbol
+                                     outputs_info=init_values,
+                                     non_sequences=decode_parameters,
+                                     n_steps=n_steps)
+            # We predict the final n symbols (all symbols predicted as output from input '=')
+            prediction = T.argmax(right_hand, axis=2);
+            padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim)));
+            
+#             accumulator = theano.shared(np.float64(0.), name='accumulatedError');
+#             summed_error, _ = theano.scan(fn=self.crossentropy_2d,
+#                                           sequences=(right_hand,padded_label),
+#                                           outputs_info={'initial': accumulator, 'taps': [-1]})
+#             error = summed_error[-1];
+            error = T.mean(T.nnet.categorical_crossentropy(right_hand,padded_label));
+            
           
         
         
         # Automatic backward pass for all models: gradients
         variables = self.vars.keys();
         derivatives = T.grad(error, map(lambda var: self.vars[var], variables));
-        derivatives_fixed_input = T.grad(error_fixed_input, map(lambda var: self.vars[var], variables));
+        # Added a filter to filter out the hWY variable as it isn't used in the fixed-input approach
            
         # Defining prediction
         self._predict = theano.function([X], [prediction, 
                                               prediction,
                                               right_hand]);
-        self._predict_fixed_input = theano.function([X, label], [prediction_fixed_input, 
-                                                          prediction_fixed_input,
-                                                          right_hand_fixed_input]);
         
         # Defining stochastic gradient descent
         learning_rate = T.dscalar('learning_rate');
         updates = [(var,var-learning_rate*der) for (var,der) in zip(map(lambda var: self.vars[var], variables),derivatives)];
-        updates_fixed_input = [(var,var-learning_rate*der) for (var,der) in zip(map(lambda var: self.vars[var], variables),derivatives_fixed_input)];
         self._sgd = theano.function([X, label, learning_rate], [error], 
                                    updates=updates,
                                    allow_input_downcast=True)
-        self._sgd_with_fixed_decoder_input = theano.function([X, label, learning_rate], [error_fixed_input], 
-                                                             updates=updates_fixed_input,
-                                                             allow_input_downcast=True)
         
         super(TheanoRecurrentNeuralNetwork, self).__init__();
     
-    def init_other(self, X, label, varSettings):
-        # Set scan functions and arguments
-        if (self.lstm):
-            recurrence_function = self.lstm_predict_single;
-            predict_function = self.lstm_predict_sequence;
-            # Set the prediction parameters to be either the prediction 
-            # weights or the decoding weights depending on the setting 
-            predict_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] != 'D', varSettings)];
-            if (self.decoder):
-                decode_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] == 'D', varSettings)];
-            else:
-                decode_parameters = predict_parameters;
-        else:
-            recurrence_function = self.rnn_predict_single;
-            predict_function = self.rnn_predict_sequence;
-            predict_parameters = [self.vars[k] for k in self.vars];
-            decode_parameters = predict_parameters;
-        
-        first_hidden = np.zeros((self.minibatch_size,self.hidden_dim));
-        [Y_1, hidden], _ = theano.scan(fn=recurrence_function,
-                                sequences=X,
-                                # Input a zero hidden layer
-                                outputs_info=(None,first_hidden),
-                                non_sequences=predict_parameters)
-        
-        # If X is shorter than Y we are testing and thus need to predict
-        # multiple digits at the end by inputting the previously predicted
-        # digit at each step as X
-        if (self.single_digit):
-            # We only predict on the final Y because for now we only predict the final digit in the expression
-            # Takes the argmax over the last dimension, resulting in a vector representing one predicted symbol
-            prediction = T.argmax(Y_1[-1], 1);
-            right_hand = Y_1[-1];
-            # Perform crossentropy calculation for each datapoint and take the mean
-            error = T.mean(T.nnet.categorical_crossentropy(Y_1[-1], label));
-        else:
-            # Add predictions until EOS to Y
-            init_X = Y_1[-1];
-            # n_steps is one less than n_max_digits because we use the last 
-            # output of the encoder as the first decoder output
-            n_steps = self.n_max_digits-1; 
-            if (self.all_decoder_prediction):
-                if (self.GO_symbol_index is None):
-                    raise ValueError("GO symbol index not set!");
-                init_X = T.zeros((self.prediction_output_dim,self.minibatch_size), dtype='float64');
-                init_X = T.set_subtensor(init_X[self.GO_symbol_index],T.ones(self.minibatch_size));
-                init_X = T.swapaxes(init_X, 0, 1);
-                n_steps = self.n_max_digits;
-            
-            init_values = ({'initial': init_X, 'taps': [-1]},
-                           {'initial': hidden[-1], 'taps': [-1]});
-            if (self.decoder):
-                # When decoding we start the decoder with zeros as input and
-                # the last prediction output state as first hidden state
-                # This is why we had to change the prediction output dimension
-                # size to match the hidden dimension size
-                init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim), dtype='float64'), 'taps': [-1]},
-                               {'initial': init_X, 'taps': [-1]});
-            [Ys, _], _ = theano.scan(fn=predict_function,
-                                     # Inputs the last hidden layer and the last predicted symbol
-                                     outputs_info=init_values,
-                                     non_sequences=decode_parameters,
-                                     n_steps=n_steps)
-            [Ys_fixed_input, _], _ = theano.scan(fn=predict_function,
-                                                 sequences=label,
-                                                 # Inputs the last hidden layer and the last predicted symbol
-                                                 outputs_info=(None, {'initial': hidden[-1], 'taps': [-1]}),
-                                                 non_sequences=decode_parameters,
-                                                 n_steps=self.n_max_digits)
-            
-            if (self.decoder):
-                right_hand = Ys;
-                right_hand_fixed_input = Ys_fixed_input;
-            else: 
-                if (self.all_decoder_prediction):
-                    # The right hand of the expression is the output of the decoder
-                    right_hand = Ys;
-                    right_hand_fixed_input = Ys_fixed_input;
-                else:
-                    # The right hand is now the last output of the recurrence function
-                    # joined with the sequential output of the prediction function
-                    right_hand = T.join(0,Y_1[-1].reshape((1,self.minibatch_size,self.decoding_output_dim)),Ys);
-                    right_hand_fixed_input = T.join(0,Y_1[-1].reshape((1,self.minibatch_size,self.decoding_output_dim)),Ys_fixed_input);
-            
-            # We predict the final n symbols (all symbols predicted as output from input '=')
-            prediction = T.argmax(right_hand, axis=2);
-            prediction_fixed_input = T.argmax(right_hand_fixed_input, axis=2);
-            padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim)));
-            
-            accumulator = theano.shared(np.float64(0.), name='accumulatedError');
-            summed_error, _ = theano.scan(fn=self.crossentropy_2d,
-                                          sequences=(right_hand,padded_label),
-                                          outputs_info={'initial': accumulator, 'taps': [-1]})
-            error = summed_error[-1];
-            
-            accumulator_fixed_input = theano.shared(np.float64(0.), name='accumulatedError');
-            summed_error_fixed_input, _ = theano.scan(fn=self.crossentropy_2d,
-                                          sequences=(right_hand_fixed_input,padded_label),
-                                          outputs_info={'initial': accumulator_fixed_input, 'taps': [-1]})
-            error_fixed_input = summed_error_fixed_input[-1];
-        
-        return prediction, prediction_fixed_input, right_hand, right_hand_fixed_input, error, error_fixed_input;
+#     def init_fixed_input(self, X, label, varSettings):
+#         [Ys_fixed_input, _], _ = theano.scan(fn=predict_function,
+#                                              sequences=label,
+#                                              # Inputs the last hidden layer and the last predicted symbol
+#                                              outputs_info=(None, {'initial': hidden[-1], 'taps': [-1]}),
+#                                              non_sequences=decode_parameters,
+#                                              n_steps=self.n_max_digits)
+#         if (self.decoder):
+#             right_hand_fixed_input = Ys_fixed_input;
+#         prediction_fixed_input = T.argmax(right_hand_fixed_input, axis=2);            
+#         accumulator_fixed_input = theano.shared(np.float64(0.), name='accumulatedError');
+#         summed_error_fixed_input, _ = theano.scan(fn=self.crossentropy_2d,
+#                                       sequences=(right_hand_fixed_input,padded_label),
+#                                       outputs_info={'initial': accumulator_fixed_input, 'taps': [-1]})
+#         error_fixed_input = summed_error_fixed_input[-1];
+#         
+#         prediction, prediction_fixed_input, right_hand, right_hand_fixed_input, error, error_fixed_input = self.init_other(X, label, varSettings);
+#         derivatives_fixed_input = T.grad(error_fixed_input, map(lambda var: self.vars[var], filter(lambda name: name != 'hWY', variables)));
+#         self._predict_fixed_input = theano.function([X, label], [prediction_fixed_input, 
+#                                                           prediction_fixed_input,
+#                                                           right_hand_fixed_input]);
+#         updates_fixed_input = [(var,var-learning_rate*der) for (var,der) in zip(map(lambda var: self.vars[var], variables),derivatives_fixed_input)];
+#         self._sgd_with_fixed_decoder_input = theano.function([X, label, learning_rate], [error_fixed_input], 
+#                                                              updates=updates_fixed_input,
+#                                                              allow_input_downcast=True)
     
-    def init_multiple_layers(self, X, label, varSettings):
-        # Set scan functions and arguments
-        
-        if (not self.lstm):
-            raise ValueError("Multiple layers can only be used with LSTM!");
-        
-        if (self.layers != 2):
-            raise ValueError("Multiple layers for now only works with 2 layers.");
-        
-        recurrence_function = self.lstm_predict_single;
-        predict_function = self.lstm_double_predict_sequence;
-        predict_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] != 's', varSettings)];
-        predict_parameters_2 = [self.vars[k[0]] for k in filter(lambda name: name[0][0] == 's', varSettings)];
-        
-        # Because the extra layers cannot communicate back up but only receive 
-        # we can perform the scans after each other 
-        
-        first_hidden = np.zeros((self.minibatch_size,self.hidden_dim));
-        [to_hidden_2, hidden], _ = theano.scan(fn=recurrence_function,
-                                sequences=X,
-                                # Input a zero hidden layer
-                                outputs_info=(None,first_hidden),
-                                non_sequences=predict_parameters)
-        
-        first_hidden_2 = np.zeros((self.minibatch_size,self.hidden_dim_2));
-        [Y_1, hidden_2], _ = theano.scan(fn=recurrence_function,
-                            sequences=to_hidden_2,
-                            # Input a zero hidden layer
-                            outputs_info=(None,first_hidden_2),
-                            non_sequences=predict_parameters_2)
-        
-        # If X is shorter than Y we are testing and thus need to predict
-        # multiple digits at the end by inputting the previously predicted
-        # digit at each step as X
-        if (self.single_digit):
-            raise ValueError("Single digit not implemented yet for multiple layers!");
-        else:
-            # Add predictions to Y
-            # We have to do both layers in one scan, since the output of the 
-            # last layer becomes the input for the first one
-            init_values = ({'initial': Y_1[-1], 'taps': [-1]},
-                           {'initial': hidden[-1], 'taps': [-1]},
-                           {'initial': hidden_2[-1], 'taps': [-1]});
-            if (self.decoder):
-                raise ValueError("Decoder not implemented yet for multiple layers!");
-            [Ys, _, _], _ = theano.scan(fn=predict_function,
-                                     # Inputs the last hidden layer and the last predicted symbol
-                                     outputs_info=init_values,
-                                     non_sequences=predict_parameters + predict_parameters_2,
-                                     n_steps=self.n_max_digits-1)
-            
-            if (self.decoder):
-                raise ValueError("Decoder not implemented yet for multiple layers!");
-            else: 
-                # The right hand is now the last output of the recurrence function
-                # joined with the sequential output of the prediction function
-                right_hand = T.join(0,Y_1[-1].reshape((1,self.minibatch_size,self.decoding_output_dim)),Ys);
-            
-            # We predict the final n symbols (all symbols predicted as output from input '=')
-            prediction = T.argmax(right_hand, axis=2);
-            padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim)));
-            
-            accumulator = theano.shared(np.float64(0.), name='accumulatedError');
-            summed_error, _ = theano.scan(fn=self.crossentropy_2d,
-                                          sequences=(right_hand,padded_label),
-                                          outputs_info={'initial': accumulator, 'taps': [-1]})
-            error = summed_error[-1];
-        
-        return prediction, right_hand, padded_label, summed_error, error;
+#     def init_multiple_layers(self, X, label, varSettings):
+#         # Set scan functions and arguments
+#         
+#         if (not self.lstm):
+#             raise ValueError("Multiple layers can only be used with LSTM!");
+#         
+#         if (self.layers != 2):
+#             raise ValueError("Multiple layers for now only works with 2 layers.");
+#         
+#         recurrence_function = self.lstm_predict_single;
+#         predict_function = self.lstm_double_predict_sequence;
+#         predict_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] != 's', varSettings)];
+#         predict_parameters_2 = [self.vars[k[0]] for k in filter(lambda name: name[0][0] == 's', varSettings)];
+#         
+#         # Because the extra layers cannot communicate back up but only receive 
+#         # we can perform the scans after each other 
+#         
+#         first_hidden = np.zeros((self.minibatch_size,self.hidden_dim));
+#         [to_hidden_2, hidden], _ = theano.scan(fn=recurrence_function,
+#                                 sequences=X,
+#                                 # Input a zero hidden layer
+#                                 outputs_info=(None,first_hidden),
+#                                 non_sequences=predict_parameters)
+#         
+#         first_hidden_2 = np.zeros((self.minibatch_size,self.hidden_dim_2));
+#         [Y_1, hidden_2], _ = theano.scan(fn=recurrence_function,
+#                             sequences=to_hidden_2,
+#                             # Input a zero hidden layer
+#                             outputs_info=(None,first_hidden_2),
+#                             non_sequences=predict_parameters_2)
+#         
+#         # If X is shorter than Y we are testing and thus need to predict
+#         # multiple digits at the end by inputting the previously predicted
+#         # digit at each step as X
+#         if (self.single_digit):
+#             raise ValueError("Single digit not implemented yet for multiple layers!");
+#         else:
+#             # Add predictions to Y
+#             # We have to do both layers in one scan, since the output of the 
+#             # last layer becomes the input for the first one
+#             init_values = ({'initial': Y_1[-1], 'taps': [-1]},
+#                            {'initial': hidden[-1], 'taps': [-1]},
+#                            {'initial': hidden_2[-1], 'taps': [-1]});
+#             if (self.decoder):
+#                 raise ValueError("Decoder not implemented yet for multiple layers!");
+#             [Ys, _, _], _ = theano.scan(fn=predict_function,
+#                                      # Inputs the last hidden layer and the last predicted symbol
+#                                      outputs_info=init_values,
+#                                      non_sequences=predict_parameters + predict_parameters_2,
+#                                      n_steps=self.n_max_digits-1)
+#             
+#             if (self.decoder):
+#                 raise ValueError("Decoder not implemented yet for multiple layers!");
+#             else: 
+#                 # The right hand is now the last output of the recurrence function
+#                 # joined with the sequential output of the prediction function
+#                 right_hand = T.join(0,Y_1[-1].reshape((1,self.minibatch_size,self.decoding_output_dim)),Ys);
+#             
+#             # We predict the final n symbols (all symbols predicted as output from input '=')
+#             prediction = T.argmax(right_hand, axis=2);
+#             padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim)));
+#             
+#             accumulator = theano.shared(np.float64(0.), name='accumulatedError');
+#             summed_error, _ = theano.scan(fn=self.crossentropy_2d,
+#                                           sequences=(right_hand,padded_label),
+#                                           outputs_info={'initial': accumulator, 'taps': [-1]})
+#             error = summed_error[-1];
+#         
+#         return prediction, right_hand, padded_label, summed_error, error;
     
     def loadVars(self, variables):
         """
@@ -377,6 +311,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         hidden = output_gate * cell;
         Y_output = T.nnet.softmax(hidden.dot(hWY));
         return Y_output, hidden;
+    
+    def lstm_predict_single_no_output(self, current_X, previous_hidden, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo):
+        forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + current_X.dot(XWf));
+        input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + current_X.dot(XWi));
+        candidate_cell = T.tanh(previous_hidden.dot(hWc) + current_X.dot(XWc));
+        cell = forget_gate * previous_hidden + input_gate * candidate_cell;
+        output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + current_X.dot(XWo));
+        hidden = output_gate * cell;
+        return [hidden];
      
     def lstm_predict_sequence(self, current_X, previous_hidden, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY):
         Y_output, hidden = self.lstm_predict_single(current_X, previous_hidden, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY);

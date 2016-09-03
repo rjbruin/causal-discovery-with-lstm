@@ -48,7 +48,7 @@ def constructModels(parameters, seed, verboseOutputter):
                                              predictExpressions=parameters['predict_expressions'],
                                              fillX=parameters['fill_x'],
                                              copyInput=parameters['copy_input'],
-                                             use_GO_symbol=parameters['all_decoder_prediction']);
+                                             use_GO_symbol=parameters['decoder']);
         datasets.append(dataset);
     
     if (parameters['random_baseline']):
@@ -72,8 +72,6 @@ def constructModels(parameters, seed, verboseOutputter):
                                          n_max_digits=parameters['n_max_digits'],
                                          decoder=parameters['decoder'],
                                          verboseOutputter=verboseOutputter,
-                                         layers=parameters['layers'],
-                                         all_decoder_prediction=parameters['all_decoder_prediction'],
                                          GO_symbol_index=dataset.GO_symbol_index);
     
     return datasets, rnn;
