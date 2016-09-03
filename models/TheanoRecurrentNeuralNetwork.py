@@ -41,9 +41,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # Set dimensions
         self.data_dim = data_dim;
         self.hidden_dim = hidden_dim;
-        if (self.layers == 2):
-            # For now we stick to layers of the same size
-            self.hidden_dim_2 = hidden_dim;
         self.decoding_output_dim = output_dim;
         self.prediction_output_dim = output_dim;
         
@@ -340,14 +337,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (not self.single_digit and training_labels.shape[1] > (self.n_max_digits+1)):
             raise ValueError("n_max_digits too small! Increase to %d" % training_labels.shape[1]);
     
-    def sgd(self, dataset, data, label, learning_rate, nearestExpression=False, useFixedDecoderInputs=False):
+    def sgd(self, dataset, data, label, learning_rate, nearestExpression=False):
         if (nearestExpression):
-            return self.sgd_nearest_expression(dataset, data, label, learning_rate, useFixedDecoderInputs=useFixedDecoderInputs);
+            return self.sgd_nearest_expression(dataset, data, label, learning_rate);
         else:
-            if (useFixedDecoderInputs):
-                return self._sgd_with_fixed_decoder_input(data, label, learning_rate);
-            else:
-                return self._sgd(data, label, learning_rate);
+            return self._sgd(data, label, learning_rate);
         
     def predict(self, data):
         """
@@ -366,7 +360,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         return prediction, {'right_hand': right_hand};
     
-    def sgd_nearest_expression(self, dataset, data, label, learning_rate, useFixedDecoderInputs=False):
+    def sgd_nearest_expression(self, dataset, data, label, learning_rate):
         unswapped_data = np.swapaxes(data, 0, 1);
         unswapped_label = np.swapaxes(label, 0, 1);
         predictions, _ = self.predict(unswapped_data);
@@ -413,10 +407,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         target = np.swapaxes(target, 0, 1);
         
-        if (useFixedDecoderInputs):
-            return self._sgd_with_fixed_decoder_input(data, target, learning_rate);
-        else:
-            return self._sgd(data, target, learning_rate);
+        return self._sgd(data, target, learning_rate);
     
     def getVars(self):
         return self.vars.items();

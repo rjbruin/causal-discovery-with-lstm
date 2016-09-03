@@ -152,8 +152,7 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
                         target = np.swapaxes(target, 0, 1);
                     # Run training
                     outputs = model.sgd(dataset, data, target, parameters['learning_rate'], 
-                                        nearestExpression=parameters['predict_expressions'], 
-                                        useFixedDecoderInputs=parameters['fixed_decoder_inputs']);
+                                        nearestExpression=parameters['predict_expressions']);
                     total_error += outputs[0];
                     
                     if (not no_print and k % printing_interval == 0):
