@@ -1,13 +1,9 @@
 [
     {
-        "name": "sm64v-predict-expressions",
+        "name": "predict-expressions-sm64",
         "script": "expressions_answer.py",
         "dataset": "./data/expressions_positive_integer_answer_shallow",
-        "single_digit": "False",
-        "repetitions": "288",
-        "hidden_dim": "128",
-        "learning_rate": "0.01",
-        "lstm": "True",
+        "repetitions": "500",
         "minibatch_size": "64",
         "sample_testing_size": "10000",
         "n_max_digits": "12",

@@ -513,10 +513,10 @@ class GeneratedExpressionDataset(Dataset):
     
     def findAnswer(self, onehot_encodings):
         answer_allzeros = map(lambda d: d.sum() == 0.0, onehot_encodings);
-        if (all(map(lambda d: not d,answer_allzeros))):
-            answer_length = onehot_encodings.shape[0];
-        else:
+        try:
             answer_length = answer_allzeros.index(True) - 1;
+        except ValueError:
+            answer_length = onehot_encodings.shape[0];
         answer_onehot = np.argmax(onehot_encodings[:answer_length],1);
         
         answer = '';
