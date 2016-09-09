@@ -6,6 +6,7 @@ Created on 22 feb. 2016
 
 import numpy as np;
 from models.Dataset import Dataset
+from models.ExpressionsByPrefix import ExpressionsByPrefix
 
 class GeneratedExpressionDataset(Dataset):
     
@@ -15,7 +16,7 @@ class GeneratedExpressionDataset(Dataset):
                  test_batch_size=10000, train_batch_size=10000,
                  max_training_size=False, max_testing_size=False,
                  sample_testing_size=False, predictExpressions=False,
-                 copyInput=False, fillX=False, use_GO_symbol=False):
+                 copyInput=False, fillX=False, use_GO_symbol=False, finishExpressions=False):
         self.sources = [trainSource, testSource];
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
@@ -28,6 +29,10 @@ class GeneratedExpressionDataset(Dataset):
         self.add_multiple_x = add_multiple_x;
         self.single_digit = single_digit;
         self.copyInput = copyInput;
+        self.predictExpressions = predictExpressions;
+        self.finishExpressions = finishExpressions;
+        if (self.predictExpressions):
+            raise ValueError("Predict expressions is broken in this branch!");
         
         # Set the method that should process the lines of the dataset
         self.processor = self.processSample;
@@ -43,7 +48,7 @@ class GeneratedExpressionDataset(Dataset):
             self.processor = self.processSampleFillX;
         elif (correction):
             self.processor = self.processSampleCorrection;
-        elif (copyInput):
+        elif (copyInput or finishExpressions):
             self.processor = self.processSampleCopyInput;
         else:
             self.processor = self.processSampleMultiDigit;
@@ -97,10 +102,10 @@ class GeneratedExpressionDataset(Dataset):
         self.train_done = False;
         self.test_done = False;
         
-        if (predictExpressions):
+        if (self.finishExpressions):
             # We need to save all expressions by answer for the fast lookup of
             # nearest labels
-            self.preload(onlyStoreLookupByInput=True);
+            self.preload(onlyStoreByPrefix=True);
         else:
             self.outputByInput = None;
         
@@ -111,7 +116,7 @@ class GeneratedExpressionDataset(Dataset):
         else:
             self.preloaded = False;
     
-    def preload(self, onlyStoreLookupByInput=False):
+    def preload(self, onlyStoreByPrefix=False):
         """
         Preloads the dataset into memory. If onlyStoreLookupByInput is True,
         the data is not stored but only saved into the dictionary outputByInput
@@ -122,20 +127,23 @@ class GeneratedExpressionDataset(Dataset):
             self.loadFile(self.sources[self.TRAIN], 
                           location_index=self.TRAIN, 
                           file_length=self.lengths[self.TRAIN]);
-        
-        if (onlyStoreLookupByInput):
-            self.outputByInput = {};
-            for expression in train_expressions:
-                left_hand_expression, right_hand_expression = expression.split("=");
-                if (left_hand_expression not in self.outputByInput):
-                    self.outputByInput[left_hand_expression] = [];
-                self.outputByInput[left_hand_expression].append(right_hand_expression);
-            self.locations[self.TRAIN] = 0;
-        else:
-            test, test_targets, test_labels, test_expressions = \
+        test, test_targets, test_labels, test_expressions = \
             self.loadFile(self.sources[self.TEST], 
                           location_index=self.TEST, 
                           file_length=self.lengths[self.TEST]);
+        
+        if (onlyStoreByPrefix):
+            self.expressionsByPrefix = ExpressionsByPrefix();
+            for expression in train_expressions:
+                self.expressionsByPrefix.add(expression);
+            
+            self.testExpressionsByPrefix = ExpressionsByPrefix();
+            for expression in test_expressions:
+                self.testExpressionsByPrefix.add(expression);
+                
+            self.locations[self.TRAIN] = 0;
+            self.locations[self.TEST] = 0;
+        else:
             self.train, self.train_targets, self.train_labels, self.train_expressions =\
                 train, train_targets, train_labels, train_expressions;
             self.test, self.test_targets, self.test_labels, self.test_expressions =\
@@ -154,7 +162,7 @@ class GeneratedExpressionDataset(Dataset):
             length += 1;
             line = f.readline();
             try:
-                data, target, label, expression, _ = self.processor(line.strip(), [], [], [], []);
+                data, target, _, _, _ = self.processor(line.strip(), [], [], [], []);
             except Exception:
                 print(line);
             if (data[0].shape[0] > data_length):
@@ -511,6 +519,41 @@ class GeneratedExpressionDataset(Dataset):
         
         return data, targets, labels, expressions, 1;
     
+    def insertInterventions(self, targets, target_expressions, min_intervention_location, max_length, fixedLocation=None):
+        emptySamples = [];
+        # Find optimal intervention location
+        if (fixedLocation is None):
+            max_length = min(map(len, target_expressions));
+            interventionLocation = np.random.randint(min(max_length-2,min_intervention_location),max_length-1);
+        else:
+            interventionLocation = fixedLocation;
+        # Apply interventions to targets samples in this batch
+        for i in range(targets.shape[0]):
+            currentSymbol = np.argmax(targets[i,interventionLocation]);
+            if (currentSymbol < 10):
+                # This is a digit, replace it with a different digit
+                newSymbol = currentSymbol;
+                while (currentSymbol == newSymbol):
+                    newSymbol = np.random.randint(0,10);
+                targets[i,interventionLocation,currentSymbol] = 0.0;
+                targets[i,interventionLocation,newSymbol] = 1.0;
+                target_expressions[i] = target_expressions[i][:interventionLocation] + self.findSymbol[newSymbol] + target_expressions[i][interventionLocation+1:]; 
+            elif (currentSymbol >= 10 and currentSymbol < 14):
+                # This is an operator, replace with a different operator
+                newSymbol = currentSymbol;
+                while (currentSymbol == newSymbol):
+                    newSymbol = np.random.randint(10,14);
+                targets[i,interventionLocation,currentSymbol] = 0.0;
+                targets[i,interventionLocation,newSymbol] = 1.0;
+                target_expressions[i] = target_expressions[i][:interventionLocation] + self.findSymbol[newSymbol] + target_expressions[i][interventionLocation+1:];
+            else:
+                # We cannot intervene on brackets without breaking syntax
+                # Zero out the sample instead
+                emptySamples.append(i);
+                targets[i] = np.zeros((targets.shape[1],targets.shape[2]));
+                target_expressions[i] = "";
+        return targets, target_expressions, interventionLocation, emptySamples;
+    
     def findAnswer(self, onehot_encodings):
         answer_allzeros = map(lambda d: d.sum() == 0.0, onehot_encodings);
         try:
@@ -533,11 +576,19 @@ class GeneratedExpressionDataset(Dataset):
         """
         return ExpressionNode.fromStr(expression);
     
-    def encodeExpression(self, structure):
+    def encodeExpression(self, structure, max_length):
         str_repr = str(structure);
-        data = np.zeros((len(str_repr),self.data_dim));
+        data = np.zeros((max_length,self.data_dim));
+        add_eos = True;
         for i,symbol in enumerate(str_repr):
+            if (i >= max_length):
+                add_eos = False;
+                break;
             data[i,self.oneHot[symbol]] = 1.0;
+        
+        if (add_eos):
+            data[i+1,self.EOS_symbol_index] = 1.0;
+            
         return data;
         
         
@@ -563,10 +614,22 @@ class ExpressionNode(object):
         self.nodeType = nodeType;
         self.value = value;
     
-    def createDigit(self, maxIntValue):
+    @staticmethod
+    def createRandomDigit(maxIntValue):
         # Create terminal child (digit)
-        self.nodeType = self.TYPE_DIGIT;
-        self.value = np.random.randint(maxIntValue);
+        return ExpressionNode(ExpressionNode.TYPE_DIGIT, np.random.randint(maxIntValue));
+    
+    @staticmethod
+    def createDigit(value):
+        # Create terminal child (digit)
+        return ExpressionNode(ExpressionNode.TYPE_DIGIT, value);
+    
+    @staticmethod
+    def createOperator(operator, left, right):
+        node = ExpressionNode(ExpressionNode.TYPE_OPERATOR, operator);
+        node.left = left;
+        node.right = right;
+        return node;
     
     def getValue(self):
         if (self.nodeType == self.TYPE_DIGIT):
@@ -583,11 +646,96 @@ class ExpressionNode(object):
             else:
                 raise ValueError("Invalid operator type");
     
+    def solveAll(self, targetValue):
+        """
+        We need a cheap way to find expressions that are near to the current 
+        expression. While the digits have to be low the problem is that target 
+        values can be very large and multiplication and division are the cause of
+        this. We need a way to control the complexity of the solver so we can
+        run the least complex one before we use complexer stuff. 
+        """
+        ownValue = self.getValue();
+        difference = targetValue - ownValue;
+        
+        if (self.nodeType == self.TYPE_DIGIT):
+            if (difference == 0):
+                return [self];
+            if (targetValue >= 10 or targetValue < 0):
+                return [];
+            newMe = ExpressionNode.createDigit(targetValue)
+            return [newMe];
+        
+        answers = [];
+        if (difference == 0):
+            answers.append(self);
+        
+        leftValue = self.left.getValue();
+        rightValue = self.right.getValue();
+        
+        if (self.value == self.OP_PLUS):
+            combinations = [];
+            for i in range(10):
+                for j in range(10):
+                    if (i + j == targetValue and (i != leftValue or j != rightValue)):
+                        combinations.append((i,j));
+        elif (self.value == self.OP_MINUS):
+            combinations = [];
+            for i in range(10):
+                for j in range(10):
+                    if (i - j == targetValue):
+                        combinations.append((i,j));
+            
+#             if (difference > 0):
+#                 for i in range(0,difference+1):
+#                     if (leftValue + i < 10 and rightValue - (difference - i) >= 0):
+#                         combinations.append((leftValue+i,rightValue-(difference-i)));
+#             elif (difference < 0):
+#                 for i in range(difference+1,0):
+#                     if (leftValue + i >= 0 and rightValue - (difference - i) < 10):
+#                         combinations.append((leftValue+i,rightValue-(difference-i)));
+#             else:
+#                 combinations.extend([(i, i) for i in range(10)]);
+        elif (self.value == self.OP_MULTIPLY):
+            combinations = [(1,targetValue),(targetValue,1)];
+            if (targetValue == 0):
+                combinations.append((0,0));
+                for j in range(2,10):
+                    combinations.append((0,j));
+                    combinations.append((j,0));
+            else:
+                for i in range(2,10):
+                    if (i == targetValue):
+                        continue;
+                    if ((targetValue / float(i)) % 1.0 == 0.0):
+                        combinations.append((i,targetValue/i));
+                        combinations.append((targetValue/i,i));
+        elif (self.value == self.OP_DIVIDE):
+            combinations = [(targetValue,1)];
+            if (targetValue == 0):
+                for j in range(2,10):
+                    combinations.append((0,j));
+            else:
+                for i in range(2,10):
+                    if ((targetValue * i) < 10):
+                        combinations.append((targetValue*i,i));
+            
+        for (leftVal, rightVal) in combinations:
+            lefts = self.left.solveAll(leftVal);
+            rights = self.right.solveAll(rightVal);
+            for left in lefts:
+                for right in rights:
+                    answers.append(ExpressionNode.createOperator(self.value,left,right));
+    
+        return answers;
+    
     def __str__(self):
         return self.getStr(True);
     
     @staticmethod
     def fromStr(expression):
+        if (len(expression) == 1):
+            return ExpressionNode.createDigit(int(expression));
+        
         i = 0;
         if (expression[i] == '('):
             subclause = ExpressionNode.getClause(expression[i:]);

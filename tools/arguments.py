@@ -72,7 +72,9 @@ argumentProcessors = {'name': processString,
                       'multipart_4': processFalseOrString,
                       'multipart_4_reps': processFalseOrInt,
                       'tensorflow': processBool,
-                      'copy_input': processBool
+                      'copy_input': processBool,
+                      'finish_expressions': processBool,
+                      'min_intervention_location': processInt
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -115,7 +117,9 @@ defaults = {'report_to_tracker': True,
             'multipart_4': False,
             'multipart_4_reps': False,
             'tensorflow': False,
-            'copy_input': False
+            'copy_input': False,
+            'finish_expressions': False,
+            'min_intervention_location': 0
             }
 
 def processKeyValue(key,value):

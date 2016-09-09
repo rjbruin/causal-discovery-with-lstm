@@ -45,9 +45,12 @@ class RecurrentModel(object):
     def batch_statistics(self, stats, prediction, labels, targets, expressions, 
                          other, test_n, dataset,
                          excludeStats=None, no_print_progress=False,
-                         eos_symbol_index=None, print_sample=False):
+                         eos_symbol_index=None, print_sample=False,
+                         emptySamples=None):
         # Statistics
         for j in range(0,test_n):
+            if (emptySamples is not None and j in emptySamples):
+                continue;
             if (self.single_digit):
                 if (prediction[j] == labels[j]):
                     stats['correct'] += 1;
