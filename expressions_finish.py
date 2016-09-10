@@ -15,37 +15,32 @@ from tools.statistics import str_statistics;
 
 import numpy as np;
 
-def get_train_batch(dataset, model):
+def get_batch(isTrain, dataset, model, min_intervention_location, 
+              max_intervention_location):
+    interventionLocation = np.random.randint(min_intervention_location, 
+                                             max_intervention_location);
+    
     batch = [];
     while (len(batch) < model.minibatch_size):
-        batch.extend(dataset.expressionsByPrefix.get_random(model.minibatch_size - len(batch)));
+        if (isTrain):
+            candidates = dataset.expressionsByPrefix.get_random(model.minibatch_size -
+                                                                len(batch));
+        else:
+            candidates = dataset.testExpressionsByPrefix.get_random(model.minibatch_size -
+                                                                    len(batch));
+        for candidate in candidates:
+            symbolIndex = dataset.oneHot[candidate[interventionLocation]];
+            if (symbolIndex < dataset.EOS_symbol_index-2):
+                batch.append(candidate);
     
     data = [];
     targets = [];
     labels = [];
     expressions = [];
     for expression in batch:
-        data, targets, labels, expressions, _ = dataset.processor(expression, data, targets, labels, expressions);
-    
-    raise ValueError("Implement this so that the batch is suited for intervention on the same symbol.");
-    interventionLocation = 0;
-    
-    return data, targets, labels, expressions, interventionLocation;
-
-def get_test_batch(dataset, model):
-    batch = [];
-    while (len(batch) < model.minibatch_size):
-        batch.extend(dataset.testExpressionsByPrefix.get_random(model.minibatch_size - len(batch)));
-    
-    data = [];
-    targets = [];
-    labels = [];
-    expressions = [];
-    for expression in batch:
-        data, targets, labels, expressions, _ = dataset.processor(expression, data, targets, labels, expressions);
-    
-    raise ValueError("Implement this so that the batch is suited for intervention on the same symbol.");
-    interventionLocation = 0;
+        data, targets, labels, expressions, _ = dataset.processor(expression, data,
+                                                                  targets, labels,
+                                                                  expressions);
     
     return data, targets, labels, expressions, interventionLocation;
 
@@ -66,12 +61,18 @@ def test(model, dataset, parameters, print_samples=False):
     batch_range = range(0,len(total),model.minibatch_size);
     for _ in batch_range:
         # Get data from batch
-        test_data, test_targets, test_labels, test_expressions, interventionLocation = get_test_batch(dataset, model);
+        test_data, test_targets, test_labels, test_expressions, \
+            interventionLocation = get_batch(False, dataset, model);
         test_n = model.minibatch_size;
         
-        test_targets, _, interventionLocation, _ = dataset.insertInterventions(test_targets, test_expressions, parameters['min_intervention_location'], parameters['n_max_digits'], fixedLocation=interventionLocation);
+        test_targets, _, interventionLocation, _ = \
+            dataset.insertInterventions(test_targets, test_expressions, 
+                                        parameters['min_intervention_location'],
+                                        parameters['n_max_digits'], 
+                                        fixedLocation=interventionLocation);
         
-        prediction, other = model.predict(test_data, label=test_targets, interventionLocation=interventionLocation);
+        prediction, other = model.predict(test_data, label=test_targets, 
+                                          interventionLocation=interventionLocation);
         
         # Print samples
         if (print_samples and not printed_samples):
@@ -125,11 +126,6 @@ if __name__ == '__main__':
     # Construct models
     datasets, model = constructModels(parameters, 0, {});
     
-    ### From here the experiment should be the same every time
-    
-    # Start experiment clock
-    start = time.clock();
-    
     # Train on all datasets in succession
     # Print settings headers to raw results file
     print(str(parameters));
@@ -159,10 +155,7 @@ if __name__ == '__main__':
         # Train model per minibatch
         batch_range = range(0,repetition_size,model.minibatch_size);
         for k in batch_range:
-            if (parameters['time_training_batch']):
-                start = time.clock();
-            
-            data, target, _, expressions, interventionLocation = get_train_batch(dataset, model);
+            data, target, _, expressions, interventionLocation = get_batch(True, dataset, model);
             
             # Perform interventions
             target, target_expressions, interventionLocation, emptySamples = dataset.insertInterventions(target, expressions, parameters['min_intervention_location'], parameters['n_max_digits'], fixedLocation=interventionLocation);
@@ -191,13 +184,12 @@ if __name__ == '__main__':
         
         # Intermediate testing if this was not the last iteration of training
         # and we have passed the testing threshold
-        if (r != repetition_size-1 and total_datapoints_processed >= next_testing_threshold):
+        if (r != repetition_size-1):
             test(model, dataset, parameters, print_samples=parameters['debug']);
             # Save weights to pickles
             if (saveModels):
                 saveVars = model.getVars();
                 save_to_pickle('saved_models/%s_%d.model' % (name, b), saveVars, settings=parameters);
-            next_testing_threshold += parameters['test_interval'] * repetition_size;
     
     print("Training all datasets finished!");
     
