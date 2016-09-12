@@ -8,6 +8,8 @@ import numpy as np;
 from models.Dataset import Dataset
 from models.ExpressionsByPrefix import ExpressionsByPrefix
 
+from collections import Counter;
+
 class GeneratedExpressionDataset(Dataset):
     
     def __init__(self, trainSource, testSource, preload=True, add_x=False, add_multiple_x=False,
@@ -133,13 +135,17 @@ class GeneratedExpressionDataset(Dataset):
                           file_length=self.lengths[self.TEST]);
         
         if (onlyStoreByPrefix):
+            self.expressionLengths = Counter(); 
             self.expressionsByPrefix = ExpressionsByPrefix();
             for expression in train_expressions:
                 self.expressionsByPrefix.add(expression);
+                self.expressionLengths[len(expression)] += 1;
             
             self.testExpressionsByPrefix = ExpressionsByPrefix();
+            self.testExpressionLengths = Counter();
             for expression in test_expressions:
                 self.testExpressionsByPrefix.add(expression);
+                self.testExpressionLengths[len(expression)] += 1;
                 
             self.locations[self.TRAIN] = 0;
             self.locations[self.TEST] = 0;

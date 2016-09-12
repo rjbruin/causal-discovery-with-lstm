@@ -15,23 +15,34 @@ from tools.statistics import str_statistics;
 
 import numpy as np;
 
-def get_batch(isTrain, dataset, model, min_intervention_location, 
-              max_intervention_location):
-    interventionLocation = np.random.randint(min_intervention_location, 
-                                             max_intervention_location);
+def get_batch(isTrain, dataset, model, intervention_offset, max_length):
+    tries = 0;
+    limit = 1000;
+    fail = False;
     
     batch = [];
     while (len(batch) < model.minibatch_size):
-        if (isTrain):
-            candidates = dataset.expressionsByPrefix.get_random(model.minibatch_size -
-                                                                len(batch));
-        else:
-            candidates = dataset.testExpressionsByPrefix.get_random(model.minibatch_size -
+        batch = [];
+        interventionLocation = np.random.randint(max_length-intervention_offset-3, 
+                                                 max_length-3);
+        
+        while (not fail and len(batch) < model.minibatch_size):
+            if (isTrain):
+                candidates = dataset.expressionsByPrefix.get_random(model.minibatch_size -
                                                                     len(batch));
-        for candidate in candidates:
-            symbolIndex = dataset.oneHot[candidate[interventionLocation]];
-            if (symbolIndex < dataset.EOS_symbol_index-2):
-                batch.append(candidate);
+            else:
+                candidates = dataset.testExpressionsByPrefix.get_random(model.minibatch_size -
+                                                                        len(batch));
+            for candidate in candidates:
+                if (interventionLocation < len(candidate)):
+                    symbolIndex = dataset.oneHot[candidate[interventionLocation]];
+                    if (symbolIndex < dataset.EOS_symbol_index-2):
+                        batch.append(candidate);
+                    else:
+                        tries += 1;
+                        if (tries >= limit):
+                            # Catch where we are stuck with an impossible intervention location
+                            fail = True;
     
     data = [];
     targets = [];
@@ -44,12 +55,12 @@ def get_batch(isTrain, dataset, model, min_intervention_location,
     
     return data, targets, labels, expressions, interventionLocation;
 
-def test(model, dataset, parameters, print_samples=False):
+def test(model, dataset, parameters, max_length, print_samples=False):
     # Test
     print("Testing...");
         
     total = dataset.lengths[dataset.TEST];
-    printing_interval = 1000;
+    printing_interval = 100;
     if (parameters['max_testing_size'] is not False):
         total = parameters['max_testing_size'];
     
@@ -58,11 +69,11 @@ def test(model, dataset, parameters, print_samples=False):
     
     # Predict
     printed_samples = False;
-    batch_range = range(0,len(total),model.minibatch_size);
+    batch_range = range(0,total,model.minibatch_size);
     for _ in batch_range:
         # Get data from batch
         test_data, test_targets, test_labels, test_expressions, \
-            interventionLocation = get_batch(False, dataset, model);
+            interventionLocation = get_batch(False, dataset, model, 5, max_length);
         test_n = model.minibatch_size;
         
         test_targets, _, interventionLocation, _ = \
@@ -78,13 +89,8 @@ def test(model, dataset, parameters, print_samples=False):
         if (print_samples and not printed_samples):
             for i in range(prediction.shape[0]):
                 print("# Input: %s" % "".join((map(lambda x: dataset.findSymbol[x], np.argmax(data[i],len(test_data.shape)-2)))));
-                if (model.single_digit):
-                    print("# Label: %s" % "".join(dataset.findSymbol[np.argmax(test_targets[i])]));
-                    print("# Output: %s" % "".join(dataset.findSymbol[prediction[i]]));
-                else:
-                    print("# Label: %s" % "".join((map(lambda x: dataset.findSymbol[x], np.argmax(test_targets[i],len(test_data.shape)-2)))));
-                    print("# Output: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction[i])));
-                
+                print("# Label: %s" % "".join((map(lambda x: dataset.findSymbol[x], np.argmax(test_targets[i],len(test_data.shape)-2)))));
+                print("# Output: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction[i])));
             printed_samples = True;
         
         stats = model.batch_statistics(stats, prediction, test_labels, 
@@ -144,6 +150,14 @@ if __name__ == '__main__':
     total_datapoints_processed = 0;
     b = 0;
     
+    # Determine the minimum max_length needed to get batches quickly
+    min_samples_required = dataset.lengths[dataset.TRAIN] * 0.10;
+    max_length = model.n_max_digits;
+    samples_available = dataset.expressionLengths[max_length];
+    while (samples_available < min_samples_required):
+        max_length -= 1;
+        samples_available += dataset.expressionLengths[max_length];
+    
     for r in range(reps):
         unused_in_rep = 0;
         total_error = 0.0;
@@ -155,7 +169,10 @@ if __name__ == '__main__':
         # Train model per minibatch
         batch_range = range(0,repetition_size,model.minibatch_size);
         for k in batch_range:
-            data, target, _, expressions, interventionLocation = get_batch(True, dataset, model);
+            data, target, _, expressions, interventionLocation = get_batch(True, dataset, model, 5, max_length);
+            
+            data = dataset.fill_ndarray(data, 1);
+            target = dataset.fill_ndarray(data, 1);
             
             # Perform interventions
             target, target_expressions, interventionLocation, emptySamples = dataset.insertInterventions(target, expressions, parameters['min_intervention_location'], parameters['n_max_digits'], fixedLocation=interventionLocation);
@@ -163,8 +180,7 @@ if __name__ == '__main__':
             
             # Swap axes of index in sentence and datapoint for Theano purposes
             data = np.swapaxes(data, 0, 1);
-            if (not model.single_digit):
-                target = np.swapaxes(target, 0, 1);
+            target = np.swapaxes(target, 0, 1);
             # Run training
             outputs, unused = model.sgd(dataset, data, target, parameters['learning_rate'],
                                 emptySamples=emptySamples, expressions=expressions,
@@ -173,31 +189,31 @@ if __name__ == '__main__':
             unused_in_rep += unused;
             total_error += outputs[0];
             
-            if (k+model.minibatch_size % 100 == 0):
+            if ((k+model.minibatch_size) % 100 == 0):
                 print("# %d / %d (%d unused)" % (k, repetition_size, unused_in_rep));
             
         # Update stats
-        total_datapoints_processed += len(repetition_size);
+        total_datapoints_processed += repetition_size;
         
         # Report on error
         print("Total error: %.2f" % total_error);
         
         # Intermediate testing if this was not the last iteration of training
         # and we have passed the testing threshold
-        if (r != repetition_size-1):
-            test(model, dataset, parameters, print_samples=parameters['debug']);
-            # Save weights to pickles
-            if (saveModels):
-                saveVars = model.getVars();
-                save_to_pickle('saved_models/%s_%d.model' % (name, b), saveVars, settings=parameters);
+        #if (r != repetition_size-1):
+        test(model, dataset, parameters, max_length, print_samples=parameters['debug']);
+        # Save weights to pickles
+        if (saveModels):
+            saveVars = model.getVars();
+            save_to_pickle('saved_models/%s_%d.model' % (name, b), saveVars, settings=parameters);
     
     print("Training all datasets finished!");
     
     # Final test on last dataset
-    test(model, dataset, parameters, print_samples=parameters['debug']);
+    #test(model, dataset, parameters, print_samples=parameters['debug']);
     
     # Save weights to pickles
-    if (saveModels):
-        saveVars = model.getVars();
-        save_to_pickle('saved_models/%s.model' % name, saveVars);
+#     if (saveModels):
+#         saveVars = model.getVars();
+#         save_to_pickle('saved_models/%s.model' % name, saveVars);
     
