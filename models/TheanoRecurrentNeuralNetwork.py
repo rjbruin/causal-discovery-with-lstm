@@ -8,14 +8,13 @@ import theano;
 import theano.tensor as T;
 import numpy as np;
 from models.RecurrentModel import RecurrentModel
-from models.GeneratedExpressionDataset import ExpressionNode
+#from theano.compile.nanguardmode import NanGuardMode
 
 class TheanoRecurrentNeuralNetwork(RecurrentModel):
     '''
     Recurrent neural network model with one hidden layer. Models single class 
     prediction based on regular recurrent model or LSTM model. 
     '''
-
 
     def __init__(self, data_dim, hidden_dim, output_dim, minibatch_size, 
                  lstm=True, weight_values={}, single_digit=False, 
@@ -103,77 +102,47 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (self.finishExpressions):
             intervention_location = T.iscalar('intervention_location');
         
-        first_hidden = T.zeros((self.minibatch_size,self.hidden_dim), dtype='float64');
-        if (self.single_digit):
-            [outputs, hidden], _ = theano.scan(fn=self.lstm_predict_single,
-                                               sequences=X,
-                                               # Input a zero hidden layer
-                                               outputs_info=(None, {'initial': first_hidden, 'taps': [-1]}),
-                                               non_sequences=[self.vars[k[0]] for k in filter(lambda name: name[0][0] != 'D', varSettings)])
-            
-            # We only predict on the final Y because for now we only predict the final digit in the expression
-            # Takes the argmax over the last dimension, resulting in a vector representing one predicted symbol
-            prediction = T.argmax(outputs[-1], 1);
-            right_hand = outputs[-1];
-            # Perform crossentropy calculation for each datapoint and take the mean
-            error = T.mean(T.nnet.categorical_crossentropy(outputs[-1], label));
+        # Set the prediction parameters to be either the prediction 
+        # weights or the decoding weights depending on the setting 
+        encode_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] != 'D' and name[0] != 'hWY', varSettings)];
+        if (self.decoder):
+            decode_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] == 'D', varSettings)];
+            decode_function = self.lstm_predict_single;
         else:
-            # Set scan functions and arguments
-            encode_function = self.lstm_predict_single_no_output;
-            # Set the prediction parameters to be either the prediction 
-            # weights or the decoding weights depending on the setting 
-            encode_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] != 'D' and name[0] != 'hWY', varSettings)];
-            if (self.decoder):
-                decode_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] == 'D', varSettings)];
-                decode_function = self.lstm_predict_single;
-            else:
-                decode_parameters = encode_parameters + [self.vars['hWY']];
-                decode_function = self.lstm_predict_single;
-            
-            hidden, _ = theano.scan(fn=encode_function,
-                                               sequences=X,
-                                               # Input a zero hidden layer
-                                               outputs_info=({'initial': first_hidden, 'taps': [-1]}),
-                                               non_sequences=encode_parameters)
+            decode_pre_output_parameters = encode_parameters;
+            decode_parameters = encode_parameters + [self.vars['hWY']];
+            decode_function = self.lstm_predict_single;
         
-            if (self.GO_symbol_index is None):
-                raise ValueError("GO symbol index not set!");
-            
-            if (self.finishExpressions):
-                init_values = (None, {'initial': hidden[-1], 'taps': [-1]});
-                [_, right_hand_hiddens], _ = theano.scan(fn=decode_function,
-                                                                     sequences=(label[:intervention_location+1]),
-                                                                     outputs_info=init_values,
-                                                                     non_sequences=decode_parameters)
-                right_hand_1 = label[:intervention_location+1];
-                init_values = ({'initial': right_hand_1[-1], 'taps': [-1]},
-                               {'initial': right_hand_hiddens[-1], 'taps': [-1]});
-                [right_hand_2, _], _ = theano.scan(fn=decode_function,
-                                                      outputs_info=init_values,
-                                                      non_sequences=decode_parameters,
-                                                      n_steps=self.n_max_digits-(intervention_location+1))
-                right_hand = T.join(0, right_hand_1, right_hand_2);
-            else:
-                init_X = T.zeros((self.prediction_output_dim,self.minibatch_size), dtype='float64');
-                init_X = T.set_subtensor(init_X[self.GO_symbol_index],T.ones(self.minibatch_size));
-                init_X = T.swapaxes(init_X, 0, 1);
-                
-                init_values = ({'initial': init_X, 'taps': [-1]},
-                               {'initial': hidden[-1], 'taps': [-1]});
-                [right_hand, _], _ = theano.scan(fn=decode_function,
-                                         # Inputs the last hidden layer and the last predicted symbol
-                                         outputs_info=init_values,
-                                         non_sequences=decode_parameters,
-                                         n_steps=self.n_max_digits)
-            
-            # We predict the final n symbols (all symbols predicted as output from input '=')
-            prediction = T.argmax(right_hand, axis=2);
-            padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim)));
-            
-            error = T.mean(T.nnet.categorical_crossentropy(right_hand,padded_label));
-            
-          
+        first_hidden = T.zeros((self.minibatch_size,self.hidden_dim), dtype='float64');
+        hidden, _ = theano.scan(fn=self.lstm_predict_single_no_output,
+                                sequences=X,
+                                # Input a zero hidden layer
+                                outputs_info=({'initial': first_hidden, 'taps': [-1]}),
+                                non_sequences=encode_parameters);
+    
+        if (self.GO_symbol_index is None):
+            raise ValueError("GO symbol index not set!");
+
+        init_values = ({'initial': hidden[-1], 'taps': [-1]});
+        right_hand_hiddens, _ = theano.scan(fn=self.lstm_predict_single_no_output,
+                                            sequences=(label[:intervention_location+1]),
+                                            outputs_info=init_values,
+                                            non_sequences=decode_pre_output_parameters)
+        right_hand_1 = label[:intervention_location+1];
+        init_values_2 = ({'initial': right_hand_1[-1], 'taps': [-1]},
+                         {'initial': right_hand_hiddens[-1], 'taps': [-1]});
+        [right_hand_2, _], _ = theano.scan(fn=decode_function,
+                                           outputs_info=init_values_2,
+                                           non_sequences=decode_parameters,
+                                           n_steps=self.n_max_digits-(intervention_location+1))
+        right_hand = T.join(0, right_hand_1, right_hand_2);
         
+        # We predict the final n symbols (all symbols predicted as output from input '=')
+        prediction = T.argmax(right_hand, axis=2);
+        padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim)));
+        
+        cat_cross = T.nnet.categorical_crossentropy(right_hand[intervention_location+1:],padded_label[intervention_location+1:]);
+        error = T.mean(cat_cross);
         
         # Automatic backward pass for all models: gradients
         variables = self.vars.keys();
@@ -190,14 +159,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # Defining stochastic gradient descent
         learning_rate = T.dscalar('learning_rate');
         updates = [(var,var-learning_rate*der) for (var,der) in zip(map(lambda var: self.vars[var], variables),derivatives)];
-        if (self.finishExpressions):
-            self._sgd = theano.function([X, label, intervention_location, learning_rate], [error], 
-                                        updates=updates,
-                                        allow_input_downcast=True)
-        else:
-            self._sgd = theano.function([X, label, learning_rate], [error], 
-                                        updates=updates,
-                                        allow_input_downcast=True)
+        self._sgd = theano.function([X, label, intervention_location, learning_rate], [error], 
+                                    updates=updates,
+                                    allow_input_downcast=True
+                                    #, mode=NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=True)
+                                    )
         
         super(TheanoRecurrentNeuralNetwork, self).__init__();
     
@@ -230,7 +196,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         cell = forget_gate * previous_hidden + input_gate * candidate_cell;
         output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + current_X.dot(XWo));
         hidden = output_gate * cell;
-        return [hidden];
+        return hidden;
     
     # END OF INITIALIZATION
     

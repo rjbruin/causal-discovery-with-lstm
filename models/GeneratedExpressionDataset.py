@@ -221,12 +221,15 @@ class GeneratedExpressionDataset(Dataset):
         # Return (data, new location)
         return (data, targets, np.array(labels), np.array(expressions)), line_number;
     
-    def fill_ndarray(self, data, axis):
+    def fill_ndarray(self, data, axis, fixed_length=None):
         if (axis <= 0):
             raise ValueError("Max length axis cannot be the first axis!");
         if (len(data) == 0):
             raise ValueError("Data is empty!");
-        max_length = max(map(lambda a: a.shape[axis-1], data));
+        if (fixed_length is None):
+            max_length = max(map(lambda a: a.shape[axis-1], data));
+        else:
+            max_length = fixed_length;
         nd_data = np.zeros((len(data), max_length, self.data_dim));
         for i,datapoint in enumerate(data):
             nd_data[i,:datapoint.shape[0]] = datapoint;
@@ -525,39 +528,22 @@ class GeneratedExpressionDataset(Dataset):
         
         return data, targets, labels, expressions, 1;
     
-    def insertInterventions(self, targets, target_expressions, min_intervention_location, max_length, fixedLocation=None):
+    def insertInterventions(self, targets, target_expressions, interventionLocation, possibleInterventions):
         emptySamples = [];
-        # Find optimal intervention location
-        if (fixedLocation is None):
-            max_length = min(map(len, target_expressions));
-            interventionLocation = np.random.randint(min(max_length-2,min_intervention_location),max_length-1);
-        else:
-            interventionLocation = fixedLocation;
+
         # Apply interventions to targets samples in this batch
         for i in range(targets.shape[0]):
             currentSymbol = np.argmax(targets[i,interventionLocation]);
-            if (currentSymbol < 10):
-                # This is a digit, replace it with a different digit
-                newSymbol = currentSymbol;
-                while (currentSymbol == newSymbol):
-                    newSymbol = np.random.randint(0,10);
-                targets[i,interventionLocation,currentSymbol] = 0.0;
-                targets[i,interventionLocation,newSymbol] = 1.0;
-                target_expressions[i] = target_expressions[i][:interventionLocation] + self.findSymbol[newSymbol] + target_expressions[i][interventionLocation+1:]; 
-            elif (currentSymbol >= 10 and currentSymbol < 14):
-                # This is an operator, replace with a different operator
-                newSymbol = currentSymbol;
-                while (currentSymbol == newSymbol):
-                    newSymbol = np.random.randint(10,14);
-                targets[i,interventionLocation,currentSymbol] = 0.0;
-                targets[i,interventionLocation,newSymbol] = 1.0;
-                target_expressions[i] = target_expressions[i][:interventionLocation] + self.findSymbol[newSymbol] + target_expressions[i][interventionLocation+1:];
-            else:
-                # We cannot intervene on brackets without breaking syntax
-                # Zero out the sample instead
-                emptySamples.append(i);
-                targets[i] = np.zeros((targets.shape[1],targets.shape[2]));
-                target_expressions[i] = "";
+            
+            # Pick a new symbol
+            newSymbol = possibleInterventions[i][np.random.randint(0,len(possibleInterventions[i]))];
+            while (newSymbol == currentSymbol):
+                newSymbol = possibleInterventions[i][np.random.randint(0,len(possibleInterventions[i]))];
+            
+            targets[i,interventionLocation,currentSymbol] = 0.0;
+            targets[i,interventionLocation,newSymbol] = 1.0;
+            target_expressions[i] = target_expressions[i][:interventionLocation] + self.findSymbol[newSymbol] + target_expressions[i][interventionLocation+1:]; 
+        
         return targets, target_expressions, interventionLocation, emptySamples;
     
     def findAnswer(self, onehot_encodings):
