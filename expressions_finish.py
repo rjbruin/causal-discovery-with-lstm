@@ -188,7 +188,7 @@ if __name__ == '__main__':
         unused_in_rep = 0;
         total_error = 0.0;
         # Print progress and save to raw results file
-        progress = "Batch %d (repetition %d of %d) (samples processed after batch: %d)" % \
+        progress = "Batch %d (repetition %d of %d, dataset 1 of 1) (samples processed after batch: %d)" % \
             (r+1,r+1,reps,total_datapoints_processed+batch_size);
         print(progress);
         
