@@ -575,8 +575,9 @@ class GeneratedExpressionDataset(Dataset):
         data = np.zeros((max_length,self.data_dim));
         add_eos = True;
         for i,symbol in enumerate(str_repr):
-            if (i >= max_length):
+            if (i >= max_length-1):
                 add_eos = False;
+            if (i >= max_length):
                 break;
             data[i,self.oneHot[symbol]] = 1.0;
         

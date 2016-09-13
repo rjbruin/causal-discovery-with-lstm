@@ -183,10 +183,8 @@ if __name__ == '__main__':
     
     # Compute batching variables
     repetition_size = dataset.lengths[dataset.TRAIN];
-    if (parameters['train_batch_size'] is not False):
-        batch_size = min(parameters['train_batch_size'],repetition_size);
-    else:
-        batch_size = min(dataset.lengths[dataset.TRAIN],repetition_size);
+    if (parameters['max_training_size'] is not False):
+        repetition_size = min(parameters['max_training_size'],repetition_size);
     next_testing_threshold = parameters['test_interval'] * repetition_size;
     
     total_datapoints_processed = 0;
@@ -205,7 +203,7 @@ if __name__ == '__main__':
         total_error = 0.0;
         # Print progress and save to raw results file
         progress = "Batch %d (repetition %d of %d, dataset 1 of 1) (samples processed after batch: %d)" % \
-            (r+1,r+1,reps,total_datapoints_processed+batch_size);
+            (r+1,r+1,reps,total_datapoints_processed+repetition_size);
         print(progress);
         
         # Train model per minibatch
