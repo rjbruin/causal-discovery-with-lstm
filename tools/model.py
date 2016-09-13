@@ -74,7 +74,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                          decoder=parameters['decoder'],
                                          verboseOutputter=verboseOutputter,
                                          GO_symbol_index=dataset.GO_symbol_index,
-                                         finishExpressions=parameters['finish_expressions']);
+                                         finishExpressions=parameters['finish_expressions'],
+                                         optimizer=1 if parameters['adam_optimizer'] else 0);
     
     return datasets, rnn;
 
