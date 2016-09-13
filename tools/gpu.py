@@ -20,9 +20,9 @@ def using_gpu():
         r = f()
     print("Result is %s" % (r,))
     if numpy.any([isinstance(x.op, T.Elemwise) for x in f.maker.fgraph.toposort()]):
-        print('Used the cpu')
+        return False;
     else:
-        print('Used the gpu')
+        return True;
 
 if __name__ == '__main__':
     print(using_gpu());
