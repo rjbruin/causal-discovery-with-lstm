@@ -251,6 +251,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         target = np.zeros((unswapped_data.shape[0],self.n_max_digits,self.decoding_output_dim));
         unused = 0;
+        label_expressions = [];
+        prediction_expressions = [];
         for i, prediction in enumerate(predictions):
             if (i in emptySamples):
                 # Skip empty samples caused by the intervention generation process
@@ -263,6 +265,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if (index >= dataset.EOS_symbol_index):
                     break;
                 string_prediction.append(dataset.findSymbol[index]);
+            prediction_expressions.append("".join(string_prediction));
             
             # Get all valid predictions for this data sample including intervention
             valid_predictions = dataset.expressionsByPrefix.get(intervention_expressions[i][:intervention_location+1],intervention_location+1);
@@ -273,9 +276,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 unused += 1;
                 unswapped_data[i] = np.zeros((unswapped_data.shape[1], unswapped_data.shape[2]));
                 target[i] = np.zeros((target.shape[1],target.shape[2]));
+                label_expressions.append("NONE");
             elif (string_prediction in valid_predictions):
                 # If our prediction is valid we set this part of the target to the prediction
                 target[i] = np.swapaxes(right_hand[i], 0, 1);
+                label_expressions.append(string_prediction);
             else:
                 # Find the nearest expression to our prediction
                 pred_length = len(string_prediction)
@@ -301,11 +306,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     pass
                 
                 target[i] = dataset.encodeExpression(nearest, self.n_max_digits);
+                label_expressions.append(nearest);
         
         data = np.swapaxes(unswapped_data, 0, 1);
         target = np.swapaxes(target, 0, 1);
         
-        return self._sgd(data, target, intervention_location, learning_rate), unused;
+        return self._sgd(data, target, intervention_location, learning_rate), unused, prediction_expressions, label_expressions;
     
     def getVars(self):
         return self.vars.items();

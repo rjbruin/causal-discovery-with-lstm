@@ -96,9 +96,9 @@ class GeneratedExpressionDataset(Dataset):
         self.data_length = max(train_data_length, test_data_length);
         self.target_length = max(train_target_length, test_target_length);
         self.lengths = [train_length, test_length];
-        if (self.max_training_size is not False):
+        if (self.max_training_size is not False and not self.finishExpressions):
             self.lengths[self.TRAIN] = self.max_training_size;
-        if (self.max_testing_size is not False):
+        if (self.max_testing_size is not False and not self.finishExpressions):
             self.lengths[self.TEST] = self.max_testing_size;
         # Set test batch settings
         self.train_done = False;
@@ -232,6 +232,8 @@ class GeneratedExpressionDataset(Dataset):
             max_length = fixed_length;
         nd_data = np.zeros((len(data), max_length, self.data_dim));
         for i,datapoint in enumerate(data):
+            if (datapoint.shape[0] > max_length):
+                raise ValueError("n_max_digits too small! Increase to %d" % datapoint.shape[0]);
             nd_data[i,:datapoint.shape[0]] = datapoint;
         return nd_data;
     

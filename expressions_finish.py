@@ -16,7 +16,7 @@ from tools.statistics import str_statistics;
 import numpy as np;
 import copy;
 
-def get_batch(isTrain, dataset, model, intervention_offset, max_length, debug=False):
+def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=False, base_offset=12):
     limit = 1000;
     
     if (isTrain):
@@ -25,13 +25,14 @@ def get_batch(isTrain, dataset, model, intervention_offset, max_length, debug=Fa
         storage = dataset.testExpressionsByPrefix;
     
     batch = [];
+    fails = 0;
     while (len(batch) < model.minibatch_size):
         fail = False;
         tries = 0;
         batch = [];
         
-        interventionLocation = np.random.randint(max_length-intervention_offset-6, 
-                                                 max_length-6);
+        interventionLocation = np.random.randint(max_length-intervention_range-base_offset, 
+                                                 max_length-base_offset);
         
         while (not fail and len(batch) < model.minibatch_size):
             branch = storage.get_random_by_length(interventionLocation, getStructure=True);
@@ -62,6 +63,9 @@ def get_batch(isTrain, dataset, model, intervention_offset, max_length, debug=Fa
                 if (tries >= limit):
                     # Catch where we are stuck with an impossible intervention location
                     fail = True;
+                    if (debug):
+                        fails += 1;
+                        print("\tBatching failed at iteration %d" % fails);
     
     data = [];
     targets = [];
@@ -109,7 +113,10 @@ def test(model, dataset, parameters, max_length, print_samples=False, sample_siz
     for _ in batch_range:
         # Get data from batch
         test_data, test_targets, test_labels, test_expressions, \
-            possibleInterventions, interventionLocation = get_batch(False, dataset, model, 5, max_length, debug=parameters['debug']);
+            possibleInterventions, interventionLocation = get_batch(False, dataset, model, 
+                                                                    parameters['intervention_range'], 
+                                                                    max_length, debug=parameters['debug'],
+                                                                    base_offset=parameters['intervention_base_offset']);
         test_n = model.minibatch_size;
         
         test_targets, _, interventionLocation, _ = \
@@ -204,7 +211,11 @@ if __name__ == '__main__':
         # Train model per minibatch
         batch_range = range(0,repetition_size,model.minibatch_size);
         for k in batch_range:
-            data, target, _, expressions, possibleInterventions, interventionLocation = get_batch(True, dataset, model, 5, max_length, debug=parameters['debug']);
+            data, target, _, expressions, possibleInterventions, interventionLocation = \
+                get_batch(True, dataset, model, 
+                          parameters['intervention_range'], max_length, 
+                          debug=parameters['debug'],
+                          base_offset=parameters['intervention_base_offset']);
             
             # Perform interventions
             target, target_expressions, interventionLocation, emptySamples = \
@@ -217,15 +228,19 @@ if __name__ == '__main__':
             data = np.swapaxes(data, 0, 1);
             target = np.swapaxes(target, 0, 1);
             # Run training
-            outputs, unused = model.sgd(dataset, data, target, parameters['learning_rate'],
-                                emptySamples=emptySamples, expressions=expressions,
-                                intervention_expressions=target_expressions, 
-                                interventionLocation=interventionLocation);
+            outputs, unused, prediction_expressions, label_expressions = \
+                model.sgd(dataset, data, target, parameters['learning_rate'],
+                          emptySamples=emptySamples, expressions=expressions,
+                          intervention_expressions=target_expressions, 
+                          interventionLocation=interventionLocation);
             unused_in_rep += unused;
             total_error += outputs[0];
             
             if ((k+model.minibatch_size) % 100 == 0):
                 print("# %d / %d (%d unused, error = %.2f)" % (k+model.minibatch_size, repetition_size, unused_in_rep, total_error));
+                if (parameters['debug']):
+                    for p, l, e in zip(prediction_expressions, label_expressions, expressions):
+                        print("Input:\t%s\tPrediction:\t%s\tLabel used:\t%s" % (e, p, l));
             
         # Update stats
         total_datapoints_processed += repetition_size;

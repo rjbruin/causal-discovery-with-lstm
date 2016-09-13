@@ -86,6 +86,29 @@ class ExpressionsByPrefix(object):
             return count;
         return self.prefixedExpressions[prefix[0]].count(prefix[1:], allowedPrefixes);
     
+    def countAll(self, debug=False):
+        return self._countAll(0, debug=debug);
+    
+    def _countAll(self, level, debug=False):
+        thisLevel = len(filter(lambda e: len(e) == 1, self.expressions));
+        if (len(self.prefixedExpressions.keys()) == 0):
+            if (debug):
+                print("Bottom reached at level %d" % level);
+            return [thisLevel];
+        # Get the lists of level counts for each prefix
+        # deeper contains #prefixes lists of flat integer lists with length
+        # equal to the longer expression in the branch 
+        deeper = map(lambda p: self.prefixedExpressions[p]._countAll(level+1, debug=debug), self.prefixedExpressions.keys())
+        # We fill out the shorter lists with zeros so we can map the sum
+        max_length = max(map(lambda d: len(d), deeper));
+        max_lengthed_deeper = [];
+        for d in deeper:
+            d.extend([0 for _ in range(max_length - len(d))]);
+            max_lengthed_deeper.append(d);
+        # Flatten using sum to obtain a flat list of lengths per level
+        levelSums = map(lambda *ls: sum(ls), *max_lengthed_deeper);
+        return [thisLevel] + levelSums;
+    
 #     def get(self, prefix):
 #         level = len(prefix);
 #         if (level == 0):
