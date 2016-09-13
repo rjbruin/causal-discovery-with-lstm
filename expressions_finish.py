@@ -16,7 +16,7 @@ from tools.statistics import str_statistics;
 import numpy as np;
 import copy;
 
-def get_batch(isTrain, dataset, model, intervention_offset, max_length):
+def get_batch(isTrain, dataset, model, intervention_offset, max_length, debug=False):
     limit = 1000;
     
     if (isTrain):
@@ -45,7 +45,7 @@ def get_batch(isTrain, dataset, model, intervention_offset, max_length):
             if (len(branch.prefixedExpressions.keys()) >= 2):
                 for prefix in branch.prefixedExpressions:
                     symbolIndex = dataset.oneHot[prefix];
-                    if (symbolIndex < dataset.EOS_symbol_index-2 and len(branch.prefixedExpressions[prefix].fullExpressions) >= 1):
+                    if (symbolIndex < dataset.EOS_symbol_index-4 and len(branch.prefixedExpressions[prefix].fullExpressions) >= 1):
                         # Check for valid intervention symbol: has to be the right
                         # symbol and has to have expressions
                         validPrefixes[prefix] = branch.prefixedExpressions[prefix];
@@ -78,6 +78,15 @@ def get_batch(isTrain, dataset, model, intervention_offset, max_length):
     data = dataset.fill_ndarray(data, 1);
     targets = dataset.fill_ndarray(copy.deepcopy(targets), 1, fixed_length=model.n_max_digits);
     
+    if (debug):
+        # Sanity check: interventionSymbols must match each other
+        passed = True;
+        for indices in interventionSymbols:
+            passed = passed and (all(map(lambda i: i < 10, indices)) or all(map(lambda i: i >= 10 and i < 14, indices)));
+        
+        if (not passed):
+            raise ValueError("Illegal intervention symbols! => %s" % str(interventionSymbols));
+    
     return data, targets, labels, expressions, interventionSymbols, interventionLocation;
 
 def test(model, dataset, parameters, max_length, print_samples=False, sample_size=False):
@@ -100,7 +109,7 @@ def test(model, dataset, parameters, max_length, print_samples=False, sample_siz
     for _ in batch_range:
         # Get data from batch
         test_data, test_targets, test_labels, test_expressions, \
-            possibleInterventions, interventionLocation = get_batch(False, dataset, model, 5, max_length);
+            possibleInterventions, interventionLocation = get_batch(False, dataset, model, 5, max_length, debug=parameters['debug']);
         test_n = model.minibatch_size;
         
         test_targets, _, interventionLocation, _ = \
@@ -195,7 +204,7 @@ if __name__ == '__main__':
         # Train model per minibatch
         batch_range = range(0,repetition_size,model.minibatch_size);
         for k in batch_range:
-            data, target, _, expressions, possibleInterventions, interventionLocation = get_batch(True, dataset, model, 5, max_length);
+            data, target, _, expressions, possibleInterventions, interventionLocation = get_batch(True, dataset, model, 5, max_length, debug=parameters['debug']);
             
             # Perform interventions
             target, target_expressions, interventionLocation, emptySamples = \
