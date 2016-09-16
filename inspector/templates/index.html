@@ -15,6 +15,8 @@ $(document).ready( function() {
 		var repr = "<div class='col-md-6'>";
 		repr += "<h2>Run prediction on sample</h2><form id='predictionForm'>";
 		repr += "<div class='input-group'><input type='text' placeholder='Enter a data sample' name='sample' class='form-control'/>";
+		repr += "<input type='text' placeholder='Enter an intervention location' name='interventionLocation' class='form-control'/>";
+		repr += "<input type='text' placeholder='Enter an intervention symbol' name='intervention' class='form-control'/>";
 		repr += "<div class='input-group-btn'><button class='btn btn-primary'>Predict</button></div></div>";
 		repr += "</form><div id='predictionResults'></div></div>";
 		return repr;
@@ -129,10 +131,12 @@ $(document).ready( function() {
 		$("#predictionForm").submit( function(e) {
 			e.preventDefault();
 			var sample = $(this).find("input[name='sample']").val();
+			var interventionLocation = $(this).find("input[name='interventionLocation']").val();
+			var intervention = $(this).find("input[name='intervention']").val();
 			$.ajax({
-				url: './api/predict/sample',
+				url: './api/predict/interventionsample',
 				method: 'POST',
-				data: {'sample': sample},
+				data: {'sample': sample, 'interventionLocation': interventionLocation, 'intervention': intervention},
 				success: function(response) {
 					if (response.success) {
 						console.log("success!");

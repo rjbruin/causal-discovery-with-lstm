@@ -109,18 +109,13 @@ class ExpressionsByPrefix(object):
         levelSums = map(lambda *ls: sum(ls), *max_lengthed_deeper);
         return [thisLevel] + levelSums;
     
-#     def get(self, prefix):
-#         level = len(prefix);
-#         if (level == 0):
-#             return "";
-#         
-#         answers = self._get(prefix, level);
-#         for _ in range(len(prefix)):
-#             answers = answers[1];
-#         
-#         expressions = [prefix];
-#         while (answers[0] != None):
-#             expressions = map(lambda suffix: )
+    def exists(self, prefix):
+        if (len(prefix) == 1):
+            return prefix in self.expressions;
+        if (prefix[0] in self.prefixedExpressions):
+            return self.prefixedExpressions[prefix[0]].exists(prefix[1:]);
+        else:
+            return False;
             
             
             

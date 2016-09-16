@@ -51,48 +51,38 @@ class RecurrentModel(object):
         for j in range(0,test_n):
             if (emptySamples is not None and j in emptySamples):
                 continue;
-            if (self.single_digit):
-                if (prediction[j] == labels[j]):
-                    stats['correct'] += 1;
-                    stats['digit_correct'] += 1;
+            
+            # Get the labels
+            argmax_target = np.argmax(targets[j],axis=1);
+            # Compute the length of the target answer
+            target_length = np.argmax(argmax_target);
+            if (target_length == 0):
+                # If no EOS is found, the target is the entire length
+                target_length = targets[j].shape[1];
+            # Compute the length of the prediction answer
+            prediction_length = np.argmax(prediction[j]);
+            if (prediction_length == target_length and np.array_equal(prediction[j][:target_length],argmax_target[:target_length])):
+                # Correct if prediction and target length match and 
+                # prediction and target up to target length are the same
+                stats['correct'] += 1.0;
+            for k,digit in enumerate(prediction[j][:target_length]):
+                if (digit == np.argmax(targets[j][k])):
+                    stats['digit_correct'] += 1.0;
                 stats['digit_prediction_size'] += 1;
                 
-                stats['prediction_histogram'][int(prediction[j])] += 1;
-                stats['groundtruth_histogram'][int(labels[j])] += 1;
-                stats['prediction_confusion_matrix']\
-                    [int(labels[j]),int(prediction[j])] += 1;
+            # Taking argmax over symbols for each sentence returns 
+            # the location of the highest index, which is the first 
+            # EOS symbol
+            eos_location = np.argmax(prediction[j]);
+            # Check for edge case where no EOS was found and zero was returned
+            if (eos_symbol_index is None):
+                eos_symbol_index = dataset.EOS_symbol_index;
+            if (prediction[j,eos_location] != eos_symbol_index):
+                stats['prediction_size_histogram'][prediction[j].shape[0]] += 1;
             else:
-                # Get the labels
-                argmax_target = np.argmax(targets[j],axis=1);
-                # Compute the length of the target answer
-                target_length = np.argmax(argmax_target);
-                if (target_length == 0):
-                    # If no EOS is found, the target is the entire length
-                    target_length = targets[j].shape[1];
-                # Compute the length of the prediction answer
-                prediction_length = np.argmax(prediction[j]);
-                if (prediction_length == target_length and np.array_equal(prediction[j][:target_length],argmax_target[:target_length])):
-                    # Correct if prediction and target length match and 
-                    # prediction and target up to target length are the same
-                    stats['correct'] += 1.0;
-                for k,digit in enumerate(prediction[j][:target_length]):
-                    if (digit == np.argmax(targets[j][k])):
-                        stats['digit_correct'] += 1.0;
-                    stats['digit_prediction_size'] += 1;
-                    
-                # Taking argmax over symbols for each sentence returns 
-                # the location of the highest index, which is the first 
-                # EOS symbol
-                eos_location = np.argmax(prediction[j]);
-                # Check for edge case where no EOS was found and zero was returned
-                if (eos_symbol_index is None):
-                    eos_symbol_index = dataset.EOS_symbol_index;
-                if (prediction[j,eos_location] != eos_symbol_index):
-                    stats['prediction_size_histogram'][prediction[j].shape[0]] += 1;
-                else:
-                    stats['prediction_size_histogram'][int(eos_location)] += 1;
-                for digit_prediction in prediction[j]:
-                    stats['prediction_histogram'][int(digit_prediction)] += 1;
+                stats['prediction_size_histogram'][int(eos_location)] += 1;
+            for digit_prediction in prediction[j]:
+                stats['prediction_histogram'][int(digit_prediction)] += 1;
             stats['prediction_size'] += 1;
         
         return stats;

@@ -570,6 +570,12 @@ class GeneratedExpressionDataset(Dataset):
         """
         return ExpressionNode.fromStr(expression);
     
+    def indicesToStr(self, prediction):
+        expression = "";
+        for index in prediction:
+            expression += self.findSymbol[index];
+        return expression;
+    
     def encodeExpression(self, structure, max_length):
         str_repr = str(structure);
         data = np.zeros((max_length,self.data_dim));
