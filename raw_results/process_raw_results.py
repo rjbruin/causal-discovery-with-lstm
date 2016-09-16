@@ -137,12 +137,12 @@ for i,batch in enumerate(digit_scores):
     labels_to_plot.append(digit_labels[i]);
 
 # Plot losses
-for i,batch in enumerate(losses):
-    x, y = zip(*batch);
-    ax2 = ax1.twinx();
-    ax2.plot(x, y, LOSS_COLORS[i]);
-    ax2.set_ylabel('total loss')
-    labels_to_plot.append(losses[i]);
+#for i,batch in enumerate(losses):
+#    x, y = zip(*batch);
+#    ax2 = ax1.twinx();
+#    ax2.plot(x, y, LOSS_COLORS[i]);
+#    ax2.set_ylabel('total loss')
+#    labels_to_plot.append(losses[i]);
 
 # Final settings, saving and showing of figure
 ax1.set_xlabel(X_LABELS[x_label]);

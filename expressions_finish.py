@@ -253,7 +253,7 @@ if __name__ == '__main__':
         # Save weights to pickles
         if (saveModels):
             saveVars = model.getVars();
-            save_to_pickle('saved_models/%s_%d.model' % (name, b), saveVars, settings=parameters);
+            save_to_pickle('saved_models/%s_%d.model' % (name, r), saveVars, settings=parameters);
     
     print("Training all datasets finished!");
     
