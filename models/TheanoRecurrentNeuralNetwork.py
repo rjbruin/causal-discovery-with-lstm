@@ -389,7 +389,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             
             # Convert prediction to string expression
             expression = dataset.indicesToStr(prediction[j][:eos_location]);
-            print(expression);
             # Lookup expression in prefixed test expressions storage
             if (dataset.testExpressionsByPrefix.exists(expression)):
                 # If it exists, count as right

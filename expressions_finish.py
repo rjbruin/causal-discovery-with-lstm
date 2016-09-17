@@ -75,7 +75,7 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=Fal
     for (expression, possibleInterventions) in batch:
         data, targets, labels, expressions, _ = dataset.processor(expression, data,
                                                                   targets, labels,
-                                                                  expressions);
+                                                                  expressions, reverse=False);
         # Convert symbols to indices
         interventionSymbols.append(map(lambda s: dataset.oneHot[s], possibleInterventions));
     

@@ -76,7 +76,8 @@ argumentProcessors = {'name': processString,
                       'copy_input': processBool,
                       'finish_expressions': processBool,
                       'intervention_range': processInt,
-                      'intervention_base_offset': processInt
+                      'intervention_base_offset': processInt,
+                      'reverse': processBool
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -123,7 +124,8 @@ defaults = {'report_to_tracker': True,
             'copy_input': False,
             'finish_expressions': False,
             'intervention_range': 5,
-            'intervention_base_offset': 6
+            'intervention_base_offset': 6,
+            'reverse': False
             }
 
 def processKeyValue(key,value):

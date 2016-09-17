@@ -49,7 +49,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                              fillX=parameters['fill_x'],
                                              copyInput=parameters['copy_input'],
                                              use_GO_symbol=parameters['decoder'],
-                                             finishExpressions=parameters['finish_expressions']);
+                                             finishExpressions=parameters['finish_expressions'],
+                                             reverse=parameters['reverse']);
         datasets.append(dataset);
     
     if (parameters['random_baseline']):

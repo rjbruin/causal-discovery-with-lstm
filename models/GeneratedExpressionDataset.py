@@ -18,7 +18,8 @@ class GeneratedExpressionDataset(Dataset):
                  test_batch_size=10000, train_batch_size=10000,
                  max_training_size=False, max_testing_size=False,
                  sample_testing_size=False, predictExpressions=False,
-                 copyInput=False, fillX=False, use_GO_symbol=False, finishExpressions=False):
+                 copyInput=False, fillX=False, use_GO_symbol=False, finishExpressions=False,
+                 reverse=False):
         self.sources = [trainSource, testSource];
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
@@ -33,6 +34,7 @@ class GeneratedExpressionDataset(Dataset):
         self.copyInput = copyInput;
         self.predictExpressions = predictExpressions;
         self.finishExpressions = finishExpressions;
+        self.reverse = reverse;
         if (self.predictExpressions):
             raise ValueError("Predict expressions is broken in this branch!");
         
@@ -446,8 +448,11 @@ class GeneratedExpressionDataset(Dataset):
         
         return data, targets, labels, expressions, 1;
     
-    def processSampleCopyInput(self, line, data, targets, labels, expressions):
+    def processSampleCopyInput(self, line, data, targets, labels, expressions, reverse=True):
         expression = line.strip();
+        
+        if (self.reverse and reverse):
+            expression = expression[::-1];
         
         # Old expression = data
         expression_embeddings = np.zeros((len(expression)+1,self.data_dim));
