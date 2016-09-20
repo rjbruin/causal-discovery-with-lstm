@@ -91,6 +91,15 @@ class RecurrentModel(object):
         """
         Adds general statistics to the statistics generated per batch.
         """
+        stats['prediction_histogram'] = dict(stats['prediction_1_histogram'], **stats['prediction_2_histogram']);
+        stats['prediction_size_histogram'] = dict(stats['prediction_1_size_histogram'], **stats['prediction_2_size_histogram']);
+        
+        stats['digit_correct'] = stats['digit_1_correct'] + stats['digit_2_correct'];
+        stats['digit_prediction_size'] = stats['digit_1_prediction_size'] + stats['digit_2_prediction_size'];
+        
+        stats['digit_1_score'] = stats['digit_1_correct'] / float(stats['digit_1_prediction_size']);
+        stats['digit_2_score'] = stats['digit_2_correct'] / float(stats['digit_2_prediction_size']);
+        
         stats['score'] = stats['correct'] / float(stats['prediction_size']);
         stats['digit_score'] = stats['digit_correct'] / float(stats['digit_prediction_size']);
         

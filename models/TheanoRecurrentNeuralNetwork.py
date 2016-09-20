@@ -50,39 +50,31 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.decoding_output_dim = output_dim;
         self.prediction_output_dim = output_dim;
         
-        # Set up settings for fake minibatching
-        self.fake_minibatch = False;
-        if (self.minibatch_size == 1):
-            self.fake_minibatch = True;
-            self.minibatch_size = 2;
-        
-        
-        
         # Set up shared variables
         varSettings = [];
         varSettings.append(('hWf',self.hidden_dim,self.hidden_dim));
-        varSettings.append(('XWf',self.data_dim,self.hidden_dim));
+        varSettings.append(('XWf',self.data_dim*2,self.hidden_dim));
         varSettings.append(('hWi',self.hidden_dim,self.hidden_dim));
-        varSettings.append(('XWi',self.data_dim,self.hidden_dim));
+        varSettings.append(('XWi',self.data_dim*2,self.hidden_dim));
         varSettings.append(('hWc',self.hidden_dim,self.hidden_dim));
-        varSettings.append(('XWc',self.data_dim,self.hidden_dim));
+        varSettings.append(('XWc',self.data_dim*2,self.hidden_dim));
         varSettings.append(('hWo',self.hidden_dim,self.hidden_dim));
-        varSettings.append(('XWo',self.data_dim,self.hidden_dim));
+        varSettings.append(('XWo',self.data_dim*2,self.hidden_dim));
         if (self.decoder):
             # Add variables for the decoding phase
             # All these variables begin with 'D' so they can be 
             # automatically filtered to be used as parameters
             varSettings.append(('DhWf',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('DXWf',self.data_dim,self.hidden_dim));
+            varSettings.append(('DXWf',self.data_dim*2,self.hidden_dim));
             varSettings.append(('DhWi',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('DXWi',self.data_dim,self.hidden_dim));
+            varSettings.append(('DXWi',self.data_dim*2,self.hidden_dim));
             varSettings.append(('DhWc',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('DXWc',self.data_dim,self.hidden_dim));
+            varSettings.append(('DXWc',self.data_dim*2,self.hidden_dim));
             varSettings.append(('DhWo',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('DXWo',self.data_dim,self.hidden_dim));
-            varSettings.append(('DhWY',self.hidden_dim,self.decoding_output_dim));
+            varSettings.append(('DXWo',self.data_dim*2,self.hidden_dim));
+            varSettings.append(('DhWY',self.hidden_dim,self.decoding_output_dim*2));
         else:
-            varSettings.append(('hWY',self.hidden_dim,self.prediction_output_dim));
+            varSettings.append(('hWY',self.hidden_dim,self.prediction_output_dim*2));
         
         # Contruct variables
         self.vars = {};
@@ -114,7 +106,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             decode_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] == 'D', varSettings)];
             decode_function = self.lstm_predict_single;
         else:
-            decode_pre_output_parameters = encode_parameters;
             decode_parameters = encode_parameters + [self.vars['hWY']];
             decode_function = self.lstm_predict_single;
         
@@ -128,12 +119,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (self.GO_symbol_index is None):
             raise ValueError("GO symbol index not set!");
 
-        init_values = ({'initial': hidden[-1], 'taps': [-1]});
-        right_hand_hiddens, _ = theano.scan(fn=self.lstm_predict_single_no_output,
+        init_values = (None, {'initial': hidden[-1], 'taps': [-1]});
+        [right_hand_1, right_hand_hiddens], _ = theano.scan(fn=decode_function,
                                             sequences=(label[:intervention_location+1]),
                                             outputs_info=init_values,
-                                            non_sequences=decode_pre_output_parameters)
-        right_hand_1 = label[:intervention_location+1];
+                                            non_sequences=decode_parameters)
         init_values_2 = ({'initial': right_hand_1[-1], 'taps': [-1]},
                          {'initial': right_hand_hiddens[-1], 'taps': [-1]});
         [right_hand_2, _], _ = theano.scan(fn=decode_function,
@@ -143,8 +133,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         right_hand = T.join(0, right_hand_1, right_hand_2);
         
         # We predict the final n symbols (all symbols predicted as output from input '=')
-        prediction = T.argmax(right_hand, axis=2);
-        padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim)));
+        prediction_1 = T.argmax(right_hand[:,:,:self.data_dim], axis=2);
+        prediction_2 = T.argmax(right_hand[:,:,self.data_dim:], axis=2);
+        padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim*2)));
         
         cat_cross = T.nnet.categorical_crossentropy(right_hand[intervention_location+1:],padded_label[intervention_location+1:]);
         error = T.mean(cat_cross);
@@ -155,10 +146,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
            
         # Defining prediction
         if (self.finishExpressions):
-            self._predict = theano.function([X, label, intervention_location], [prediction,
+            self._predict = theano.function([X, label, intervention_location], [prediction_1,
+                                                                                prediction_2,
                                                                                 right_hand]);
         else:
-            self._predict = theano.function([X], [prediction,
+            self._predict = theano.function([X], [prediction_1,
+                                                  prediction_2,
                                                   right_hand]);
         
         # Defining stochastic gradient descent
@@ -169,9 +162,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             updates = self.adam(error, map(lambda var: self.vars[var], variables), learning_rate);
         self._sgd = theano.function([X, label, intervention_location, learning_rate], [error], 
                                     updates=updates,
-                                    allow_input_downcast=True
-                                    #, mode=NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=True)
-                                    )
+                                    allow_input_downcast=True)
         
         super(TheanoRecurrentNeuralNetwork, self).__init__();
     
@@ -256,13 +247,19 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (not self.single_digit and training_labels.shape[1] > (self.n_max_digits+1)):
             raise ValueError("n_max_digits too small! Increase to %d" % training_labels.shape[1]);
     
-    def sgd(self, dataset, data, label, learning_rate, emptySamples=None, expressions=None, intervention_expressions=None, interventionLocation=None):
+    def sgd(self, dataset, data, label, learning_rate, emptySamples=None, 
+            expressions=None, intervention=False, intervention_expressions=None, 
+            interventionLocation=None, fixedDecoderInputs=False):
         """
         The intervention location for finish expressions must be the same for 
         all samples in this batch.
         """
         if (self.finishExpressions):
-            return self.sgd_finish_expression(dataset, data, expressions, label, intervention_expressions, interventionLocation, emptySamples, learning_rate);
+            return self.sgd_finish_expression(dataset, data, expressions, label, 
+                                              intervention_expressions, interventionLocation, 
+                                              emptySamples, learning_rate, 
+                                              intervention=intervention, 
+                                              fixedDecoderInputs=fixedDecoderInputs);
         else:
             return self._sgd(data, label, learning_rate), 0;
         
@@ -280,86 +277,128 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 label = np.swapaxes(label, 0, 1);
         
         if (self.finishExpressions):
-            prediction, right_hand = \
+            prediction_1, prediction_2, right_hand = \
                 self._predict(data, label, interventionLocation);
         else:
-            prediction, right_hand = \
+            prediction_1, prediction_2, right_hand = \
                 self._predict(data);
         
         # Swap sentence index and datapoints back
-        if (not self.single_digit):
-            prediction = np.swapaxes(prediction, 0, 1);
+        prediction_1 = np.swapaxes(prediction_1, 0, 1);
+        prediction_2 = np.swapaxes(prediction_2, 0, 1);
         
-        return prediction, {'right_hand': right_hand};
+        return [prediction_1, prediction_2], {'right_hand': right_hand};
     
-    def sgd_finish_expression(self, dataset, data, data_expression, data_with_intervention, intervention_expressions, intervention_location, emptySamples, learning_rate):
-        unswapped_data = np.swapaxes(data, 0, 1);
-        predictions, other = self.predict(data, data_with_intervention, intervention_location, alreadySwapped=True);
-        right_hand = other['right_hand'];
-        
-        target = np.zeros((unswapped_data.shape[0],self.n_max_digits,self.decoding_output_dim));
-        unused = 0;
-        label_expressions = [];
-        prediction_expressions = [];
-        for i, prediction in enumerate(predictions):
-            if (i in emptySamples):
-                # Skip empty samples caused by the intervention generation process
-                unused += 1;
-                continue;
-            
-            # Find the string representation of the prediction
-            string_prediction = [];
-            for index in prediction:
-                if (index >= dataset.EOS_symbol_index):
-                    break;
-                string_prediction.append(dataset.findSymbol[index]);
-            prediction_expressions.append("".join(string_prediction));
-            
-            # Get all valid predictions for this data sample including intervention
-            valid_predictions = dataset.expressionsByPrefix.get(intervention_expressions[i][:intervention_location+1],intervention_location+1);
-            if (len(valid_predictions) == 0):
-                # Invalid example because the intervention has no corrected examples
-                # We don't correct by looking at expression structure here because 
-                # that is not a realistic usage of a dataset
-                unused += 1;
-                unswapped_data[i] = np.zeros((unswapped_data.shape[1], unswapped_data.shape[2]));
-                target[i] = np.zeros((target.shape[1],target.shape[2]));
-                label_expressions.append("NONE");
-            elif (string_prediction in valid_predictions):
-                # If our prediction is valid we set this part of the target to the prediction
-                target[i] = np.swapaxes(right_hand[i], 0, 1);
-                label_expressions.append(string_prediction);
+    def sgd_finish_expression(self, dataset, data, data_expression, data_with_intervention, 
+                              intervention_expressions, intervention_location, emptySamples, learning_rate,
+                              intervention=True, fixedDecoderInputs=False, intervenedExpression=0):
+        if (not intervention):
+            if (fixedDecoderInputs):
+                # We fix the decoder inputs by simulating the interventionLocation
+                # to be after the sequence, so the fixed inputs are fed for the
+                # entire prediction
+                intervention_location = self.n_max_digits-1;
             else:
-                # Find the nearest expression to our prediction
-                pred_length = len(string_prediction)
-                nearest = '';
-                nearestScore = 100000;
-                for neighbourExpr in valid_predictions:
-                    # Compute string difference
-                    score = 0;
-                    for k,s in enumerate(neighbourExpr[intervention_location+1:]):
-                        j = k + intervention_location + 1;
-                        if (pred_length <= j):
-                            score += 1;
-                        elif (s != string_prediction[j]):
-                            score += 1;
-                    score += max(0,pred_length - (j+1));
+                # We unfix the decoder inputs by simulating the interventionLocation
+                # to be before the sequence
+                raise ValueError("Unfixed decoder inputs not implemented yet!");
+        else:
+            unswapped_data = np.swapaxes(data, 0, 1);
+            [predictions_1, predictions_2], other = self.predict(data, data_with_intervention, intervention_location, alreadySwapped=True);
+            right_hand_1 = other['right_hand'][:,:,:self.data_dim];
+            right_hand_2 = other['right_hand'][:,:,self.data_dim:];
+            
+            if (intervenedExpression == 0):
+                # Assume all samples in the batch have the same setting for
+                # which of the expressions is the cause and which is the effect
+                intervenedExpressionPredictions = predictions_1;
+                intervenedExpressionRightHand = right_hand_1;
+                otherPredictions = predictions_2;
+                otherRightHand = right_hand_2;
+            else:
+                raise ValueError("Not implemented!");
+            
+            target = np.zeros((unswapped_data.shape[0],self.n_max_digits,self.decoding_output_dim*2));
+            label_expressions = [];
+            for i, prediction in enumerate(intervenedExpressionPredictions):
+                if (i in emptySamples):
+                    # Skip empty samples caused by the intervention generation process
+                    continue;
+                
+                # Find the string representation of the prediction
+                string_prediction = [];
+                for index in prediction:
+                    if (index >= dataset.EOS_symbol_index):
+                        break;
+                    string_prediction.append(dataset.findSymbol[index]);
+                
+                # Get all valid predictions for this data sample including intervention
+                _, _, valid_predictions, validPredictionOtherExpressions = dataset.expressionsByPrefix.get(intervention_expressions[i][0][:intervention_location+1]);
+                if (len(valid_predictions) == 0):
+                    # Invalid example because the intervention has no corrected examples
+                    # We don't correct by looking at expression structure here because 
+                    # that is not a realistic usage of a dataset
+                    unswapped_data[i] = np.zeros((unswapped_data.shape[1], unswapped_data.shape[2]));
+                    target[i] = np.zeros((target.shape[1],target.shape[2]));
+                    label_expressions.append("NONE");
+                elif (string_prediction in valid_predictions):
+                    # The prediction of the cause expression is right, so we
+                    # use the right_hand predicted for this part
+                    target[i,:,:self.data_dim] = np.swapaxes(intervenedExpressionRightHand[i], 0, 1);
                     
-                    if (score < nearestScore):
-                        nearest = neighbourExpr;
-                        nearestScore = score;
-                
-                if (nearest == ''):
-                    a = 1;
-                    pass
-                
-                target[i] = dataset.encodeExpression(nearest, self.n_max_digits);
-                label_expressions.append(nearest);
+                    # If our prediction is valid we check if the other expression matches 
+                    # the predicted expression
+                    other_string_prediction = [];
+                    for index in otherPredictions[i]:
+                        if (index >= dataset.EOS_symbol_index):
+                            break;
+                        other_string_prediction.append(dataset.findSymbol[index]);
+                    prediction_index = valid_predictions.index(string_prediction)
+                    if (other_string_prediction == validPredictionOtherExpressions[prediction_index]):
+                        # If the effect expression predicted matches the 
+                        # expression attached to the cause expression,
+                        # this prediction is right, so we use it as right_hand
+                        target[i,:,self.data_dim:] = np.swapaxes(otherRightHand[i], 0, 1);
+                        label_expressions.append((string_prediction,other_string_prediction));
+                    else:
+                        # If the cause expression was predicted right but the
+                        # effect expression is wrong we need to run SGD with
+                        # as target for the effect expression the effect
+                        # expression stored with the cause expression
+                        other_expression_target_expression = validPredictionOtherExpressions[prediction_index];
+                        target[i,:,self.data_dim:] = dataset.encodeExpression(other_expression_target_expression, \
+                                                                              self.n_max_digits);
+                        label_expressions.append((string_prediction,other_string_prediction));
+                else:
+                    # Find the nearest expression to our prediction
+                    pred_length = len(string_prediction)
+                    nearest = '';
+                    nearestScore = 100000;
+                    for i_near, neighbourExpr in enumerate(valid_predictions):
+                        # Compute string difference
+                        score = 0;
+                        for k,s in enumerate(neighbourExpr[intervention_location+1:]):
+                            j = k + intervention_location + 1;
+                            if (pred_length <= j):
+                                score += 1;
+                            elif (s != string_prediction[j]):
+                                score += 1;
+                        score += max(0,pred_length - (j+1));
+                        
+                        if (score < nearestScore):
+                            nearest = i_near;
+                            nearestScore = score;
+                    
+                    # Use as targets the found cause expression and its 
+                    # accompanying effect expression
+                    target[i,:,:self.data_dim] = dataset.encodeExpression(valid_predictions[nearest], self.n_max_digits);
+                    target[i,:,self.data_dim:] = dataset.encodeExpression(validPredictionOtherExpressions[nearest], self.n_max_digits);
+                    label_expressions.append((valid_predictions[nearest],validPredictionOtherExpressions[nearest]));
+            
+            data = np.swapaxes(unswapped_data, 0, 1);
+            target = np.swapaxes(target, 0, 1);
         
-        data = np.swapaxes(unswapped_data, 0, 1);
-        target = np.swapaxes(target, 0, 1);
-        
-        return self._sgd(data, target, intervention_location, learning_rate), unused, prediction_expressions, label_expressions;
+        return self._sgd(data, target, intervention_location, learning_rate);
     
     def getVars(self):
         return self.vars.items();
@@ -380,36 +419,60 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             # Taking argmax over symbols for each sentence returns 
             # the location of the highest index, which is the first 
             # EOS symbol
-            eos_location = np.argmax(prediction[j]);
+            eos_location = np.argmax(prediction[0][j]);
             # Check for edge case where no EOS was found and zero was returned
             if (eos_symbol_index is None):
                 eos_symbol_index = dataset.EOS_symbol_index;
-            if (prediction[j,eos_location] != eos_symbol_index):
-                eos_location = prediction[j].shape[0];
+            if (prediction[0][j,eos_location] != eos_symbol_index):
+                eos_location = prediction[0][j].shape[0];
             
             # Convert prediction to string expression
-            expression = dataset.indicesToStr(prediction[j][:eos_location]);
+            expression = dataset.indicesToStr(prediction[0][j][:eos_location]);
             # Lookup expression in prefixed test expressions storage
-            if (dataset.testExpressionsByPrefix.exists(expression)):
-                # If it exists, count as right
-                stats['correct'] += 1.0;
+            exists = dataset.testExpressionsByPrefix.get(expression);
+            if (exists is not False):
+                # Compare predicted effect expression to stored effect expression
+                _, primedExpression, _, _ = exists;
+                if (primedExpression is not False and \
+                    primedExpression[:eos_location] == prediction[1][j][:eos_location]):
+                    stats['correct'] += 1.0;
             
+            # Digit precision and prediction size computation     
             # Get the labels
-            argmax_target = np.argmax(targets[j],axis=1);
+            targets_1 = targets[j,:,:self.data_dim];
+            argmax_target_1 = np.argmax(targets_1,axis=1);
             # Compute the length of the target answer
-            target_length = np.argmax(argmax_target);
+            target_length = np.argmax(argmax_target_1);
             if (target_length == 0):
                 # If no EOS is found, the target is the entire length
-                target_length = targets[j].shape[1];
+                target_length = targets_1[j].shape[1];
+             
+            for k,digit in enumerate(prediction[0][j][:target_length]):
+                if (digit == np.argmax(targets_1[j][k])):
+                    stats['digit_1_correct'] += 1.0;
+                stats['digit_1_prediction_size'] += 1;
+                 
+            stats['prediction_1_size_histogram'][int(eos_location)] += 1;
+            for digit_prediction in prediction[0][j]:
+                stats['prediction_1_histogram'][int(digit_prediction)] += 1;
             
-            for k,digit in enumerate(prediction[j][:target_length]):
-                if (digit == np.argmax(targets[j][k])):
-                    stats['digit_correct'] += 1.0;
-                stats['digit_prediction_size'] += 1;
-                
-            stats['prediction_size_histogram'][int(eos_location)] += 1;
-            for digit_prediction in prediction[j]:
-                stats['prediction_histogram'][int(digit_prediction)] += 1;
+            targets_2 = targets[j,:,self.data_dim:];
+            argmax_target_2 = np.argmax(targets_2,axis=1);
+            # Compute the length of the target answer
+            target_length = np.argmax(argmax_target_2);
+            if (target_length == 0):
+                # If no EOS is found, the target is the entire length
+                target_length = targets_1[j].shape[1];
+             
+            for k,digit in enumerate(prediction[1][j][:target_length]):
+                if (digit == np.argmax(targets_2[j][k])):
+                    stats['digit_2_correct'] += 1.0;
+                stats['digit_2_prediction_size'] += 1;
+                 
+            stats['prediction_2_size_histogram'][int(eos_location)] += 1;
+            for digit_prediction in prediction[1][j]:
+                stats['prediction_2_histogram'][int(digit_prediction)] += 1;
+            
             stats['prediction_size'] += 1;
         
         return stats;

@@ -50,7 +50,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                              copyInput=parameters['copy_input'],
                                              use_GO_symbol=parameters['decoder'],
                                              finishExpressions=parameters['finish_expressions'],
-                                             reverse=parameters['reverse']);
+                                             reverse=parameters['reverse'],
+                                             copyMultipleExpressions=parameters['finish_subsystems']);
         datasets.append(dataset);
     
     if (parameters['random_baseline']):
@@ -75,7 +76,7 @@ def constructModels(parameters, seed, verboseOutputter):
                                          decoder=parameters['decoder'],
                                          verboseOutputter=verboseOutputter,
                                          GO_symbol_index=dataset.GO_symbol_index,
-                                         finishExpressions=parameters['finish_expressions'],
+                                         finishExpressions=parameters['finish_expressions'] or parameters['finish_subsystems'],
                                          optimizer=1 if parameters['adam_optimizer'] else 0);
     
     return datasets, rnn;
@@ -329,12 +330,19 @@ def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=Fal
     
     return stats;
 
-def set_up_statistics(output_dim):
-    return {'correct': 0.0, 'prediction_size': 0, 'digit_correct': 0.0, 'digit_prediction_size': 0,
+def set_up_statistics(output_dim, n_max_digits):
+    return {'correct': 0.0, 'prediction_1_size': 0, 'digit_1_correct': 0.0, 'digit_1_prediction_size': 0,
+            'prediction_1_histogram': {k: 0 for k in range(output_dim)}, 
+            'prediction_2_size': 0, 'digit_2_correct': 0.0, 'digit_2_prediction_size': 0,
+            'prediction_2_histogram': {k: 0 for k in range(output_dim)},
+            'prediction_size': 0, 'digit_correct': 0.0, 'digit_prediction_size': 0,
             'prediction_histogram': {k: 0 for k in range(output_dim)},
             'groundtruth_histogram': {k: 0 for k in range(output_dim)},
             # First dimension is actual class, second dimension is predicted dimension
             'prediction_confusion_matrix': np.zeros((output_dim,output_dim)),
             # For each non-digit symbol keep correct and total predictions
             #'operator_scores': np.zeros((len(key_indices),2)),
-            'prediction_size_histogram': {k: 0 for k in range(60)}};
+            'prediction_size_histogram': {k: 0 for k in range(60)},
+            'prediction_1_size_histogram': {k: 0 for k in range(60)},
+            'prediction_2_size_histogram': {k: 0 for k in range(60)},
+            'intervention_locations': {k: 0 for k in range(n_max_digits)}};

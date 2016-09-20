@@ -19,7 +19,7 @@ class GeneratedExpressionDataset(Dataset):
                  max_training_size=False, max_testing_size=False,
                  sample_testing_size=False, predictExpressions=False,
                  copyInput=False, fillX=False, use_GO_symbol=False, finishExpressions=False,
-                 reverse=False):
+                 reverse=False, copyMultipleExpressions=False):
         self.sources = [trainSource, testSource];
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
@@ -35,6 +35,7 @@ class GeneratedExpressionDataset(Dataset):
         self.predictExpressions = predictExpressions;
         self.finishExpressions = finishExpressions;
         self.reverse = reverse;
+        self.copyMultipleExpressions = copyMultipleExpressions;
         if (self.predictExpressions):
             raise ValueError("Predict expressions is broken in this branch!");
         
@@ -46,6 +47,8 @@ class GeneratedExpressionDataset(Dataset):
             self.processor = self.processSampleWithMultipleX;
         elif (single_class):
             self.processor = self.processSampleSingleClass;
+        elif (self.copyMultipleExpressions):
+            self.processor = self.processSampleCopyMultipleInputs;
         elif (predictExpressions):
             self.processor = self.processSamplePredictExpression;
         elif (fillX):
@@ -106,7 +109,7 @@ class GeneratedExpressionDataset(Dataset):
         self.train_done = False;
         self.test_done = False;
         
-        if (self.finishExpressions):
+        if (self.finishExpressions or self.copyMultipleExpressions):
             # We need to save all expressions by answer for the fast lookup of
             # nearest labels
             self.preload(onlyStoreByPrefix=True);
@@ -139,14 +142,14 @@ class GeneratedExpressionDataset(Dataset):
         if (onlyStoreByPrefix):
             self.expressionLengths = Counter(); 
             self.expressionsByPrefix = ExpressionsByPrefix();
-            for expression in train_expressions:
-                self.expressionsByPrefix.add(expression);
+            for expression, expression_prime in train_expressions:
+                self.expressionsByPrefix.add(expression, expression_prime);
                 self.expressionLengths[len(expression)] += 1;
             
             self.testExpressionsByPrefix = ExpressionsByPrefix();
             self.testExpressionLengths = Counter();
-            for expression in test_expressions:
-                self.testExpressionsByPrefix.add(expression);
+            for expression, expression_prime in test_expressions:
+                self.testExpressionsByPrefix.add(expression, expression_prime);
                 self.testExpressionLengths[len(expression)] += 1;
                 
             self.locations[self.TRAIN] = 0;
@@ -168,7 +171,6 @@ class GeneratedExpressionDataset(Dataset):
         line = f.readline();
         while (line.strip() != ""):
             length += 1;
-            line = f.readline();
             try:
                 data, target, _, _, _ = self.processor(line.strip(), [], [], [], []);
             except Exception:
@@ -177,6 +179,7 @@ class GeneratedExpressionDataset(Dataset):
                 data_length = data[0].shape[0];
             if (target[0].shape[0] > target_length):
                 target_length = target[0].shape[0];
+            line = f.readline();
         
         return length, data_length, target_length;
     
@@ -232,7 +235,7 @@ class GeneratedExpressionDataset(Dataset):
             max_length = max(map(lambda a: a.shape[axis-1], data));
         else:
             max_length = fixed_length;
-        nd_data = np.zeros((len(data), max_length, self.data_dim));
+        nd_data = np.zeros((len(data), max_length, self.data_dim*2));
         for i,datapoint in enumerate(data):
             if (datapoint.shape[0] > max_length):
                 raise ValueError("n_max_digits too small! Increase to %d" % datapoint.shape[0]);
@@ -470,6 +473,30 @@ class GeneratedExpressionDataset(Dataset):
         
         return data, targets, labels, expressions, 1;
     
+    def processSampleCopyMultipleInputs(self, line, data, targets, labels, expressions):
+        expressions_line = line.strip();
+        expression, expression_prime = expressions_line.split(";");
+        
+        # We concatenate the expressions on the data_dim axis
+        # Both expressions are of the same length, so no checks needed here
+        expression_embeddings = np.zeros((len(expression)+1,self.data_dim*2));
+        for i, literal in enumerate(expression):
+            expression_embeddings[i,self.oneHot[literal]] = 1.0;
+        for j, literal in enumerate(expression_prime):
+            expression_embeddings[j,self.data_dim + self.oneHot[literal]] = 1.0;
+        
+        # Add EOS's
+        expression_embeddings[-1,self.EOS_symbol_index] = 1.0;
+        expression_embeddings[-1,self.data_dim + self.EOS_symbol_index] = 1.0;
+        
+        # Append data
+        data.append(expression_embeddings);
+        labels.append(np.argmax(expression_embeddings, axis=1));
+        targets.append(expression_embeddings);
+        expressions.append((expression, expression_prime));
+        
+        return data, targets, labels, expressions, 1;
+    
     def processSampleMultiDigit(self, line, data, targets, labels, expressions):
         expression = line.strip();
         
@@ -535,12 +562,15 @@ class GeneratedExpressionDataset(Dataset):
         
         return data, targets, labels, expressions, 1;
     
-    def insertInterventions(self, targets, target_expressions, interventionLocation, possibleInterventions):
+    def insertInterventions(self, targets, target_expressions, expression_index, interventionLocation, possibleInterventions):
         emptySamples = [];
-
+        
+        if (expression_index != 0):
+            raise ValueError("Working with other cause expressions that the top/left expression is not implemented!");
+        
         # Apply interventions to targets samples in this batch
         for i in range(targets.shape[0]):
-            currentSymbol = np.argmax(targets[i,interventionLocation]);
+            currentSymbol = np.argmax(targets[i,interventionLocation,:self.data_dim]);
             
             # Pick a new symbol
             newSymbol = possibleInterventions[i][np.random.randint(0,len(possibleInterventions[i]))];
@@ -549,7 +579,10 @@ class GeneratedExpressionDataset(Dataset):
             
             targets[i,interventionLocation,currentSymbol] = 0.0;
             targets[i,interventionLocation,newSymbol] = 1.0;
-            target_expressions[i] = target_expressions[i][:interventionLocation] + self.findSymbol[newSymbol] + target_expressions[i][interventionLocation+1:]; 
+            target_expressions[i] = (target_expressions[i][expression_index][:interventionLocation] + \
+                                        self.findSymbol[newSymbol] + \
+                                        target_expressions[i][expression_index][interventionLocation+1:], 
+                                        target_expressions[i][expression_index+1]); 
         
         return targets, target_expressions, interventionLocation, emptySamples;
     

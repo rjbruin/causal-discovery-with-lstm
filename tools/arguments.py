@@ -75,9 +75,12 @@ argumentProcessors = {'name': processString,
                       'tensorflow': processBool,
                       'copy_input': processBool,
                       'finish_expressions': processBool,
+                      'finish_subsystems': processBool,
                       'intervention_range': processInt,
                       'intervention_base_offset': processInt,
-                      'reverse': processBool
+                      'reverse': processBool,
+                      'train_interventions': processBool,
+                      'fixed_decoder_inputs': processBool
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -123,9 +126,12 @@ defaults = {'report_to_tracker': True,
             'tensorflow': False,
             'copy_input': False,
             'finish_expressions': False,
+            'finish_subsystems': False,
             'intervention_range': 5,
             'intervention_base_offset': 6,
-            'reverse': False
+            'reverse': False,
+            'train_interventions': True,
+            'fixed_decoder_inputs': True
             }
 
 def processKeyValue(key,value):
