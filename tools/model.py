@@ -48,7 +48,10 @@ def constructModels(parameters, seed, verboseOutputter):
                                              predictExpressions=parameters['predict_expressions'],
                                              fillX=parameters['fill_x'],
                                              copyInput=parameters['copy_input'],
-                                             use_GO_symbol=parameters['decoder']);
+                                             use_GO_symbol=parameters['decoder'],
+                                             finishExpressions=parameters['finish_expressions'],
+                                             reverse=parameters['reverse'],
+                                             copyMultipleExpressions=parameters['finish_subsystems']);
         datasets.append(dataset);
     
     if (parameters['random_baseline']):
@@ -72,7 +75,9 @@ def constructModels(parameters, seed, verboseOutputter):
                                          n_max_digits=parameters['n_max_digits'],
                                          decoder=parameters['decoder'],
                                          verboseOutputter=verboseOutputter,
-                                         GO_symbol_index=dataset.GO_symbol_index);
+                                         GO_symbol_index=dataset.GO_symbol_index,
+                                         finishExpressions=parameters['finish_expressions'] or parameters['finish_subsystems'],
+                                         optimizer=1 if parameters['adam_optimizer'] else 0);
     
     return datasets, rnn;
 
@@ -100,9 +105,11 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
         b = 0;
         
         for r in range(reps):
+            unused_in_rep = 0;
             total_error = 0.0;
             batch = dataset.get_train_batch(batch_size);
             while (batch is not False):
+                unused_in_batch = 0;
                 # Print progress and save to raw results file
                 progress = "Batch %d (repetition %d of %d, dataset %d of %d) (samples processed after batch: %d)" % \
                     (b+1,r+1,reps,d+1,len(datasets),total_datapoints_processed+batch_size);
@@ -111,7 +118,7 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
                     verboseOutputter['write'](progress);
                 
                 # Get the part of the dataset for this batch
-                batch_train, batch_train_targets, _, _ = batch;
+                batch_train, batch_train_targets, _, batch_train_expressions = batch;
                 
                 # Perform specific model sanity checks before training this batch
                 model.sanityChecks(batch_train, batch_train_targets);
@@ -132,6 +139,7 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
                         start = time.clock();
                     
                     data = batch_train[k:k+model.minibatch_size];
+                    expressions = batch_train_expressions[k:k+model.minibatch_size];
                     target = batch_train_targets[k:k+model.minibatch_size];
                     
                     if (model.fake_minibatch):
@@ -141,22 +149,31 @@ def train(model, datasets, parameters, exp_name, start_time, saveModels=True, ta
                     if (len(data) < model.minibatch_size):
                         missing_datapoints = model.minibatch_size - data.shape[0];
                         data = np.concatenate((data,np.zeros((missing_datapoints, batch_train.shape[1], batch_train.shape[2]))), axis=0);
+                        expressions.extend(['' for _ in range(missing_datapoints)]);
                         if (not model.single_digit):
                             target = np.concatenate((target,np.zeros((missing_datapoints, batch_train_targets.shape[1], batch_train_targets.shape[2]))), axis=0);
                         else:
                             target = np.concatenate((target,np.zeros((missing_datapoints, batch_train_targets.shape[1]))), axis=0);
+                    
+                    if (parameters['finish_expressions']):
+                        target, target_expressions, interventionLocation, emptySamples = dataset.insertInterventions(target, expressions, parameters['min_intervention_location'], parameters['n_max_digits']);
+                        #differences = map(lambda (d,t): d == t, zip(np.argmax(data, axis=2), np.argmax(target, axis=2)));
                     
                     # Swap axes of index in sentence and datapoint for Theano purposes
                     data = np.swapaxes(data, 0, 1);
                     if (not model.single_digit):
                         target = np.swapaxes(target, 0, 1);
                     # Run training
-                    outputs = model.sgd(dataset, data, target, parameters['learning_rate'], 
-                                        nearestExpression=parameters['predict_expressions']);
+                    outputs, unused = model.sgd(dataset, data, target, parameters['learning_rate'],
+                                        emptySamples=emptySamples, expressions=expressions,
+                                        intervention_expressions=target_expressions, 
+                                        interventionLocation=interventionLocation);
+                    unused_in_rep += unused;
+                    unused_in_batch += unused;
                     total_error += outputs[0];
                     
-                    if (not no_print and k % printing_interval == 0):
-                        print("# %d / %d" % (k, total));
+                    if (not no_print and k+model.minibatch_size % printing_interval == 0):
+                        print("# %d / %d (%d unused)" % (k, total, unused_in_batch));
                         if (parameters['time_training_batch']):
                             duration = time.clock() - start;
                             print("%d seconds" % duration);
@@ -255,7 +272,10 @@ def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=Fal
                 else:
                     targets = np.concatenate((targets,np.zeros((missing_datapoints, test_targets.shape[1]))), axis=0);
             
-            prediction, other = model.predict(data);
+            if (parameters['finish_expressions']):
+                targets, _, interventionLocation, emptySamples = dataset.insertInterventions(targets, expressions, parameters['min_intervention_location'], parameters['n_max_digits']);
+            
+            prediction, other = model.predict(data, label=targets, interventionLocation=interventionLocation);
             
             # Print samples
             if (print_samples and not printed_samples):
@@ -310,12 +330,19 @@ def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=Fal
     
     return stats;
 
-def set_up_statistics(output_dim):
-    return {'correct': 0.0, 'prediction_size': 0, 'digit_correct': 0.0, 'digit_prediction_size': 0,
+def set_up_statistics(output_dim, n_max_digits):
+    return {'correct': 0.0, 'prediction_1_size': 0, 'digit_1_correct': 0.0, 'digit_1_prediction_size': 0,
+            'prediction_1_histogram': {k: 0 for k in range(output_dim)}, 
+            'prediction_2_size': 0, 'digit_2_correct': 0.0, 'digit_2_prediction_size': 0,
+            'prediction_2_histogram': {k: 0 for k in range(output_dim)},
+            'prediction_size': 0, 'digit_correct': 0.0, 'digit_prediction_size': 0,
             'prediction_histogram': {k: 0 for k in range(output_dim)},
             'groundtruth_histogram': {k: 0 for k in range(output_dim)},
             # First dimension is actual class, second dimension is predicted dimension
             'prediction_confusion_matrix': np.zeros((output_dim,output_dim)),
             # For each non-digit symbol keep correct and total predictions
             #'operator_scores': np.zeros((len(key_indices),2)),
-            'prediction_size_histogram': {k: 0 for k in range(60)}};
+            'prediction_size_histogram': {k: 0 for k in range(60)},
+            'prediction_1_size_histogram': {k: 0 for k in range(60)},
+            'prediction_2_size_histogram': {k: 0 for k in range(60)},
+            'intervention_locations': {k: 0 for k in range(n_max_digits)}};

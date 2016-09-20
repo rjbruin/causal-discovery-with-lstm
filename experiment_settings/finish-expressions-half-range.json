@@ -1,0 +1,14 @@
+[
+    {
+        "name": "finish-expressions-slr",
+        "script": "expressions_finish.py",
+        "dataset": "./data/expressions_positive_integer_answer_shallow",
+        "repetitions": "500",
+        "minibatch_size": "10",
+        "sample_testing_size": "10000",
+        "finish_expressions": "True",
+        "n_max_digits": "17",
+        "intervention_base_offset": "5",
+        "intervention_range": "6"
+    }
+]

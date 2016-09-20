@@ -7,8 +7,7 @@ Created on 10 aug. 2016
 from flask import Flask, request;
 import os,flask;
 import numpy as np;
-
-from models.GeneratedExpressionDataset import GeneratedExpressionDataset;
+import copy;
 
 import tools.model;
 from tools.file import load_from_pickle_with_filename
@@ -67,6 +66,45 @@ def predictSample():
             missing_datapoints = data['rnn'].minibatch_size - datasample.shape[0];
             datasample = np.concatenate((datasample,np.zeros((missing_datapoints, datasample.shape[1], datasample.shape[2]))), axis=0);
         prediction, other = data['rnn'].predict(datasample);
+        
+        response['prediction'] = prediction[0].tolist();
+        response['predictionPretty'] = "";
+        for index in response['prediction']:
+            if (index == data['dataset'].EOS_symbol_index):
+                response['predictionPretty'] += "_";
+            else:
+                response['predictionPretty'] += data['dataset'].findSymbol[index];
+        response['success'] = True;
+        
+    return flask.jsonify(response);
+
+@app.route("/api/predict/interventionsample", methods=['POST'])
+def predictInterventionSample():
+    """
+    Takes a POST variable 'sample' containing a data sample for this model,
+    without the '='-symbol.
+    Provide intervention as a string symbol.
+    """
+    response = {'success': False};
+    if ('sample' in request.form):
+        sample = request.form['sample'];
+        response['sample'] = sample;
+        
+        interventionLocation = int(request.form['interventionLocation']);
+        intervention = request.form['intervention'];
+        
+        datasample, _, _, _, _ = data['dataset'].processor(sample,[],[],[],[]);
+        response['data'] = datasample[0].tolist();
+        
+        datasample = np.array(datasample).reshape((1,datasample[0].shape[0],datasample[0].shape[1]));
+        label = copy.deepcopy(datasample);
+        label[0,interventionLocation] = np.zeros((datasample[0].shape[1]));
+        label[0,interventionLocation,data['dataset'].oneHot[intervention]] = 1.0;
+        if (len(datasample) < data['rnn'].minibatch_size):
+            missing_datapoints = data['rnn'].minibatch_size - datasample.shape[0];
+            datasample = np.concatenate((datasample,np.zeros((missing_datapoints, datasample.shape[1], datasample.shape[2]))), axis=0);
+            label = np.concatenate((label,np.zeros((missing_datapoints, datasample.shape[1], datasample.shape[2]))), axis=0);
+        prediction, other = data['rnn'].predict(datasample, label=label, interventionLocation=interventionLocation);
         
         response['prediction'] = prediction[0].tolist();
         response['predictionPretty'] = "";
