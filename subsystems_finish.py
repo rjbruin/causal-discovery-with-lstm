@@ -225,6 +225,7 @@ if __name__ == '__main__':
     
     total_datapoints_processed = 0;
     b = 0;
+    terminate = False;
     
     # Determine the minimum max_length needed to get batches quickly
     min_samples_required = dataset.lengths[dataset.TRAIN] * 0.10;
@@ -283,6 +284,17 @@ if __name__ == '__main__':
                               intervention=parameters['train_interventions'],
                               fixedDecoderInputs=parameters['fixed_decoder_inputs']);
             total_error += outputs[0];
+            if (str(outputs[0]) == 'nan' and parameters['debug']):
+                print("NaN at batch %d" % k);
+                print("Cross entropy: " + str(outputs[1]));
+                print("Label: " + str(np.sum(np.sum(outputs[3], axis=2), axis=1)));
+                print("Smallest right hand value: " + np.array_str(np.min(outputs[2]), precision=16));                   
+            
+            if (str(outputs[0]) == 'nan'):
+                # Terminate since we cannot work with NaN values
+                print("ERROR! ENCOUNTERED NAN ERROR! TERMINATING RUN.")
+                terminate = True;
+                break;
             
             if ((k+model.minibatch_size) % 100 == 0):
                 print("# %d / %d (error = %.2f)" % (k+model.minibatch_size, repetition_size, total_error));
@@ -307,6 +319,12 @@ if __name__ == '__main__':
         if (saveModels):
             saveVars = model.getVars();
             save_to_pickle('saved_models/%s_%d.model' % (name, r), saveVars, settings=parameters);
+        
+        if (terminate):
+            break;
     
-    print("Training all datasets finished!");
+    if (terminate):
+        print("Experiment terminated prematurely!");
+    else:
+        print("Training all datasets finished!");
     

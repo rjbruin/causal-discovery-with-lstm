@@ -130,14 +130,16 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                            outputs_info=init_values_2,
                                            non_sequences=decode_parameters,
                                            n_steps=self.n_max_digits-(intervention_location+1))
-        right_hand = T.join(0, right_hand_1, right_hand_2);
+        right_hand_with_zeros = T.join(0, right_hand_1, right_hand_2);
+        right_hand_near_zeros = T.ones_like(right_hand_with_zeros) * 1e-15;
+        right_hand = T.maximum(right_hand_with_zeros, right_hand_near_zeros);
         
         # We predict the final n symbols (all symbols predicted as output from input '=')
         prediction_1 = T.argmax(right_hand[:,:,:self.data_dim], axis=2);
         prediction_2 = T.argmax(right_hand[:,:,self.data_dim:], axis=2);
-        padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim*2), dtype=theano.config.floatX));
+        #padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim*2), dtype=theano.config.floatX));
         
-        cat_cross = T.nnet.categorical_crossentropy(right_hand[intervention_location+1:],padded_label[intervention_location+1:]);
+        cat_cross = T.nnet.categorical_crossentropy(right_hand[:label.shape[0]],label);
         error = T.mean(cat_cross);
         
         # Automatic backward pass for all models: gradients
@@ -159,8 +161,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (self.optimizer == self.SGD_OPTIMIZER):
             updates = [(var,var-learning_rate*der) for (var,der) in zip(map(lambda var: self.vars[var], variables),derivatives)];
         else:
-            updates = self.adam(error, map(lambda var: self.vars[var], variables), learning_rate);
-        self._sgd = theano.function([X, label, intervention_location, learning_rate], [error], 
+            updates, grads = self.adam(error, map(lambda var: self.vars[var], variables), learning_rate);
+        self._sgd = theano.function([X, label, intervention_location, learning_rate], 
+                                        [error, 
+                                         cat_cross, 
+                                         right_hand,
+                                         label] + decode_parameters + grads, 
                                     updates=updates,
                                     allow_input_downcast=True)
         
@@ -235,7 +241,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             updates.append((v, v_t))
             updates.append((p, p_t))
         updates.append((i, i_t))
-        return updates
+        return updates, grads
     
     # END OF INITIALIZATION
     
