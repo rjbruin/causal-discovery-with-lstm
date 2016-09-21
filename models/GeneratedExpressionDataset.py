@@ -235,7 +235,7 @@ class GeneratedExpressionDataset(Dataset):
             max_length = max(map(lambda a: a.shape[axis-1], data));
         else:
             max_length = fixed_length;
-        nd_data = np.zeros((len(data), max_length, self.data_dim*2));
+        nd_data = np.zeros((len(data), max_length, self.data_dim*2), dtype='float32');
         for i,datapoint in enumerate(data):
             if (datapoint.shape[0] > max_length):
                 raise ValueError("n_max_digits too small! Increase to %d" % datapoint.shape[0]);
@@ -479,7 +479,7 @@ class GeneratedExpressionDataset(Dataset):
         
         # We concatenate the expressions on the data_dim axis
         # Both expressions are of the same length, so no checks needed here
-        expression_embeddings = np.zeros((len(expression)+1,self.data_dim*2));
+        expression_embeddings = np.zeros((len(expression)+1,self.data_dim*2), dtype='float32');
         for i, literal in enumerate(expression):
             expression_embeddings[i,self.oneHot[literal]] = 1.0;
         for j, literal in enumerate(expression_prime):

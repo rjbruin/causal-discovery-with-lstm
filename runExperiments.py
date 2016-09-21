@@ -107,7 +107,7 @@ if __name__ == '__main__':
                 args.append(str(value));
         joined_args = " ".join(args) + " " + extraArgs;
         if (gpu):
-            joined_args = "THEANO_FLAGS=device=gpu " + joined_args;
+            joined_args = "THEANO_FLAGS='device=gpu,floatX=float32' " + joined_args;
         print("Command string: %s" % (joined_args));
         p = subprocess.Popen(joined_args,stdout=PIPE,stderr=STDOUT,shell=True);
         

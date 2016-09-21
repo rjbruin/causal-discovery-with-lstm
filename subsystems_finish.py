@@ -13,6 +13,7 @@ from tools.model import constructModels, set_up_statistics;
 from tools.gpu import using_gpu; # @UnresolvedImport
 
 import numpy as np;
+import theano;
 import copy;
 
 def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=False, base_offset=12):
@@ -188,6 +189,7 @@ def test(model, dataset, parameters, max_length, print_samples=False, sample_siz
     return stats;
 
 if __name__ == '__main__':
+    theano.config.floatX = 'float32';
     np.set_printoptions(precision=3, threshold=10000000);
     
     # Specific settings - default name is time of experiment

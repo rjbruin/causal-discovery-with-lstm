@@ -80,22 +80,22 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.vars = {};
         for (varName,dim1,dim2) in varSettings:
             # Get value for shared variable from constructor if present
-            value = np.random.uniform(-np.sqrt(1.0/dim1),np.sqrt(1.0/dim1),(dim1,dim2));
+            value = np.random.uniform(-np.sqrt(1.0/dim1),np.sqrt(1.0/dim1),(dim1,dim2)).astype('float32');
             if (varName in weight_values):
                 value = weight_values[varName];
-            self.vars[varName] = theano.shared(name=varName, value=value);
+            self.vars[varName] = theano.shared(value, varName);
         
         
         
         # Set up inputs to prediction and SGD
         # X is 3-dimensional: 1) index in sentence, 2) datapoint, 3) dimensionality of data
-        X = T.dtensor3('X');
+        X = T.ftensor3('X');
         if (self.single_digit):
             # targets is 2-dimensional: 1) datapoint, 2) label for each answer
-            label = T.dmatrix('label');
+            label = T.fmatrix('label');
         else:
             # targets is 3-dimensional: 1) index in sentence, 2) datapoint, 3) encodings
-            label = T.dtensor3('label');
+            label = T.ftensor3('label');
         if (self.finishExpressions):
             intervention_location = T.iscalar('intervention_location');
         
@@ -109,7 +109,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             decode_parameters = encode_parameters + [self.vars['hWY']];
             decode_function = self.lstm_predict_single;
         
-        first_hidden = T.zeros((self.minibatch_size,self.hidden_dim), dtype='float64');
+        first_hidden = T.zeros((self.minibatch_size,self.hidden_dim));        
         hidden, _ = theano.scan(fn=self.lstm_predict_single_no_output,
                                 sequences=X,
                                 # Input a zero hidden layer
@@ -135,7 +135,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # We predict the final n symbols (all symbols predicted as output from input '=')
         prediction_1 = T.argmax(right_hand[:,:,:self.data_dim], axis=2);
         prediction_2 = T.argmax(right_hand[:,:,self.data_dim:], axis=2);
-        padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim*2)));
+        padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim*2), dtype=theano.config.floatX));
         
         cat_cross = T.nnet.categorical_crossentropy(right_hand[intervention_location+1:],padded_label[intervention_location+1:]);
         error = T.mean(cat_cross);
@@ -155,7 +155,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                                   right_hand]);
         
         # Defining stochastic gradient descent
-        learning_rate = T.dscalar('learning_rate');
+        learning_rate = T.fscalar('learning_rate');
         if (self.optimizer == self.SGD_OPTIMIZER):
             updates = [(var,var-learning_rate*der) for (var,der) in zip(map(lambda var: self.vars[var], variables),derivatives)];
         else:
@@ -219,7 +219,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         """  
         updates = []
         grads = T.grad(cost, params)
-        i = theano.shared(np.float64(0.))
+        i = theano.shared(np.float32(0.))
         i_t = i + 1.
         fix1 = 1. - (1. - b1)**i_t
         fix2 = 1. - (1. - b2)**i_t
