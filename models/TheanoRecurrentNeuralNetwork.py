@@ -440,7 +440,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 # Compare predicted effect expression to stored effect expression
                 _, primedExpression, _, _ = exists;
                 if (primedExpression is not False and \
-                    primedExpression[:eos_location] == prediction[1][j][:eos_location]):
+                    primedExpression[:eos_location] == dataset.indicesToStr(prediction[1][j][:eos_location])):
                     stats['correct'] += 1.0;
             
             # Digit precision and prediction size computation     
