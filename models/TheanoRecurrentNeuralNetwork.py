@@ -153,10 +153,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                                   right_hand]);
         
         # Defining stochastic gradient descent
+        variables = self.vars.keys();
         learning_rate = T.fscalar('learning_rate');
         if (self.optimizer == self.SGD_OPTIMIZER):
             # Automatic backward pass for all models: gradients
-            variables = self.vars.keys();
             derivatives = T.grad(error, map(lambda var: self.vars[var], variables));
             updates = [(var,var-learning_rate*der) for (var,der) in zip(map(lambda var: self.vars[var], variables),derivatives)];
         else:
@@ -224,22 +224,23 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         """  
         updates = []
         grads = T.grad(cost, params)
-        i = theano.shared(np.float32(0.))
-        i_t = i + 1.
-        fix1 = 1. - (1. - b1)**i_t
-        fix2 = 1. - (1. - b2)**i_t
-        lr_t = lr * (T.sqrt(fix2) / fix1)
+        #i = theano.shared(np.float32(0.))
+        #i_t = i + 1.
+        #fix1 = 1. - (1. - b1)**i_t
+        #fix2 = 1. - (1. - b2)**i_t
+        #lr_t = lr * (T.sqrt(fix2) / fix1)
         for p, g in zip(params, grads):
             m = theano.shared(p.get_value() * 0.)
             v = theano.shared(p.get_value() * 0.)
             m_t = (b1 * g) + ((1. - b1) * m)
             v_t = (b2 * T.sqr(g)) + ((1. - b2) * v)
             g_t = m_t / (T.sqrt(v_t) + e)
-            p_t = p - (lr_t * g_t)
+            #p_t = p - (lr_t * g_t)
+            p_t = p - (lr * g_t)
             updates.append((m, m_t))
             updates.append((v, v_t))
             updates.append((p, p_t))
-        updates.append((i, i_t))
+        #updates.append((i, i_t))
         return updates, grads
     
     # END OF INITIALIZATION
