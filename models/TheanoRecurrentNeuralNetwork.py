@@ -142,10 +142,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         cat_cross = T.nnet.categorical_crossentropy(right_hand[:label.shape[0]],label);
         error = T.mean(cat_cross);
         
-        # Automatic backward pass for all models: gradients
-        variables = self.vars.keys();
-        derivatives = T.grad(error, map(lambda var: self.vars[var], variables));
-           
         # Defining prediction
         if (self.finishExpressions):
             self._predict = theano.function([X, label, intervention_location], [prediction_1,
@@ -159,14 +155,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # Defining stochastic gradient descent
         learning_rate = T.fscalar('learning_rate');
         if (self.optimizer == self.SGD_OPTIMIZER):
+            # Automatic backward pass for all models: gradients
+            variables = self.vars.keys();
+            derivatives = T.grad(error, map(lambda var: self.vars[var], variables));
             updates = [(var,var-learning_rate*der) for (var,der) in zip(map(lambda var: self.vars[var], variables),derivatives)];
         else:
-            updates, grads = self.adam(error, map(lambda var: self.vars[var], variables), learning_rate);
+            updates, derivatives = self.adam(error, map(lambda var: self.vars[var], variables), learning_rate);
         self._sgd = theano.function([X, label, intervention_location, learning_rate], 
                                         [error, 
                                          cat_cross, 
                                          right_hand,
-                                         label] + decode_parameters + grads, 
+                                         label] + decode_parameters + derivatives, 
                                     updates=updates,
                                     allow_input_downcast=True)
         
