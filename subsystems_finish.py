@@ -16,7 +16,7 @@ import numpy as np;
 import theano;
 import copy;
 
-def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=False, base_offset=12):
+def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=False, base_offset=12, applyIntervention=True):
     limit = 1000;
     
     if (isTrain):
@@ -36,27 +36,17 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=Fal
         
         while (not fail and len(batch) < model.minibatch_size):
             branch = storage.get_random_by_length(interventionLocation, getStructure=True);
-            # The branch check is removed because the get_random_by_length() 
-            # will not return empty branches anymore
-#             if (branch is None):
-#                 tries_no_branch += 1;
-#                 if (tries_no_valid_prefixes + tries_no_branch >= limit):
-#                     # Catch where we are stuck with an impossible intervention location
-#                     fail = True;
-#                     if (debug):
-#                         fails += 1;
-#                         print("#\tBatching failed at iteration %d (%d no branches, %d no prefixes)" % (fails, tries_no_branch, tries_no_valid_prefixes));
-#                 continue;
             validPrefixes = {};
             if (len(branch.prefixedExpressions) >= 2):
                 for prefix in branch.prefixedExpressions:
                     symbolIndex = dataset.oneHot[prefix];
-                    if (symbolIndex < dataset.EOS_symbol_index-4 and len(branch.prefixedExpressions[prefix].fullExpressions) >= 1):
+                    if (not applyIntervention or symbolIndex < dataset.EOS_symbol_index-4 and len(branch.prefixedExpressions[prefix].fullExpressions) >= 1):
                         # Check for valid intervention symbol: has to be the right
                         # symbol and has to have expressions
                         validPrefixes[prefix] = branch.prefixedExpressions[prefix];
+                    
             
-            if (len(validPrefixes.keys()) >= 2):
+            if (not applyIntervention or len(validPrefixes.keys()) >= 2):
                 # If there are at least two valid prefixes we will always be
                 # able to find an intervention sample for a random sample from
                 # this branch 
@@ -83,12 +73,13 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=Fal
         data, targets, labels, expressions, _ = dataset.processor(";".join([expression, expression_prime]), 
                                                                   data,targets, labels, expressions);
         # Convert symbols to indices
-        interventionSymbols.append(map(lambda s: dataset.oneHot[s], possibleInterventions));
+        if (applyIntervention):
+            interventionSymbols.append(map(lambda s: dataset.oneHot[s], possibleInterventions));
     
     data = dataset.fill_ndarray(data, 1);
     targets = dataset.fill_ndarray(copy.deepcopy(targets), 1, fixed_length=model.n_max_digits);
     
-    if (debug):
+    if (debug and applyIntervention):
         # Sanity check: interventionSymbols must match each other
         passed = True;
         for indices in interventionSymbols:
@@ -123,19 +114,22 @@ def test(model, dataset, parameters, max_length, print_samples=False, sample_siz
             possibleInterventions, interventionLocation = get_batch(False, dataset, model, 
                                                                     parameters['intervention_range'], 
                                                                     max_length, debug=parameters['debug'],
-                                                                    base_offset=parameters['intervention_base_offset'] - trimmed_from_max_length);
+                                                                    base_offset=parameters['intervention_base_offset'] - trimmed_from_max_length,
+                                                                    applyIntervention=parameters['test_interventions']);
         test_n = model.minibatch_size;
         stats['intervention_locations'][interventionLocation] += 1;
         
         # Interventions are not optional in testing
-        test_targets, _, interventionLocation, _ = \
-            dataset.insertInterventions(test_targets, test_expressions, 
-                                        0,
-                                        interventionLocation, 
-                                        possibleInterventions);
+        if (parameters['test_interventions']):
+            test_targets, test_expressions, interventionLocation, _ = \
+                dataset.insertInterventions(test_targets, test_expressions, 
+                                            0,
+                                            interventionLocation, 
+                                            possibleInterventions);
         
         predictions, other = model.predict(test_data, label=test_targets, 
-                                           interventionLocation=interventionLocation);
+                                           interventionLocation=interventionLocation,
+                                           intervention=parameters['test_interventions']);
         
         # Print samples
         if (print_samples and not printed_samples):
@@ -153,10 +147,9 @@ def test(model, dataset, parameters, max_length, print_samples=False, sample_siz
                 print("# Output 2: %s" % "".join(map(lambda x: dataset.findSymbol[x], predictions[1][i])));
             printed_samples = True;
         
-        stats = model.batch_statistics(stats, predictions, test_labels, 
-                                       test_targets, test_expressions, 
-                                       other,
-                                       test_n, dataset, 
+        stats = model.batch_statistics(stats, predictions, 
+                                       test_expressions, interventionLocation, 
+                                       other, test_n, dataset, 
                                        eos_symbol_index=dataset.EOS_symbol_index);
     
         if (stats['prediction_size'] % printing_interval == 0):
@@ -253,7 +246,8 @@ if __name__ == '__main__':
                 get_batch(True, dataset, model, 
                           parameters['intervention_range'], max_length, 
                           debug=parameters['debug'],
-                          base_offset=parameters['intervention_base_offset'] - trimmed_from_max_length);
+                          base_offset=parameters['intervention_base_offset'] - trimmed_from_max_length,
+                          applyIntervention=parameters['train_interventions']);
             
             # Perform interventions
             if (parameters['train_interventions']):
@@ -265,9 +259,6 @@ if __name__ == '__main__':
                 intervention_locations_train[interventionLocation] += 1;
                 #differences = map(lambda (d,t): d == t, zip(np.argmax(data, axis=2), np.argmax(target, axis=2)));
             
-            # Swap axes of index in sentence and datapoint for Theano purposes
-            data = np.swapaxes(data, 0, 1);
-            target = np.swapaxes(target, 0, 1);
             # Run training
             if (parameters['train_interventions']):
                 outputs = \

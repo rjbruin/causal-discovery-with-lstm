@@ -96,8 +96,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         else:
             # targets is 3-dimensional: 1) index in sentence, 2) datapoint, 3) encodings
             label = T.ftensor3('label');
-        if (self.finishExpressions):
-            intervention_location = T.iscalar('intervention_location');
+        intervention_location = T.iscalar('intervention_location');
         
         # Set the prediction parameters to be either the prediction 
         # weights or the decoding weights depending on the setting 
@@ -143,14 +142,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         error = T.mean(cat_cross);
         
         # Defining prediction
-        if (self.finishExpressions):
-            self._predict = theano.function([X, label, intervention_location], [prediction_1,
-                                                                                prediction_2,
-                                                                                right_hand]);
-        else:
-            self._predict = theano.function([X], [prediction_1,
-                                                  prediction_2,
-                                                  right_hand]);
+        self._predict = theano.function([X, label, intervention_location], [prediction_1,
+                                                                            prediction_2,
+                                                                            right_hand]);
         
         # Defining stochastic gradient descent
         variables = self.vars.keys();
@@ -178,7 +172,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         for key in variables:
             if (key not in self.vars):
                 return False;
-            self.vars[key].set_value(variables[key].get_value());
+            self.vars[key].set_value(variables[key].get_value().astype('float32'));
         return True;
     
     # PREDICTION FUNCTIONS
@@ -224,19 +218,18 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         """  
         updates = []
         grads = T.grad(cost, params)
-        #i = theano.shared(np.float32(0.))
-        #i_t = i + 1.
-        #fix1 = 1. - (1. - b1)**i_t
-        #fix2 = 1. - (1. - b2)**i_t
-        #lr_t = lr * (T.sqrt(fix2) / fix1)
+        i = theano.shared(np.float32(0.))
+        i_t = i + 1.
+        fix1 = 1. - (1. - b1)**i_t
+        fix2 = 1. - (1. - b2)**i_t
+        lr_t = lr * (T.sqrt(fix2) / fix1)
         for p, g in zip(params, grads):
             m = theano.shared(p.get_value() * 0.)
             v = theano.shared(p.get_value() * 0.)
             m_t = (b1 * g) + ((1. - b1) * m)
             v_t = (b2 * T.sqr(g)) + ((1. - b2) * v)
             g_t = m_t / (T.sqrt(v_t) + e)
-            #p_t = p - (lr_t * g_t)
-            p_t = p - (lr * g_t)
+            p_t = p - (lr_t * g_t)
             updates.append((m, m_t))
             updates.append((v, v_t))
             updates.append((p, p_t))
@@ -261,15 +254,16 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         all samples in this batch.
         """
         if (self.finishExpressions):
-            return self.sgd_finish_expression(dataset, data, expressions, label, 
+            return self.sgd_finish_expression(dataset, data, label, 
                                               intervention_expressions, interventionLocation, 
-                                              emptySamples, learning_rate, 
+                                              learning_rate, emptySamples, 
                                               intervention=intervention, 
                                               fixedDecoderInputs=fixedDecoderInputs);
         else:
             return self._sgd(data, label, learning_rate), 0;
         
-    def predict(self, data, label=None, interventionLocation=None, alreadySwapped=False):
+    def predict(self, data, label=None, interventionLocation=None, alreadySwapped=False, 
+                intervention=True, fixedDecoderInputs=True):
         """
         Perform necessary models-specific transformations and call the actual 
         prediction function of the model.
@@ -282,134 +276,169 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             if (label is not None):
                 label = np.swapaxes(label, 0, 1);
         
-        if (self.finishExpressions):
-            prediction_1, prediction_2, right_hand = \
+        if (not intervention):
+            if (fixedDecoderInputs):
+                interventionLocation = self.n_max_digits-1;
+            else:
+                raise ValueError("Unfixed decoder inputs not implemented yet!");
+        
+        prediction_1, prediction_2, right_hand = \
                 self._predict(data, label, interventionLocation);
-        else:
-            prediction_1, prediction_2, right_hand = \
-                self._predict(data);
         
         # Swap sentence index and datapoints back
         prediction_1 = np.swapaxes(prediction_1, 0, 1);
         prediction_2 = np.swapaxes(prediction_2, 0, 1);
+        right_hand = np.swapaxes(right_hand, 0, 1);
         
         return [prediction_1, prediction_2], {'right_hand': right_hand};
     
-    def sgd_finish_expression(self, dataset, data, data_expression, data_with_intervention, 
-                              intervention_expressions, intervention_location, emptySamples, learning_rate,
-                              intervention=True, fixedDecoderInputs=False, intervenedExpression=0):
-        if (not intervention):
-            if (fixedDecoderInputs):
-                # We fix the decoder inputs by simulating the interventionLocation
-                # to be after the sequence, so the fixed inputs are fed for the
-                # entire prediction
-                intervention_location = self.n_max_digits-1;
-            else:
-                # We unfix the decoder inputs by simulating the interventionLocation
-                # to be before the sequence
-                raise ValueError("Unfixed decoder inputs not implemented yet!");
+    def sgd_finish_expression(self, dataset, encoded_expressions, 
+                              encoded_expressions_with_intervention, expressions_with_intervention,
+                              intervention_location, learning_rate, emptySamples, 
+                              intervention=True, fixedDecoderInputs=True, intervenedExpression=0):
+        [predictions_1, predictions_2], other = self.predict(encoded_expressions, encoded_expressions_with_intervention, 
+                                                             intervention_location, intervention=intervention,
+                                                             fixedDecoderInputs=fixedDecoderInputs);
+        right_hand_1 = other['right_hand'][:,:,:self.data_dim];
+        right_hand_2 = other['right_hand'][:,:,self.data_dim:];
+        
+        # Set which expression is cause and which is effect
+        if (intervenedExpression == 0):
+            # Assume all samples in the batch have the same setting for
+            # which of the expressions is the cause and which is the effect
+            causeExpressionPredictions = predictions_1;
+            causeExpressionRightHand = right_hand_1;
+            effectExpressionPredictions = predictions_2;
+            effectExpressionRightHand = right_hand_2;
+            # Unzip the tuples of expressions into two lists
+            causeExpressions, effectExpressions = zip(*expressions_with_intervention);
         else:
-            unswapped_data = np.swapaxes(data, 0, 1);
-            [predictions_1, predictions_2], other = self.predict(data, data_with_intervention, intervention_location, alreadySwapped=True);
-            right_hand_1 = other['right_hand'][:,:,:self.data_dim];
-            right_hand_2 = other['right_hand'][:,:,self.data_dim:];
-            
-            if (intervenedExpression == 0):
-                # Assume all samples in the batch have the same setting for
-                # which of the expressions is the cause and which is the effect
-                intervenedExpressionPredictions = predictions_1;
-                intervenedExpressionRightHand = right_hand_1;
-                otherPredictions = predictions_2;
-                otherRightHand = right_hand_2;
+            raise ValueError("Not implemented!");
+        
+        if (intervention):
+            # Change the target of the SGD to the nearest valid expression-subsystem
+            encoded_expressions_with_intervention, _ = \
+                self.finish_expression_find_labels(causeExpressionPredictions, effectExpressionPredictions,
+                                                   dataset, 
+                                                   causeExpressions, effectExpressions, 
+                                                   intervention_location,
+                                                   updateTargets=True,
+                                                   encoded_causeExpression=causeExpressionRightHand,
+                                                   encoded_effectExpression=effectExpressionRightHand,
+                                                   emptySamples=emptySamples);
+        else:
+            if (fixedDecoderInputs):
+                intervention_location = self.n_max_digits - 1;
             else:
-                raise ValueError("Not implemented!");
+                raise ValueError("fixedDecoderInputs = false not implemented yet!");
+        
+        # Swap axes of index in sentence and datapoint for Theano purposes
+        encoded_expressions = np.swapaxes(encoded_expressions, 0, 1);
+        encoded_expressions_with_intervention = np.swapaxes(encoded_expressions_with_intervention, 0, 1);
+        
+        return self._sgd(encoded_expressions, encoded_expressions_with_intervention, 
+                         intervention_location, learning_rate);
+    
+    def finish_expression_find_labels(self, causeExpressionPredictions, effectExpressionPredictions,
+                                       dataset,
+                                       causeExpressions, effectExpressions, 
+                                       intervention_location,
+                                       updateTargets=False, updateLabels=False,
+                                       encoded_causeExpression=False, encoded_effectExpression=False,
+                                       emptySamples=False):
+        target = np.zeros((self.minibatch_size,self.n_max_digits,self.decoding_output_dim*2));
+        label_expressions = [];
+        if (emptySamples is False):
+            emptySamples = [];
+        
+        for i, prediction in enumerate(causeExpressionPredictions):
+            if (i in emptySamples):
+                # Skip empty samples caused by the intervention generation process
+                continue;
             
-            target = np.zeros((unswapped_data.shape[0],self.n_max_digits,self.decoding_output_dim*2));
-            label_expressions = [];
-            for i, prediction in enumerate(intervenedExpressionPredictions):
-                if (i in emptySamples):
-                    # Skip empty samples caused by the intervention generation process
-                    continue;
+            # Find the string representation of the prediction
+            string_prediction = "";
+            for index in prediction:
+                if (index >= dataset.EOS_symbol_index):
+                    break;
+                string_prediction += dataset.findSymbol[index];
+            
+            # Get all valid predictions for this data sample including intervention
+            _, _, valid_predictions, validPredictionEffectExpressions = dataset.expressionsByPrefix.get(causeExpressions[i][:intervention_location+1]);
+            if (len(valid_predictions) == 0):
+                # Invalid example because the intervention has no corrected examples
+                # We don't correct by looking at expression structure here because 
+                # that is not a realistic usage of a dataset
+                if (updateLabels):
+                    label_expressions.append((string_prediction,""));
+#                 unswapped_data[i] = np.zeros((unswapped_data.shape[1], unswapped_data.shape[2]));
+#                 target[i] = np.zeros((target.shape[1],target.shape[2]));
+            elif (string_prediction in valid_predictions):
+                # The prediction of the cause expression is right, so we
+                # use the right_hand predicted for this part
+                if (updateTargets):
+                    target[i,:,:self.data_dim] = encoded_causeExpression[i];
                 
-                # Find the string representation of the prediction
-                string_prediction = [];
-                for index in prediction:
+                # If our prediction is valid we check if the other expression matches 
+                # the predicted expression
+                other_string_prediction = "";
+                for index in effectExpressionPredictions[i]:
                     if (index >= dataset.EOS_symbol_index):
                         break;
-                    string_prediction.append(dataset.findSymbol[index]);
-                
-                # Get all valid predictions for this data sample including intervention
-                _, _, valid_predictions, validPredictionOtherExpressions = dataset.expressionsByPrefix.get(intervention_expressions[i][0][:intervention_location+1]);
-                if (len(valid_predictions) == 0):
-                    # Invalid example because the intervention has no corrected examples
-                    # We don't correct by looking at expression structure here because 
-                    # that is not a realistic usage of a dataset
-                    unswapped_data[i] = np.zeros((unswapped_data.shape[1], unswapped_data.shape[2]));
-                    target[i] = np.zeros((target.shape[1],target.shape[2]));
-                    label_expressions.append("NONE");
-                elif (string_prediction in valid_predictions):
-                    # The prediction of the cause expression is right, so we
-                    # use the right_hand predicted for this part
-                    target[i,:,:self.data_dim] = np.swapaxes(intervenedExpressionRightHand[i], 0, 1);
-                    
-                    # If our prediction is valid we check if the other expression matches 
-                    # the predicted expression
-                    other_string_prediction = [];
-                    for index in otherPredictions[i]:
-                        if (index >= dataset.EOS_symbol_index):
-                            break;
-                        other_string_prediction.append(dataset.findSymbol[index]);
-                    prediction_index = valid_predictions.index(string_prediction)
-                    if (other_string_prediction == validPredictionOtherExpressions[prediction_index]):
-                        # If the effect expression predicted matches the 
-                        # expression attached to the cause expression,
-                        # this prediction is right, so we use it as right_hand
-                        target[i,:,self.data_dim:] = np.swapaxes(otherRightHand[i], 0, 1);
-                        label_expressions.append((string_prediction,other_string_prediction));
-                    else:
-                        # If the cause expression was predicted right but the
-                        # effect expression is wrong we need to run SGD with
-                        # as target for the effect expression the effect
-                        # expression stored with the cause expression
-                        other_expression_target_expression = validPredictionOtherExpressions[prediction_index];
+                    other_string_prediction += dataset.findSymbol[index];
+                prediction_index = valid_predictions.index(string_prediction)
+                if (other_string_prediction == validPredictionEffectExpressions[prediction_index]):
+                    # If the effect expression predicted matches the 
+                    # expression attached to the cause expression,
+                    # this prediction is right, so we use it as right_hand
+                    if (updateTargets):
+                        target[i,:,self.data_dim:] = encoded_effectExpression[i];
+                else:
+                    # If the cause expression was predicted right but the
+                    # effect expression is wrong we need to run SGD with
+                    # as target for the effect expression the effect
+                    # expression stored with the cause expression
+                    if (updateTargets):
+                        other_expression_target_expression = validPredictionEffectExpressions[prediction_index];
                         target[i,:,self.data_dim:] = dataset.encodeExpression(other_expression_target_expression, \
                                                                               self.n_max_digits);
-                        label_expressions.append((string_prediction,other_string_prediction));
-                else:
-                    # Find the nearest expression to our prediction
-                    pred_length = len(string_prediction)
-                    nearest = '';
-                    nearestScore = 100000;
-                    for i_near, neighbourExpr in enumerate(valid_predictions):
-                        # Compute string difference
-                        score = 0;
-                        for k,s in enumerate(neighbourExpr[intervention_location+1:]):
-                            j = k + intervention_location + 1;
-                            if (pred_length <= j):
-                                score += 1;
-                            elif (s != string_prediction[j]):
-                                score += 1;
-                        score += max(0,pred_length - (j+1));
-                        
-                        if (score < nearestScore):
-                            nearest = i_near;
-                            nearestScore = score;
+                if (updateLabels):
+                    label_expressions.append((string_prediction,other_string_prediction));
+            else:
+                # Find the nearest expression to our prediction
+                pred_length = len(string_prediction)
+                nearest = 0;
+                nearestScore = 100000;
+                for i_near, neighbourExpr in enumerate(valid_predictions):
+                    # Compute string difference
+                    score = 0;
+                    for k,s in enumerate(neighbourExpr[intervention_location+1:]):
+                        j = k + intervention_location + 1;
+                        if (pred_length <= j):
+                            score += 1;
+                        elif (s != string_prediction[j]):
+                            score += 1;
+                    score += max(0,pred_length - (j+1));
                     
-                    # Use as targets the found cause expression and its 
-                    # accompanying effect expression
+                    if (score < nearestScore):
+                        nearest = i_near;
+                        nearestScore = score;
+                
+                # Use as targets the found cause expression and its 
+                # accompanying effect expression
+                if (updateTargets):
                     target[i,:,:self.data_dim] = dataset.encodeExpression(valid_predictions[nearest], self.n_max_digits);
-                    target[i,:,self.data_dim:] = dataset.encodeExpression(validPredictionOtherExpressions[nearest], self.n_max_digits);
-                    label_expressions.append((valid_predictions[nearest],validPredictionOtherExpressions[nearest]));
-            
-            data = np.swapaxes(unswapped_data, 0, 1);
-            target = np.swapaxes(target, 0, 1);
+                    target[i,:,self.data_dim:] = dataset.encodeExpression(validPredictionEffectExpressions[nearest], self.n_max_digits);
+                if (updateLabels):
+                    label_expressions.append((valid_predictions[nearest],validPredictionEffectExpressions[nearest]));
         
-        return self._sgd(data, target, intervention_location, learning_rate);
+        return target, label_expressions;
     
     def getVars(self):
         return self.vars.items();
     
-    def batch_statistics(self, stats, prediction, labels, targets, expressions, 
+    def batch_statistics(self, stats, prediction, 
+                         expressions_with_interventions, intervention_location,
                          other, test_n, dataset,
                          excludeStats=None, no_print_progress=False,
                          eos_symbol_index=None, print_sample=False,
@@ -417,6 +446,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         """
         Overriding for finish-expressions.
         """
+        causeExpressions, effectExpressions = zip(*expressions_with_interventions);
+        _, labels_to_use = self.finish_expression_find_labels(prediction[0], prediction[1],
+                                                               dataset, 
+                                                               causeExpressions, effectExpressions, 
+                                                               intervention_location, emptySamples,
+                                                               updateLabels=True);
+        
         # Statistics
         for j in range(0,test_n):
             if (emptySamples is not None and j in emptySamples):
@@ -433,50 +469,67 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 eos_location = prediction[0][j].shape[0];
             
             # Convert prediction to string expression
-            expression = dataset.indicesToStr(prediction[0][j][:eos_location]);
-            # Lookup expression in prefixed test expressions storage
-            exists = dataset.testExpressionsByPrefix.get(expression);
-            if (exists is not False):
-                # Compare predicted effect expression to stored effect expression
-                _, primedExpression, _, _ = exists;
-                if (primedExpression is not False and \
-                    primedExpression[:eos_location] == dataset.indicesToStr(prediction[1][j][:eos_location])):
+            causeExpressionPrediction = dataset.indicesToStr(prediction[0][j][:eos_location]);
+            effectExpressionPrediction = dataset.indicesToStr(prediction[1][j][:eos_location]);
+            if (causeExpressionPrediction == labels_to_use[j][0] and effectExpressionPrediction == labels_to_use[j][1]):
                     stats['correct'] += 1.0;
             
-            # Digit precision and prediction size computation     
-            # Get the labels
-            targets_1 = targets[j,:,:self.data_dim];
-            argmax_target_1 = np.argmax(targets_1,axis=1);
-            # Compute the length of the target answer
-            target_length = np.argmax(argmax_target_1);
-            if (target_length == 0):
-                # If no EOS is found, the target is the entire length
-                target_length = targets_1[j].shape[1];
-             
-            for k,digit in enumerate(prediction[0][j][:target_length]):
-                if (digit == np.argmax(targets_1[j][k])):
+            # Lookup expression in prefixed test expressions storage
+#             exists = dataset.testExpressionsByPrefix.get(expression);
+#             if (exists is not False and exists[0] is not False):
+#                 # Compare predicted effect expression to stored effect expression
+#                 _, primedExpression, _, _ = exists;
+#                 if (primedExpression is not False and \
+#                     primedExpression[:eos_location] == dataset.indicesToStr(prediction[1][j][:eos_location])):
+#                     stats['correct'] += 1.0;
+            
+            # Digit precision and prediction size computation
+            i = 0;
+            for i in range(min(len(causeExpressionPrediction),len(labels_to_use[j][0]))):
+                if (causeExpressionPrediction[i] == labels_to_use[j][0][i]):
                     stats['digit_1_correct'] += 1.0;
-                stats['digit_1_prediction_size'] += 1;
-                 
+            stats['digit_1_prediction_size'] += len(causeExpressionPrediction);
+            
+            i = 0;
+            for i in range(min(len(effectExpressionPrediction),len(labels_to_use[j][1]))):
+                if (effectExpressionPrediction[i] == labels_to_use[j][1][i]):
+                    stats['digit_2_correct'] += 1.0;
+            stats['digit_2_prediction_size'] += len(effectExpressionPrediction);
+            
+#             # Get the labels
+#             targets_1 = targets[j,:,:self.data_dim];
+#             argmax_target_1 = np.argmax(targets_1,axis=1);
+#             # Compute the length of the target answer
+#             target_length = np.argmax(argmax_target_1);
+#             if (target_length == 0):
+#                 # If no EOS is found, the target is the entire length
+#                 target_length = targets_1.shape[1];
+#              
+#             for k,digit in enumerate(prediction[0][j][:target_length]):
+#                 if (digit == argmax_target_1[k]):
+#                     stats['digit_1_correct'] += 1.0;
+#                 stats['digit_1_prediction_size'] += 1;
+
+#             targets_2 = targets[j,:,self.data_dim:];
+#             argmax_target_2 = np.argmax(targets_2,axis=1);
+#             # Compute the length of the target answer
+#             target_length = np.argmax(argmax_target_2);
+#             if (target_length == 0):
+#                 # If no EOS is found, the target is the entire length
+#                 target_length = targets_1.shape[1];
+#              
+#             for k,digit in enumerate(prediction[1][j][:target_length]):
+#                 if (digit == argmax_target_2[k]):
+#                     stats['digit_2_correct'] += 1.0;
+#                 stats['digit_2_prediction_size'] += 1;           
+
+       
             stats['prediction_1_size_histogram'][int(eos_location)] += 1;
-            for digit_prediction in prediction[0][j]:
+            for digit_prediction in prediction[0][j][:len(causeExpressionPrediction)]:
                 stats['prediction_1_histogram'][int(digit_prediction)] += 1;
             
-            targets_2 = targets[j,:,self.data_dim:];
-            argmax_target_2 = np.argmax(targets_2,axis=1);
-            # Compute the length of the target answer
-            target_length = np.argmax(argmax_target_2);
-            if (target_length == 0):
-                # If no EOS is found, the target is the entire length
-                target_length = targets_1[j].shape[1];
-             
-            for k,digit in enumerate(prediction[1][j][:target_length]):
-                if (digit == np.argmax(targets_2[j][k])):
-                    stats['digit_2_correct'] += 1.0;
-                stats['digit_2_prediction_size'] += 1;
-                 
             stats['prediction_2_size_histogram'][int(eos_location)] += 1;
-            for digit_prediction in prediction[1][j]:
+            for digit_prediction in prediction[1][j][:len(effectExpressionPrediction)]:
                 stats['prediction_2_histogram'][int(digit_prediction)] += 1;
             
             stats['prediction_size'] += 1;

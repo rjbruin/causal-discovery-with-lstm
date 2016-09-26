@@ -11,6 +11,8 @@ class ExpressionsByPrefix(object):
     '''
     classdocs
     '''
+    
+    PREFIXES = [str(i) for i in range(10)] + ['+','-','*','/','(',')','='];
 
     def __init__(self):
         '''
@@ -39,7 +41,7 @@ class ExpressionsByPrefix(object):
                 print(prefix);
             self.prefixedExpressions[prefix]._add(expression[1:], fullExpression, expression_prime);
     
-    def get(self, prefix, getStructure=False):
+    def get(self, prefix, getStructure=False, safe=False):
         if (len(prefix) == 0):
             if (getStructure):
                 return self;
@@ -50,19 +52,9 @@ class ExpressionsByPrefix(object):
                     return (False, False, self.fullExpressions, self.primedExpressions);
                 return (self.fullExpressions[index], self.primedExpressions[index], 
                         self.fullExpressions, self.primedExpressions);
-         
-        return self.prefixedExpressions[prefix[0]].get(prefix[1:], getStructure=getStructure);
-#     
-#     def get_random(self, max_size):
-#         nrExpressions = len(self.expressions);
-#         if (nrExpressions <= max_size):
-#             return self.expressions;
-#         else:
-#             availablePrefixes = self.prefixedExpressions.keys();
-#             if (len(availablePrefixes) == 0):
-#                 raise ValueError("No prefixed available!");
-#             prefix = np.random.randint(0,len(availablePrefixes));
-#             return map(lambda suffix: availablePrefixes[prefix] + suffix, self.prefixedExpressions[availablePrefixes[prefix]].get_random(max_size));
+        if (safe and prefix[0] not in self.prefixedExpressions):
+            return False; 
+        return self.prefixedExpressions[prefix[0]].get(prefix[1:], getStructure=getStructure, safe=safe);
     
     def get_random_by_length(self, length, getStructure=False):
         if (length == 0):
@@ -91,6 +83,60 @@ class ExpressionsByPrefix(object):
                     return ([],[]);
         
         return self.prefixedExpressions[availablePrefixes[prefix]].get_random_by_length(length-1, getStructure=getStructure);
+    
+    def get_next(self, lastPath):
+        availablePrefixes = sorted(self.prefixedExpressions.keys());
+        if (len(lastPath) > 0):
+            # If the path is not empty we try the path instructions
+            pathType, index = lastPath[0];
+            if (pathType == 0):
+                if (index >= len(availablePrefixes)):
+                    # whut
+                    pass;
+                result = self.prefixedExpressions[availablePrefixes[index]].get_next(lastPath[1:]);
+                if (result != False):
+                    return result[0], [(0, index)] + result[1];
+                # If the path instructions fail we fall through to iterating over
+                # the options at the current level
+        else:
+            # If there is no path left we start iterating over the options at
+            # the current level
+            pathType = 0;
+            index = -1;
+            lastPath = [(0, 0)];
+        
+        if (pathType == 0):
+            # We start with checking the prefixes for options if 1) we don't
+            # have path instructions or 2) the path says the last option was
+            # a prefix
+            if (len(availablePrefixes) > 0):
+                success = False;
+                currentIndex = index;
+                while (not success):
+                    # Iterate over all prefixes until we find a valid one
+                    currentIndex += 1;
+                    if (currentIndex >= len(self.prefixedExpressions)):
+                        # We ran out of valid prefixes to explore
+                        break;
+                    # Call without path because we are changing the path branch 
+                    # we follow
+                    result = self.prefixedExpressions[availablePrefixes[currentIndex]].get_next([]);
+                    if (result == False):
+                        # The explored prefix has no valid options left
+                        continue;
+                    return result[0], [(0, currentIndex)] + result[1];
+            # If we need to explore the expressions after considering the
+            # prefixes we need to reset the index as it was supposed to point
+            # to a prefix, not an expression
+            index = -1;
+        
+        # Find the next expression
+        expressionsAtCurrentLevel = filter(lambda e: e[1] == "", enumerate(self.expressions));
+        choiceExpression = index + 1;
+        if (choiceExpression >= len(expressionsAtCurrentLevel)):
+            # Expressions are done as well
+            return False;
+        return self.fullExpressions[expressionsAtCurrentLevel[choiceExpression][0]], [(1, choiceExpression)];
     
 #     def count(self, prefix):
 #         if (prefix == ""):

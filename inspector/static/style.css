@@ -1,3 +1,10 @@
 #modelInfo {
 	margin-top: 3em;
 }
+
+.result {
+	padding: 1em;
+	border: 1px solid grey;
+	position: relative;
+	float: left;
+}

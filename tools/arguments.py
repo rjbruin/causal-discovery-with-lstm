@@ -80,6 +80,7 @@ argumentProcessors = {'name': processString,
                       'intervention_base_offset': processInt,
                       'reverse': processBool,
                       'train_interventions': processBool,
+                      'test_interventions': processBool,
                       'fixed_decoder_inputs': processBool
                       }
 defaults = {'report_to_tracker': True,
@@ -131,6 +132,7 @@ defaults = {'report_to_tracker': True,
             'intervention_base_offset': 6,
             'reverse': False,
             'train_interventions': True,
+            'test_interventions': True,
             'fixed_decoder_inputs': True
             }
 
