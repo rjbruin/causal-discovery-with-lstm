@@ -77,7 +77,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                          verboseOutputter=verboseOutputter,
                                          GO_symbol_index=dataset.GO_symbol_index,
                                          finishExpressions=parameters['finish_expressions'] or parameters['finish_subsystems'],
-                                         optimizer=1 if parameters['adam_optimizer'] else 0);
+                                         optimizer=1 if parameters['adam_optimizer'] else 0,
+                                         learning_rate=parameters['learning_rate']);
     
     return datasets, rnn;
 
@@ -331,7 +332,8 @@ def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=Fal
     return stats;
 
 def set_up_statistics(output_dim, n_max_digits):
-    return {'correct': 0.0, 'prediction_1_size': 0, 'digit_1_correct': 0.0, 'digit_1_prediction_size': 0,
+    return {'correct': 0.0, 'effectCorrect': 0.0, 'causeCorrect': 0.0, 'prediction_1_size': 0, 
+            'digit_1_correct': 0.0, 'digit_1_prediction_size': 0,
             'prediction_1_histogram': {k: 0 for k in range(output_dim)}, 
             'prediction_2_size': 0, 'digit_2_correct': 0.0, 'digit_2_prediction_size': 0,
             'prediction_2_histogram': {k: 0 for k in range(output_dim)},

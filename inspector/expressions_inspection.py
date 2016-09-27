@@ -131,9 +131,8 @@ def predictInterventionSample():
         
         test_n = 1;
         stats = data['rnn'].batch_statistics(set_up_statistics(data['rnn'].decoding_output_dim, data['rnn'].n_max_digits), 
-                                             prediction, [],
-                                             np.zeros((test_n,data['rnn'].n_max_digits,data['rnn'].data_dim*2), dtype='float32'),
-                                             [], {}, test_n, data['dataset'])
+                                             prediction, [(sample1,sample2)], interventionLocation,
+                                             {}, test_n, data['dataset'])
         response['stats'] = {};
         response['stats']['correct'] = stats['correct'];
         

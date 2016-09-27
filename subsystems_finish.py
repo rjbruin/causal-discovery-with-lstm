@@ -162,6 +162,8 @@ def test(model, dataset, parameters, max_length, print_samples=False, sample_siz
 
     # Print statistics
     output += "Score: %.2f percent\n" % (stats['score']*100);
+    output += "Cause score: %.2f percent\n" % (stats['causeScore']*100);
+    output += "Effect score: %.2f percent\n" % (stats['effectScore']*100);
     output += "Intervention locations:   %s\n" % (str(stats['intervention_locations']));
 
     output += "Digit-based (1) score: %.2f percent\n" % (stats['digit_1_score']*100);

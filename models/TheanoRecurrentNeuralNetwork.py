@@ -9,6 +9,7 @@ import theano.tensor as T;
 import numpy as np;
 from models.RecurrentModel import RecurrentModel
 #from theano.compile.nanguardmode import NanGuardMode
+import lasagne;
 
 class TheanoRecurrentNeuralNetwork(RecurrentModel):
     '''
@@ -23,7 +24,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  lstm=True, weight_values={}, single_digit=False, 
                  EOS_symbol_index=None, GO_symbol_index=None, n_max_digits=24, 
                  decoder=False, verboseOutputter=None, finishExpressions=False,
-                 optimizer=0):
+                 optimizer=0, learning_rate=0.01):
         '''
         Initialize all Theano models.
         '''
@@ -31,6 +32,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.single_digit = single_digit;
         self.minibatch_size = minibatch_size;
         self.n_max_digits = n_max_digits;
+        self.learning_rate = learning_rate;
         self.lstm = lstm;
         self.single_digit = single_digit;
         self.decoder = decoder;
@@ -148,14 +150,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         # Defining stochastic gradient descent
         variables = self.vars.keys();
-        learning_rate = T.fscalar('learning_rate');
+        var_list = map(lambda var: self.vars[var], variables)
         if (self.optimizer == self.SGD_OPTIMIZER):
             # Automatic backward pass for all models: gradients
-            derivatives = T.grad(error, map(lambda var: self.vars[var], variables));
-            updates = [(var,var-learning_rate*der) for (var,der) in zip(map(lambda var: self.vars[var], variables),derivatives)];
+            derivatives = T.grad(error, var_list);
+            learning_rate = T.fscalar('learning_rate');
+            updates = [(var,var-self.learning_rate*der) for (var,der) in zip(var_list,derivatives)];
         else:
-            updates, derivatives = self.adam(error, map(lambda var: self.vars[var], variables), learning_rate);
-        self._sgd = theano.function([X, label, intervention_location, learning_rate], 
+            #updates, derivatives = self.adam(error, map(lambda var: self.vars[var], variables), learning_rate);
+            derivatives = T.grad(error, var_list);
+            updates = lasagne.updates.adam(derivatives,var_list,learning_rate=self.learning_rate).items();
+        self._sgd = theano.function([X, label, intervention_location],
                                         [error, 
                                          cat_cross, 
                                          right_hand,
@@ -323,7 +328,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             encoded_expressions_with_intervention, _ = \
                 self.finish_expression_find_labels(causeExpressionPredictions, effectExpressionPredictions,
                                                    dataset, 
-                                                   causeExpressions, effectExpressions, 
+                                                   causeExpressions, 
                                                    intervention_location,
                                                    updateTargets=True,
                                                    encoded_causeExpression=causeExpressionRightHand,
@@ -340,21 +345,23 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         encoded_expressions_with_intervention = np.swapaxes(encoded_expressions_with_intervention, 0, 1);
         
         return self._sgd(encoded_expressions, encoded_expressions_with_intervention, 
-                         intervention_location, learning_rate);
+                         intervention_location);
     
     def finish_expression_find_labels(self, causeExpressionPredictions, effectExpressionPredictions,
                                        dataset,
-                                       causeExpressions, effectExpressions, 
+                                       causeExpressions, 
                                        intervention_location,
                                        updateTargets=False, updateLabels=False,
                                        encoded_causeExpression=False, encoded_effectExpression=False,
-                                       emptySamples=False):
+                                       emptySamples=False, test_n=False):
         target = np.zeros((self.minibatch_size,self.n_max_digits,self.decoding_output_dim*2));
         label_expressions = [];
         if (emptySamples is False):
             emptySamples = [];
+        if (test_n is False):
+            test_n = len(causeExpressionPredictions);
         
-        for i, prediction in enumerate(causeExpressionPredictions):
+        for i, prediction in enumerate(causeExpressionPredictions[:test_n]):
             if (i in emptySamples):
                 # Skip empty samples caused by the intervention generation process
                 continue;
@@ -374,8 +381,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 # that is not a realistic usage of a dataset
                 if (updateLabels):
                     label_expressions.append((string_prediction,""));
-#                 unswapped_data[i] = np.zeros((unswapped_data.shape[1], unswapped_data.shape[2]));
-#                 target[i] = np.zeros((target.shape[1],target.shape[2]));
             elif (string_prediction in valid_predictions):
                 # The prediction of the cause expression is right, so we
                 # use the right_hand predicted for this part
@@ -449,12 +454,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         """
         Overriding for finish-expressions.
         """
-        causeExpressions, effectExpressions = zip(*expressions_with_interventions);
+        causeExpressions, _ = zip(*expressions_with_interventions);
         _, labels_to_use = self.finish_expression_find_labels(prediction[0], prediction[1],
                                                                dataset, 
-                                                               causeExpressions, effectExpressions, 
+                                                               causeExpressions, 
                                                                intervention_location, emptySamples,
-                                                               updateLabels=True);
+                                                               updateLabels=True, test_n=test_n);
         
         # Statistics
         for j in range(0,test_n):
@@ -474,8 +479,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             # Convert prediction to string expression
             causeExpressionPrediction = dataset.indicesToStr(prediction[0][j][:eos_location]);
             effectExpressionPrediction = dataset.indicesToStr(prediction[1][j][:eos_location]);
-            if (causeExpressionPrediction == labels_to_use[j][0] and effectExpressionPrediction == labels_to_use[j][1]):
+            if (causeExpressionPrediction == labels_to_use[j][0]):
+                if (effectExpressionPrediction == labels_to_use[j][1]):
                     stats['correct'] += 1.0;
+                else:
+                    stats['causeCorrect'] += 1.0;
+            if (np.array_equal(map(lambda x: x+1,prediction[0][j][:eos_location]),prediction[1][j][:eos_location])):
+                stats['effectCorrect'] += 1.0;
             
             # Lookup expression in prefixed test expressions storage
 #             exists = dataset.testExpressionsByPrefix.get(expression);
