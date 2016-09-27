@@ -7,8 +7,11 @@ Created on 27 sep. 2016
 import os, sys;
 from tools.file import load_from_pickle_with_filename, save_to_pickle
 from tools.model import constructModels;
+import theano;
 
 if __name__ == '__main__':
+    theano.config.floatX = 'float32';
+    
     name = sys.argv[1];
     
     filepath = "./saved_models/%s.floats" % name;

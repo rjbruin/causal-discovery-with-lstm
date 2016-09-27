@@ -8,8 +8,11 @@ import os, sys;
 import pickle;
 from tools.file import load_from_pickle_with_filename
 from tools.model import constructModels;
+import theano;
 
 if __name__ == '__main__':
+    theano.config.floatX = 'float32';
+    
     name = sys.argv[1];
     
     filepath = "./saved_models/%s.model" % name;
@@ -25,7 +28,7 @@ if __name__ == '__main__':
                 modelInfo = settings;
                 floats = []
                 for key in sorted(rnn.vars.keys()):
-                    floats.append(rnn.vars[key].get_value());
+                    floats.append(rnn.vars[key].get_value().astype('float32'));
             
                 f_model = open(filepath);
                 _ = f_model.readline();
