@@ -165,14 +165,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         super(TheanoRecurrentNeuralNetwork, self).__init__();
     
-    def loadVars(self, variables):
+    def loadVars(self, variables, floats=False):
         """
         Provide vars as a dictionary matching the self.vars structure.
         """
         for key in variables:
             if (key not in self.vars):
                 return False;
-            self.vars[key].set_value(variables[key].get_value().astype('float32'));
+            if (floats):
+                self.vars[key].set_value(variables[key].astype('float32'));
+            else:
+                self.vars[key].set_value(variables[key].get_value().astype('float32'));
         return True;
     
     # PREDICTION FUNCTIONS
