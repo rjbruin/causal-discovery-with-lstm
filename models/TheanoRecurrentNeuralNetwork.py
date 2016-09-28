@@ -159,7 +159,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         else:
             #updates, derivatives = self.adam(error, map(lambda var: self.vars[var], variables), learning_rate);
             derivatives = T.grad(error, var_list);
-            updates = lasagne.updates.adam(derivatives,var_list,learning_rate=self.learning_rate).items();
+            updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
         self._sgd = theano.function([X, label, intervention_location],
                                         [error, 
                                          cat_cross, 
