@@ -101,6 +101,7 @@ class ExpressionNode(object):
             return output;
 
 def generateExpressions(baseFilePath, n, test_percentage, filters, minRecursionDepth=1, maxRecursionDepth=2, terminalProb=0.5, maxIntValue=10, verbose=False):
+#     savedExpressions = {};
     savedExpressions = [];
     sequential_fails = 0;
     fail_limit = 1000000000;
@@ -113,7 +114,10 @@ def generateExpressions(baseFilePath, n, test_percentage, filters, minRecursionD
         lookup = storage.get(full_expression);
         # Check if expression already exists
         if (lookup is not False and lookup[0] is not False):
+#         if (full_expression in savedExpressions):
             sequential_fails += 1;
+            if sequential_fails % (fail_limit/10000) == 0:
+                print("%.2f of sequential fails reached!" % (sequential_fails*100/float(fail_limit)));
             continue;
         
         if (verbose):
@@ -128,12 +132,16 @@ def generateExpressions(baseFilePath, n, test_percentage, filters, minRecursionD
                 break;
         if (not fail):
             storage.add(full_expression,"");
+#             savedExpressions[full_expression] = True;
             savedExpressions.append(full_expression);
+            # Reset sequential fails
+            sequential_fails = 0;
 
             if len(savedExpressions) % (n/100) == 0:
-                print("%.0f percent generated" % (len(savedExpressions)*100/float(n)));
+                print("%.0f percent generated (%d datapoints)" % (len(savedExpressions)*100/float(n), len(savedExpressions)));
 
     writeToFiles(savedExpressions, baseFilePath, test_percentage, isList=True);
+#     writeToFiles(savedExpressions, baseFilePath, test_percentage);
 
 def writeToFiles(expressions,baseFilePath,test_percentage,isList=False):
     # Define train/test split
