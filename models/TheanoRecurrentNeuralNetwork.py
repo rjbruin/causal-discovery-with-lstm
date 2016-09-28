@@ -480,10 +480,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             causeExpressionPrediction = dataset.indicesToStr(prediction[0][j][:eos_location]);
             effectExpressionPrediction = dataset.indicesToStr(prediction[1][j][:eos_location]);
             if (causeExpressionPrediction == labels_to_use[j][0]):
+                stats['causeCorrect'] += 1.0;
                 if (effectExpressionPrediction == labels_to_use[j][1]):
                     stats['correct'] += 1.0;
-                else:
-                    stats['causeCorrect'] += 1.0;
+                    
             
             def mutate(x):
                 if (x < 10):
