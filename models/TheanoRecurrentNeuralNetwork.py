@@ -484,7 +484,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     stats['correct'] += 1.0;
                 else:
                     stats['causeCorrect'] += 1.0;
-            if (np.array_equal(map(lambda x: x+1,prediction[0][j][:eos_location]),prediction[1][j][:eos_location])):
+            
+            def mutate(x):
+                if (x < 10):
+                    return (x+1) % 10;
+                elif (x < 14):
+                    x += 1;
+                    if (x == 14):
+                        x = 10;
+                return x;
+            
+            if (np.array_equal(map(lambda x: mutate(x),prediction[0][j][:eos_location]),prediction[1][j][:eos_location])):
                 stats['effectCorrect'] += 1.0;
             
             # Lookup expression in prefixed test expressions storage
