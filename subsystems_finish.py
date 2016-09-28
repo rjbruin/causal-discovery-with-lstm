@@ -19,6 +19,9 @@ import copy;
 def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=False, base_offset=12, applyIntervention=True):
     limit = 1000;
     
+    # Reseed the random generator to prevent generating identical batches
+    np.random.seed();
+    
     if (isTrain):
         storage = dataset.expressionsByPrefix;
     else:
