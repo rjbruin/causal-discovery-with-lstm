@@ -319,18 +319,18 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             effectExpressionPredictions = predictions_2;
             effectExpressionRightHand = right_hand_2;
             # Unzip the tuples of expressions into two lists
-            causeExpressions, effectExpressions = zip(*expressions_with_intervention);
+            causeExpressions, _ = zip(*expressions_with_intervention);
         else:
             raise ValueError("Not implemented!");
         
         if (intervention):
             # Change the target of the SGD to the nearest valid expression-subsystem
-            encoded_expressions_with_intervention, _ = \
+            encoded_expressions_with_intervention, labels_to_use = \
                 self.finish_expression_find_labels(causeExpressionPredictions, effectExpressionPredictions,
                                                    dataset, 
                                                    causeExpressions, 
                                                    intervention_location,
-                                                   updateTargets=True,
+                                                   updateTargets=True, updateLabels=True,
                                                    encoded_causeExpression=causeExpressionRightHand,
                                                    encoded_effectExpression=effectExpressionRightHand,
                                                    emptySamples=emptySamples);
@@ -345,7 +345,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         encoded_expressions_with_intervention = np.swapaxes(encoded_expressions_with_intervention, 0, 1);
         
         return self._sgd(encoded_expressions, encoded_expressions_with_intervention, 
-                         intervention_location);
+                         intervention_location), [predictions_1, predictions_2], labels_to_use;
     
     def finish_expression_find_labels(self, causeExpressionPredictions, effectExpressionPredictions,
                                        dataset,
@@ -450,16 +450,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                          other, test_n, dataset,
                          excludeStats=None, no_print_progress=False,
                          eos_symbol_index=None, print_sample=False,
-                         emptySamples=None):
+                         emptySamples=None, labels_to_use=False):
         """
         Overriding for finish-expressions.
         """
         causeExpressions, _ = zip(*expressions_with_interventions);
-        _, labels_to_use = self.finish_expression_find_labels(prediction[0], prediction[1],
-                                                               dataset, 
-                                                               causeExpressions, 
-                                                               intervention_location, emptySamples,
-                                                               updateLabels=True, test_n=test_n);
+        if (labels_to_use is False):
+            _, labels_to_use = self.finish_expression_find_labels(prediction[0], prediction[1],
+                                                                   dataset, 
+                                                                   causeExpressions, 
+                                                                   intervention_location, emptySamples,
+                                                                   updateLabels=True, test_n=test_n);
         
         # Statistics
         for j in range(0,test_n):

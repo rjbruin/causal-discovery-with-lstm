@@ -16,6 +16,31 @@ import numpy as np;
 import theano;
 import copy;
 
+def print_stats(stats, prefix=''):
+    # Print statistics
+    output = "\n";
+
+    # Print statistics
+    output += prefix + "Score: %.2f percent\n" % (stats['score']*100);
+    output += prefix + "Cause score: %.2f percent\n" % (stats['causeScore']*100);
+    output += prefix + "Effect score: %.2f percent\n" % (stats['effectScore']*100);
+    output += prefix + "Intervention locations:   %s\n" % (str(stats['intervention_locations']));
+
+    output += prefix + "Digit-based (1) score: %.2f percent\n" % (stats['digit_1_score']*100);
+    output += prefix + "Prediction size (1) histogram:   %s\n" % (str(stats['prediction_1_size_histogram']));
+    output += prefix + "Digit (1) histogram:   %s\n" % (str(stats['prediction_1_histogram']));
+    
+    output += prefix + "Digit-based (2) score: %.2f percent\n" % (stats['digit_2_score']*100);
+    output += prefix + "Prediction size (2) histogram:   %s\n" % (str(stats['prediction_2_size_histogram']));
+    output += prefix + "Digit (2) histogram:   %s\n" % (str(stats['prediction_2_histogram']));
+        
+    output += prefix + "Digit-based score: %.2f percent\n" % (stats['digit_score']*100);
+    output += prefix + "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
+    output += prefix + "Digit histogram:   %s\n" % (str(stats['prediction_histogram']));
+    
+    output += "\n";
+    print(output);
+
 def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=False, base_offset=12, applyIntervention=True):
     limit = 1000;
     
@@ -132,7 +157,8 @@ def test(model, dataset, parameters, max_length, print_samples=False, sample_siz
         
         predictions, other = model.predict(test_data, label=test_targets, 
                                            interventionLocation=interventionLocation,
-                                           intervention=parameters['test_interventions']);
+                                           intervention=parameters['test_interventions'],
+                                           fixedDecoderInputs=parameters['fixed_decoder_inputs']);
         
         # Print samples
         if (print_samples and not printed_samples):
@@ -160,29 +186,7 @@ def test(model, dataset, parameters, max_length, print_samples=False, sample_siz
     
     stats = model.total_statistics(stats);
     
-    # Print statistics
-    output = "\n";
-
-    # Print statistics
-    output += "Score: %.2f percent\n" % (stats['score']*100);
-    output += "Cause score: %.2f percent\n" % (stats['causeScore']*100);
-    output += "Effect score: %.2f percent\n" % (stats['effectScore']*100);
-    output += "Intervention locations:   %s\n" % (str(stats['intervention_locations']));
-
-    output += "Digit-based (1) score: %.2f percent\n" % (stats['digit_1_score']*100);
-    output += "Prediction size (1) histogram:   %s\n" % (str(stats['prediction_1_size_histogram']));
-    output += "Digit (1) histogram:   %s\n" % (str(stats['prediction_1_histogram']));
-    
-    output += "Digit-based (2) score: %.2f percent\n" % (stats['digit_2_score']*100);
-    output += "Prediction size (2) histogram:   %s\n" % (str(stats['prediction_2_size_histogram']));
-    output += "Digit (2) histogram:   %s\n" % (str(stats['prediction_2_histogram']));
-        
-    output += "Digit-based score: %.2f percent\n" % (stats['digit_score']*100);
-    output += "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
-    output += "Digit histogram:   %s\n" % (str(stats['prediction_histogram']));
-    
-    output += "\n";
-    print(output);
+    print_stats(stats);
     
     return stats;
 
@@ -237,6 +241,7 @@ if __name__ == '__main__':
     
     intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
     for r in range(reps):
+        stats = set_up_statistics(dataset.output_dim, model.n_max_digits);
         unused_in_rep = 0;
         total_error = 0.0;
         # Print progress and save to raw results file
@@ -266,7 +271,7 @@ if __name__ == '__main__':
             
             # Run training
             if (parameters['train_interventions']):
-                outputs = \
+                outputs, predictions, labels_to_use = \
                     model.sgd(dataset, data, target, parameters['learning_rate'],
                               emptySamples=emptySamples, expressions=expressions,
                               intervention_expressions=target_expressions, 
@@ -274,12 +279,21 @@ if __name__ == '__main__':
                               intervention=parameters['train_interventions'],
                               fixedDecoderInputs=parameters['fixed_decoder_inputs']);
             else:
-                outputs = \
+                outputs, predictions, labels_to_use = \
                     model.sgd(dataset, data, target, parameters['learning_rate'],
                               emptySamples=emptySamples, expressions=expressions,
                               intervention=parameters['train_interventions'],
                               fixedDecoderInputs=parameters['fixed_decoder_inputs']);
             total_error += outputs[0];
+            
+            # Training prediction
+            if (parameters['train_statistics']):
+                stats = model.batch_statistics(stats, predictions, 
+                                               expressions, interventionLocation, 
+                                               {}, len(expressions), dataset, 
+                                               eos_symbol_index=dataset.EOS_symbol_index,
+                                               labels_to_use=labels_to_use);
+            
             if (str(outputs[0]) == 'nan' and parameters['debug']):
                 print("NaN at batch %d" % k);
                 print("Cross entropy: " + str(outputs[1]));
@@ -300,10 +314,13 @@ if __name__ == '__main__':
             
         # Update stats
         total_datapoints_processed += repetition_size;
+        stats = model.total_statistics(stats);
         
         # Report on error
         print("Total error: %.2f" % total_error);
         print("Intervention locations: %s" % (str(intervention_locations_train)));
+        
+        print_stats(stats, prefix='TRAIN ');
         
         # Intermediate testing if this was not the last iteration of training
         # and we have passed the testing threshold
