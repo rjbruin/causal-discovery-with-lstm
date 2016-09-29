@@ -116,8 +116,8 @@ def generateExpressions(baseFilePath, n, test_percentage, filters, minRecursionD
         if (lookup[0] is not False):
 #         if (full_expression in savedExpressions):
             sequential_fails += 1;
-            if sequential_fails % (fail_limit/10000) == 0:
-                print("%.2f of sequential fails reached! => %s" % (sequential_fails*100/float(fail_limit),full_expression));
+            if sequential_fails % (fail_limit/100) == 0:
+                print("%.0f of sequential fails reached! => %s" % (sequential_fails*100/float(fail_limit),full_expression));
             continue;
         
         if (verbose):
