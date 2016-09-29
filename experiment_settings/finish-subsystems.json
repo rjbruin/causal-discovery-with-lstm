@@ -1,6 +1,6 @@
 [
     {
-        "name": "finish-subs-s",
+        "name": "f-subs-s",
         "script": "subsystems_finish.py",
         "dataset": "./data/subsystems_shallow_simple_topcause",
         "repetitions": "500",
