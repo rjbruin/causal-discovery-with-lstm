@@ -104,7 +104,7 @@ def generateExpressions(baseFilePath, n, test_percentage, filters, minRecursionD
 #     savedExpressions = {};
     savedExpressions = [];
     sequential_fails = 0;
-    fail_limit = 1000000000;
+    fail_limit = 50000000;
     storage = ExpressionsByPrefix();
 
     print("Generating expressions...");
