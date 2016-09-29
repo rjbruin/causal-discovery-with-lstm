@@ -97,12 +97,26 @@ class RecurrentModel(object):
         stats['digit_correct'] = stats['digit_1_correct'] + stats['digit_2_correct'];
         stats['digit_prediction_size'] = stats['digit_1_prediction_size'] + stats['digit_2_prediction_size'];
         
-        stats['digit_1_score'] = stats['digit_1_correct'] / float(stats['digit_1_prediction_size']);
-        stats['digit_2_score'] = stats['digit_2_correct'] / float(stats['digit_2_prediction_size']);
+        if (stats['digit_1_prediction_size'] > 0):
+            stats['digit_1_score'] = stats['digit_1_correct'] / float(stats['digit_1_prediction_size']);
+        else:
+            stats['digit_1_score'] = 0.0;
+        if (stats['digit_2_prediction_size'] > 0):
+            stats['digit_2_score'] = stats['digit_2_correct'] / float(stats['digit_2_prediction_size']);
+        else:
+            stats['digit_2_score'] = 0.0;
         
-        stats['score'] = stats['correct'] / float(stats['prediction_size']);
-        stats['effectScore'] = stats['effectCorrect'] / float(stats['prediction_size']);
-        stats['causeScore'] = stats['causeCorrect'] / float(stats['prediction_size']);
-        stats['digit_score'] = stats['digit_correct'] / float(stats['digit_prediction_size']);
+        if (stats['prediction_size'] > 0):
+            stats['score'] = stats['correct'] / float(stats['prediction_size']);
+            stats['effectScore'] = stats['effectCorrect'] / float(stats['prediction_size']);
+            stats['causeScore'] = stats['causeCorrect'] / float(stats['prediction_size']);
+        else:
+            stats['score'] = 0.0;
+            stats['effectScore'] = 0.0;
+            stats['causeScore'] = 0.0;
+        if (stats['digit_prediction_size'] > 0):
+            stats['digit_score'] = stats['digit_correct'] / float(stats['digit_prediction_size']);
+        else:
+            stats['digit_score'] = 0.0;
         
         return stats;
