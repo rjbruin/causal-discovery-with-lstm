@@ -130,31 +130,38 @@ class GeneratedExpressionDataset(Dataset):
         which can be used to lookup all outputs for a given unique input. In
         this case only the training data is stored.
         """
-        train, train_targets, train_labels, train_expressions = \
-            self.loadFile(self.sources[self.TRAIN], 
-                          location_index=self.TRAIN, 
-                          file_length=self.lengths[self.TRAIN]);
-        test, test_targets, test_labels, test_expressions = \
-            self.loadFile(self.sources[self.TEST], 
-                          location_index=self.TEST, 
-                          file_length=self.lengths[self.TEST]);
-        
         if (onlyStoreByPrefix):
             self.expressionLengths = Counter(); 
             self.expressionsByPrefix = ExpressionsByPrefix();
-            for expression, expression_prime in train_expressions:
+            f = open(self.sources[self.TRAIN],'r');
+            line = f.readline().strip();
+            while (line != ""):
+                expression, expression_prime = line.split(";");
                 self.expressionsByPrefix.add(expression, expression_prime);
                 self.expressionLengths[len(expression)] += 1;
+                line = f.readline().strip();
+            f.close();
             
             self.testExpressionsByPrefix = ExpressionsByPrefix();
             self.testExpressionLengths = Counter();
-            for expression, expression_prime in test_expressions:
+            f = open(self.sources[self.TEST],'r');
+            line = f.readline().strip();
+            while (line != ""):
+                expression, expression_prime = line.split(";");
                 self.testExpressionsByPrefix.add(expression, expression_prime);
                 self.testExpressionLengths[len(expression)] += 1;
-                
-            self.locations[self.TRAIN] = 0;
-            self.locations[self.TEST] = 0;
+                line = f.readline().strip();
+            f.close();
         else:
+            train, train_targets, train_labels, train_expressions = \
+                self.loadFile(self.sources[self.TRAIN], 
+                              location_index=self.TRAIN, 
+                              file_length=self.lengths[self.TRAIN]);
+            test, test_targets, test_labels, test_expressions = \
+                self.loadFile(self.sources[self.TEST], 
+                              location_index=self.TEST, 
+                              file_length=self.lengths[self.TEST]);
+            
             self.train, self.train_targets, self.train_labels, self.train_expressions =\
                 train, train_targets, train_labels, train_expressions;
             self.test, self.test_targets, self.test_labels, self.test_expressions =\
@@ -182,6 +189,18 @@ class GeneratedExpressionDataset(Dataset):
             line = f.readline();
         
         return length, data_length, target_length;
+    
+    def preload_only_expressions(self, source):
+        f = open(source,'r');
+        
+        expressions = [];
+        
+        line = f.readline().strip();
+        while (line != ""):
+            expressions.append(line.split(";"));
+            line = f.readline().strip();
+        
+        return expressions;
     
     def load(self, source, size, location):
         f = open(source,'r');
