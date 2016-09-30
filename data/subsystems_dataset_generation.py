@@ -9,7 +9,7 @@ import numpy as np;
 
 # str_digits = [str(i) for i in range(10)];
 # operators = ['+','-','*','/'];
-str_digits = [str(i) for i in range(5)];
+str_digits = [str(i) for i in range(10)];
 operators = ['+','-','*'];
 
 def changeSimpleBracket(symbol):

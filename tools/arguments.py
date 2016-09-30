@@ -82,7 +82,9 @@ argumentProcessors = {'name': processString,
                       'train_interventions': processBool,
                       'test_interventions': processBool,
                       'fixed_decoder_inputs': processBool,
-                      'train_statistics': processBool
+                      'train_statistics': processBool,
+                      'operators': processInt,
+                      'digits': processInt
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -135,7 +137,9 @@ defaults = {'report_to_tracker': True,
             'train_interventions': True,
             'test_interventions': True,
             'fixed_decoder_inputs': True,
-            'train_statistics': False
+            'train_statistics': False,
+            'operators': 4,
+            'digits': 10
             }
 
 def processKeyValue(key,value):

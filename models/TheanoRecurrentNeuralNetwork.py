@@ -24,7 +24,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  lstm=True, weight_values={}, single_digit=False, 
                  EOS_symbol_index=None, GO_symbol_index=None, n_max_digits=24, 
                  decoder=False, verboseOutputter=None, finishExpressions=False,
-                 optimizer=0, learning_rate=0.01):
+                 optimizer=0, learning_rate=0.01,
+                 operators=4, digits=10):
         '''
         Initialize all Theano models.
         '''
@@ -32,6 +33,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.single_digit = single_digit;
         self.minibatch_size = minibatch_size;
         self.n_max_digits = n_max_digits;
+        self.operators = operators;
+        self.digits = digits;
         self.learning_rate = learning_rate;
         self.lstm = lstm;
         self.single_digit = single_digit;
@@ -478,12 +481,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 eos_location = prediction[0][j].shape[0];
             
             def mutate(x):
-                if (x < 10):
-                    return (x+1) % 10;
-                elif (x < 14):
+                if (x < self.digits):
+                    return (x+1) % self.digits;
+                elif (x < self.digits + self.operators):
                     x += 1;
-                    if (x == 14):
-                        x = 10;
+                    if (x == self.digits + self.operators):
+                        x = self.digits;
                 return x;
             
             # Convert prediction to string expression
@@ -498,15 +501,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if (np.array_equal(map(lambda x: mutate(x),prediction[0][j][:eos_location]),prediction[1][j][:eos_location])):
                         stats['effectCorrect'] += 1.0;
             
-            # Lookup expression in prefixed test expressions storage
-#             exists = dataset.testExpressionsByPrefix.get(expression);
-#             if (exists is not False and exists[0] is not False):
-#                 # Compare predicted effect expression to stored effect expression
-#                 _, primedExpression, _, _ = exists;
-#                 if (primedExpression is not False and \
-#                     primedExpression[:eos_location] == dataset.indicesToStr(prediction[1][j][:eos_location])):
-#                     stats['correct'] += 1.0;
-            
             # Digit precision and prediction size computation
             i = 0;
             for i in range(min(len(causeExpressionPrediction),len(labels_to_use[j][0]))):
@@ -518,34 +512,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             for i in range(min(len(effectExpressionPrediction),len(labels_to_use[j][1]))):
                 if (effectExpressionPrediction[i] == labels_to_use[j][1][i]):
                     stats['digit_2_correct'] += 1.0;
-            stats['digit_2_prediction_size'] += len(effectExpressionPrediction);
-            
-#             # Get the labels
-#             targets_1 = targets[j,:,:self.data_dim];
-#             argmax_target_1 = np.argmax(targets_1,axis=1);
-#             # Compute the length of the target answer
-#             target_length = np.argmax(argmax_target_1);
-#             if (target_length == 0):
-#                 # If no EOS is found, the target is the entire length
-#                 target_length = targets_1.shape[1];
-#              
-#             for k,digit in enumerate(prediction[0][j][:target_length]):
-#                 if (digit == argmax_target_1[k]):
-#                     stats['digit_1_correct'] += 1.0;
-#                 stats['digit_1_prediction_size'] += 1;
-
-#             targets_2 = targets[j,:,self.data_dim:];
-#             argmax_target_2 = np.argmax(targets_2,axis=1);
-#             # Compute the length of the target answer
-#             target_length = np.argmax(argmax_target_2);
-#             if (target_length == 0):
-#                 # If no EOS is found, the target is the entire length
-#                 target_length = targets_1.shape[1];
-#              
-#             for k,digit in enumerate(prediction[1][j][:target_length]):
-#                 if (digit == argmax_target_2[k]):
-#                     stats['digit_2_correct'] += 1.0;
-#                 stats['digit_2_prediction_size'] += 1;           
+            stats['digit_2_prediction_size'] += len(effectExpressionPrediction);      
 
        
             stats['prediction_1_size_histogram'][int(eos_location)] += 1;

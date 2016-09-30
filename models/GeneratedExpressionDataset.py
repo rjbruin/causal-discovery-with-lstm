@@ -19,13 +19,17 @@ class GeneratedExpressionDataset(Dataset):
                  max_training_size=False, max_testing_size=False,
                  sample_testing_size=False, predictExpressions=False,
                  copyInput=False, fillX=False, use_GO_symbol=False, finishExpressions=False,
-                 reverse=False, copyMultipleExpressions=False):
+                 reverse=False, copyMultipleExpressions=False,
+                 operators=4, digits=10):
         self.sources = [trainSource, testSource];
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
         self.max_training_size = max_training_size;
         self.max_testing_size = max_testing_size;
         self.sample_testing_size = sample_testing_size;
+        
+        self.operators = operators;
+        self.digits = digits;
         
         self.fill_x = fillX;
         self.add_x = add_x;
@@ -61,15 +65,16 @@ class GeneratedExpressionDataset(Dataset):
             self.processor = self.processSampleMultiDigit;
         
         # Setting one-hot encoding
-        self.digits_range = 10;
+        self.digits_range = self.digits;
         if (single_class is not False):
             self.digits_range = single_class;
         
-        # Digits are pre-assigned 0-9
+        # Digits are pre-assigned 0-self.digits
         self.oneHot = {};
         for digit in range(self.digits_range):
             self.oneHot[str(digit)] = digit;
-        symbols = ['+','-','*','/','(',')','='];
+        symbols = ['+','-','*','/'][:self.operators];
+        symbols.extend(['(',')','=']);
         if (add_x or fillX or add_multiple_x):
             symbols.append('x');
         if (not single_digit):

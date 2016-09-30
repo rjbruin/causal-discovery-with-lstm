@@ -51,7 +51,9 @@ def constructModels(parameters, seed, verboseOutputter):
                                              use_GO_symbol=parameters['decoder'],
                                              finishExpressions=parameters['finish_expressions'],
                                              reverse=parameters['reverse'],
-                                             copyMultipleExpressions=parameters['finish_subsystems']);
+                                             copyMultipleExpressions=parameters['finish_subsystems'],
+                                             operators=parameters['operators'],
+                                             digits=parameters['digits']);
         datasets.append(dataset);
     
     if (parameters['random_baseline']):
@@ -78,7 +80,9 @@ def constructModels(parameters, seed, verboseOutputter):
                                          GO_symbol_index=dataset.GO_symbol_index,
                                          finishExpressions=parameters['finish_expressions'] or parameters['finish_subsystems'],
                                          optimizer=1 if parameters['nesterov_optimizer'] else 0,
-                                         learning_rate=parameters['learning_rate']);
+                                         learning_rate=parameters['learning_rate'],
+                                         operators=parameters['operators'],
+                                         digits=parameters['digits']);
     
     return datasets, rnn;
 
