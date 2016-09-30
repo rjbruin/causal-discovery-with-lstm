@@ -7,8 +7,8 @@
         "minibatch_size": "10",
         "sample_testing_size": "10000",
         "finish_subsystems": "True",
-        "n_max_digits": "33",
+        "n_max_digits": "34",
         "intervention_base_offset": "9",
-        "intervention_range": "24"
+        "intervention_range": "25"
     }
 ]
