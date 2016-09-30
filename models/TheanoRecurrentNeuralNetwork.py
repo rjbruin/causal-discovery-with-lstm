@@ -477,15 +477,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             if (prediction[0][j,eos_location] != eos_symbol_index):
                 eos_location = prediction[0][j].shape[0];
             
-            # Convert prediction to string expression
-            causeExpressionPrediction = dataset.indicesToStr(prediction[0][j][:eos_location]);
-            effectExpressionPrediction = dataset.indicesToStr(prediction[1][j][:eos_location]);
-            if (causeExpressionPrediction == labels_to_use[j][0]):
-                stats['causeCorrect'] += 1.0;
-                if (effectExpressionPrediction == labels_to_use[j][1]):
-                    stats['correct'] += 1.0;
-                    
-            
             def mutate(x):
                 if (x < 10):
                     return (x+1) % 10;
@@ -495,8 +486,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         x = 10;
                 return x;
             
-            if (np.array_equal(map(lambda x: mutate(x),prediction[0][j][:eos_location]),prediction[1][j][:eos_location])):
-                stats['effectCorrect'] += 1.0;
+            # Convert prediction to string expression
+            causeExpressionPrediction = dataset.indicesToStr(prediction[0][j][:eos_location]);
+            effectExpressionPrediction = dataset.indicesToStr(prediction[1][j][:eos_location]);
+            if (causeExpressionPrediction == labels_to_use[j][0]):
+                stats['causeCorrect'] += 1.0;
+                if (effectExpressionPrediction == labels_to_use[j][1]):
+                    stats['correct'] += 1.0;
+                    stats['effectCorrect'] += 1.0;
+            else:
+                if (np.array_equal(map(lambda x: mutate(x),prediction[0][j][:eos_location]),prediction[1][j][:eos_location])):
+                        stats['effectCorrect'] += 1.0;
             
             # Lookup expression in prefixed test expressions storage
 #             exists = dataset.testExpressionsByPrefix.get(expression);
