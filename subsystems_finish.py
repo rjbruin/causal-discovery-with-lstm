@@ -214,7 +214,7 @@ if __name__ == '__main__':
     
     # Train on all datasets in succession
     # Print settings headers to raw results file
-    print(str(parameters));
+    print("# " + str(parameters));
     
     dataset = datasets[0];
     reps = parameters['repetitions'];
@@ -320,7 +320,8 @@ if __name__ == '__main__':
         print("Total error: %.2f" % total_error);
         print("Intervention locations: %s" % (str(intervention_locations_train)));
         
-        print_stats(stats, prefix='TRAIN ');
+        if (parameters['train_statistics']):
+            print_stats(stats, prefix='TRAIN ');
         
         # Intermediate testing if this was not the last iteration of training
         # and we have passed the testing threshold
