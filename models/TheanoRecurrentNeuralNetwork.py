@@ -377,6 +377,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 string_prediction += dataset.findSymbol[index];
             
             # Get all valid predictions for this data sample including intervention
+            # Note: the prediction might deviate from the label even before the intervention
+            # We still use the label expressions provided (even though we know that our
+            # prediction will not be in valid_prediction) because we do want to use a label 
+            # that does the intervention right so the model can learn from this mistake
             _, _, valid_predictions, validPredictionEffectExpressions = dataset.expressionsByPrefix.get(causeExpressions[i][:intervention_location+1]);
             if (len(valid_predictions) == 0):
                 # Invalid example because the intervention has no corrected examples
@@ -456,6 +460,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                          emptySamples=None, labels_to_use=False):
         """
         Overriding for finish-expressions.
+        expressions_with_interventions contains the label-expressions (in 
+        strings) that should be used to lookup the candidate labels for SGD (in 
+        finish_expression_find_labels)
         """
         causeExpressions, _ = zip(*expressions_with_interventions);
         if (labels_to_use is False):
