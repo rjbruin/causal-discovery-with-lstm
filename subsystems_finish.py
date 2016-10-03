@@ -160,20 +160,27 @@ def test(model, dataset, parameters, max_length, print_samples=False, sample_siz
                                            intervention=parameters['test_interventions'],
                                            fixedDecoderInputs=parameters['fixed_decoder_inputs']);
         
+        if (parameters['only_cause_expression']):
+            prediction_1 = predictions;
+        else:
+            prediction_1 = predictions[0];
+            prediction_2 = predictions[1];
+        
         # Print samples
         if (print_samples and not printed_samples):
-            for i in range(predictions[0].shape[0]):
+            for i in range(prediction_1.shape[0]):
                 print("# Input 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                      np.argmax(test_data[i,:,:model.data_dim],len(test_data.shape)-2)))));
                 print("# Label 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                    np.argmax(test_targets[i,:,:model.data_dim],len(test_data.shape)-2)))));
-                print("# Output 1: %s" % "".join(map(lambda x: dataset.findSymbol[x], predictions[0][i])));
+                print("# Output 1: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_1[i])));
                 
-                print("# Input 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-                                                     np.argmax(test_data[i,:,model.data_dim:],len(test_data.shape)-2)))));
-                print("# Label 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-                                                   np.argmax(test_targets[i,:,model.data_dim:],len(test_data.shape)-2)))));
-                print("# Output 2: %s" % "".join(map(lambda x: dataset.findSymbol[x], predictions[1][i])));
+                if (not parameters['only_cause_expression']):
+                    print("# Input 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+                                                         np.argmax(test_data[i,:,model.data_dim:],len(test_data.shape)-2)))));
+                    print("# Label 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+                                                       np.argmax(test_targets[i,:,model.data_dim:],len(test_data.shape)-2)))));
+                    print("# Output 2: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_2[i])));
             printed_samples = True;
         
         stats = model.batch_statistics(stats, predictions, 
@@ -239,6 +246,9 @@ if __name__ == '__main__':
         trimmed_from_max_length += 1;
         samples_available += dataset.expressionLengths[max_length];
     
+    if (parameters['intervention_base_offset'] - trimmed_from_max_length < 0):
+        raise ValueError("base_offset < 0!");
+    
     intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
     for r in range(reps):
         stats = set_up_statistics(dataset.output_dim, model.n_max_digits);
@@ -292,7 +302,8 @@ if __name__ == '__main__':
                                                expressions, interventionLocation, 
                                                {}, len(expressions), dataset, 
                                                eos_symbol_index=dataset.EOS_symbol_index,
-                                               labels_to_use=labels_to_use);
+                                               labels_to_use=labels_to_use,
+                                               training=True);
             
             if (str(outputs[0]) == 'nan' and parameters['debug']):
                 print("NaN at batch %d" % k);

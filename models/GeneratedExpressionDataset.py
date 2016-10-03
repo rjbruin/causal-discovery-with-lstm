@@ -20,13 +20,14 @@ class GeneratedExpressionDataset(Dataset):
                  sample_testing_size=False, predictExpressions=False,
                  copyInput=False, fillX=False, use_GO_symbol=False, finishExpressions=False,
                  reverse=False, copyMultipleExpressions=False,
-                 operators=4, digits=10):
+                 operators=4, digits=10, only_cause_expression=False):
         self.sources = [trainSource, testSource];
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
         self.max_training_size = max_training_size;
         self.max_testing_size = max_testing_size;
         self.sample_testing_size = sample_testing_size;
+        self.only_cause_expression = only_cause_expression;
         
         self.operators = operators;
         self.digits = digits;
@@ -142,6 +143,8 @@ class GeneratedExpressionDataset(Dataset):
             line = f.readline().strip();
             while (line != ""):
                 expression, expression_prime = line.split(";");
+                if (self.only_cause_expression):
+                    expression_prime = "";
                 self.expressionsByPrefix.add(expression, expression_prime);
                 self.expressionLengths[len(expression)] += 1;
                 line = f.readline().strip();
@@ -153,6 +156,8 @@ class GeneratedExpressionDataset(Dataset):
             line = f.readline().strip();
             while (line != ""):
                 expression, expression_prime = line.split(";");
+                if (self.only_cause_expression):
+                    expression_prime = "";
                 self.testExpressionsByPrefix.add(expression, expression_prime);
                 self.testExpressionLengths[len(expression)] += 1;
                 line = f.readline().strip();
@@ -194,18 +199,6 @@ class GeneratedExpressionDataset(Dataset):
             line = f.readline();
         
         return length, data_length, target_length;
-    
-    def preload_only_expressions(self, source):
-        f = open(source,'r');
-        
-        expressions = [];
-        
-        line = f.readline().strip();
-        while (line != ""):
-            expressions.append(line.split(";"));
-            line = f.readline().strip();
-        
-        return expressions;
     
     def load(self, source, size, location):
         f = open(source,'r');
@@ -259,7 +252,10 @@ class GeneratedExpressionDataset(Dataset):
             max_length = max(map(lambda a: a.shape[axis-1], data));
         else:
             max_length = fixed_length;
-        nd_data = np.zeros((len(data), max_length, self.data_dim*2), dtype='float32');
+        if (not self.only_cause_expression):
+            nd_data = np.zeros((len(data), max_length, self.data_dim*2), dtype='float32');
+        else:
+            nd_data = np.zeros((len(data), max_length, self.data_dim), dtype='float32');
         for i,datapoint in enumerate(data):
             if (datapoint.shape[0] > max_length):
                 raise ValueError("n_max_digits too small! Increase to %d" % datapoint.shape[0]);
@@ -503,21 +499,30 @@ class GeneratedExpressionDataset(Dataset):
         
         # We concatenate the expressions on the data_dim axis
         # Both expressions are of the same length, so no checks needed here
-        expression_embeddings = np.zeros((len(expression)+1,self.data_dim*2), dtype='float32');
+        if (not self.only_cause_expression):
+            expression_embeddings = np.zeros((len(expression)+1,self.data_dim*2), dtype='float32');
+        else:
+            expression_embeddings = np.zeros((len(expression)+1,self.data_dim), dtype='float32');
+            
         for i, literal in enumerate(expression):
             expression_embeddings[i,self.oneHot[literal]] = 1.0;
-        for j, literal in enumerate(expression_prime):
-            expression_embeddings[j,self.data_dim + self.oneHot[literal]] = 1.0;
+        if (not self.only_cause_expression):
+            for j, literal in enumerate(expression_prime):
+                expression_embeddings[j,self.data_dim + self.oneHot[literal]] = 1.0;
         
         # Add EOS's
         expression_embeddings[-1,self.EOS_symbol_index] = 1.0;
-        expression_embeddings[-1,self.data_dim + self.EOS_symbol_index] = 1.0;
+        if (not self.only_cause_expression):
+            expression_embeddings[-1,self.data_dim + self.EOS_symbol_index] = 1.0;
         
         # Append data
         data.append(expression_embeddings);
         labels.append(np.argmax(expression_embeddings, axis=1));
         targets.append(expression_embeddings);
-        expressions.append((expression, expression_prime));
+        if (not self.only_cause_expression):
+            expressions.append((expression, expression_prime));
+        else:
+            expressions.append((expression, ""));
         
         return data, targets, labels, expressions, 1;
     

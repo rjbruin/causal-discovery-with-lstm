@@ -53,7 +53,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                              reverse=parameters['reverse'],
                                              copyMultipleExpressions=parameters['finish_subsystems'],
                                              operators=parameters['operators'],
-                                             digits=parameters['digits']);
+                                             digits=parameters['digits'],
+                                             only_cause_expression=parameters['only_cause_expression']);
         datasets.append(dataset);
     
     if (parameters['random_baseline']):
@@ -82,7 +83,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                          optimizer=1 if parameters['nesterov_optimizer'] else 0,
                                          learning_rate=parameters['learning_rate'],
                                          operators=parameters['operators'],
-                                         digits=parameters['digits']);
+                                         digits=parameters['digits'],
+                                         only_cause_expression=parameters['only_cause_expression']);
     
     return datasets, rnn;
 
