@@ -85,7 +85,8 @@ argumentProcessors = {'name': processString,
                       'train_statistics': processBool,
                       'operators': processInt,
                       'digits': processInt,
-                      'only_cause_expression': processBool
+                      'only_cause_expression': processBool,
+                      'load_pretrained_cause_expression': processFalseOrString
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -141,7 +142,8 @@ defaults = {'report_to_tracker': True,
             'train_statistics': False,
             'operators': 4,
             'digits': 10,
-            'only_cause_expression': False
+            'only_cause_expression': False,
+            'load_pretrained_cause_expression': False
             }
 
 def processKeyValue(key,value):

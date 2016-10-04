@@ -200,6 +200,22 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 self.vars[key].set_value(variables[key].get_value().astype('float32'));
         return True;
     
+    def loadPartialDataDimVars(self, variables, offset, size):
+        """
+        Provide vars as a dictionary matching the self.vars structure.
+        Data will be loaded into var[offset:offset+size].
+        Only vars that have a data dimension will be overwritten.
+        """
+        for key in variables:
+            if (key not in self.vars):
+                return False;
+            if (key[0] == "X" or key[:2] == "DX"):
+                value = self.vars[key].get_value().astype('float32');
+                new_part = variables[key].get_value().astype('float32');
+                value[offset:offset+size,:] = new_part;
+                self.vars[key].set_value(value);
+        return True;
+    
     # PREDICTION FUNCTIONS
     
     def lstm_predict_single(self, current_X, previous_hidden, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY):

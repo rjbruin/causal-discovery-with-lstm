@@ -7,7 +7,7 @@ Created on 9 sep. 2016
 import time;
 import sys;
 
-from tools.file import save_to_pickle;
+from tools.file import save_to_pickle, load_from_pickle_with_filename;
 from tools.arguments import processCommandLineArguments;
 from tools.model import constructModels, set_up_statistics;
 from tools.gpu import using_gpu; # @UnresolvedImport
@@ -219,6 +219,14 @@ if __name__ == '__main__':
     
     # Construct models
     datasets, model = constructModels(parameters, 0, {});
+    
+    # Load pretrained only_cause_expression model
+    if (parameters['load_pretrained_cause_expression'] is not False):
+        loadedVars, _ = load_from_pickle_with_filename("./saved_models/" + parameters['load_pretrained_cause_expression']);
+        if (model.loadPartialDataDimVars(dict(loadedVars), 0, model.data_dim)):
+            print("Loaded pretrained model successfully!");
+        else:
+            raise ValueError("Loading pretrained model failed: wrong variables supplied!");
     
     # Train on all datasets in succession
     # Print settings headers to raw results file
