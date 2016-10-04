@@ -37,8 +37,6 @@ class ExpressionsByPrefix(object):
         
         if (len(expression) > 0):
             prefix = expression[0];
-            if (len(prefix) > 1):
-                print(prefix);
             self.prefixedExpressions[prefix]._add(expression[1:], fullExpression, expression_prime);
     
     def get(self, prefix, getStructure=False, safe=False):
@@ -67,13 +65,12 @@ class ExpressionsByPrefix(object):
         
         # DEBUG
         if (len(availablePrefixes) == 0):
-            print("yo");
+            raise ValueError("BUG! This cannot occur of the maxExpressionSize check works right.");
         
         prefix = np.random.randint(0,len(availablePrefixes));
         startingPrefix = prefix;
         
         while (self.prefixedExpressions[availablePrefixes[prefix]].maxExpressionSize < length-1):
-            # or len(self.prefixedExpressions[availablePrefixes[prefix]].prefixedExpressions.keys()) == 0):
             prefix = (prefix + 1) % len(availablePrefixes);
             if (prefix == startingPrefix):
                 # This branch has no prefixes with expressions

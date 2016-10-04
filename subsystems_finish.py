@@ -118,7 +118,7 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=Fal
     
     return data, targets, labels, expressions, interventionSymbols, interventionLocation;
 
-def test(model, dataset, parameters, max_length, print_samples=False, sample_size=False, trimmed_from_max_length=0):
+def test(model, dataset, parameters, max_length, base_offset, intervention_range, print_samples=False, sample_size=False):
     # Test
     print("Testing...");
         
@@ -140,9 +140,9 @@ def test(model, dataset, parameters, max_length, print_samples=False, sample_siz
         # Get data from batch
         test_data, test_targets, test_labels, test_expressions, \
             possibleInterventions, interventionLocation = get_batch(False, dataset, model, 
-                                                                    parameters['intervention_range'], 
+                                                                    intervention_range, 
                                                                     max_length, debug=parameters['debug'],
-                                                                    base_offset=parameters['intervention_base_offset'] - trimmed_from_max_length,
+                                                                    base_offset=base_offset,
                                                                     applyIntervention=parameters['test_interventions']);
         test_n = model.minibatch_size;
         stats['intervention_locations'][interventionLocation] += 1;
@@ -246,8 +246,14 @@ if __name__ == '__main__':
         trimmed_from_max_length += 1;
         samples_available += dataset.expressionLengths[max_length];
     
+    # Make the base_offset absorb the max length difference
+    base_offset = parameters['intervention_base_offset'] - trimmed_from_max_length;
+    intervention_range = parameters['intervention_range'];
     if (parameters['intervention_base_offset'] - trimmed_from_max_length < 0):
-        raise ValueError("base_offset < 0!");
+        # If base_offset is below zero make the intervention range absorb the
+        # difference 
+        base_offset = 0;
+        intervention_range += parameters['intervention_base_offset'] - trimmed_from_max_length;
     
     intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
     for r in range(reps):
@@ -264,9 +270,9 @@ if __name__ == '__main__':
         for k in batch_range:
             data, target, _, expressions, possibleInterventions, interventionLocation = \
                 get_batch(True, dataset, model, 
-                          parameters['intervention_range'], max_length, 
+                          intervention_range, max_length, 
                           debug=parameters['debug'],
-                          base_offset=parameters['intervention_base_offset'] - trimmed_from_max_length,
+                          base_offset=base_offset,
                           applyIntervention=parameters['train_interventions']);
             
             # Perform interventions
@@ -337,7 +343,7 @@ if __name__ == '__main__':
         # Intermediate testing if this was not the last iteration of training
         # and we have passed the testing threshold
         #if (r != repetition_size-1):
-        test(model, dataset, parameters, max_length, print_samples=parameters['debug'], 
+        test(model, dataset, parameters, max_length, base_offset, intervention_range, print_samples=parameters['debug'], 
              sample_size=parameters['sample_testing_size'], 
              trimmed_from_max_length=trimmed_from_max_length);
         # Save weights to pickles

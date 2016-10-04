@@ -102,14 +102,14 @@ class GeneratedExpressionDataset(Dataset):
         
         # Store locations and sizes for both train and testing
         self.locations = [0, 0];
-        train_length, train_data_length, train_target_length = self.filemeta(self.sources[self.TRAIN]);
-        test_length, test_data_length, test_target_length = self.filemeta(self.sources[self.TEST]);
+        train_length, train_data_length, train_target_length = self.filemeta(self.sources[self.TRAIN], self.max_training_size);
+        test_length, test_data_length, test_target_length = self.filemeta(self.sources[self.TEST], self.max_testing_size);
         self.data_length = max(train_data_length, test_data_length);
         self.target_length = max(train_target_length, test_target_length);
         self.lengths = [train_length, test_length];
-        if (self.max_training_size is not False and not self.finishExpressions):
+        if (self.max_training_size is not False):
             self.lengths[self.TRAIN] = self.max_training_size;
-        if (self.max_testing_size is not False and not self.finishExpressions):
+        if (self.max_testing_size is not False):
             self.lengths[self.TEST] = self.max_testing_size;
         # Set test batch settings
         self.train_done = False;
@@ -141,20 +141,24 @@ class GeneratedExpressionDataset(Dataset):
             self.expressionsByPrefix = ExpressionsByPrefix();
             f = open(self.sources[self.TRAIN],'r');
             line = f.readline().strip();
-            while (line != ""):
+            n = 0;
+            # Check for n is to make the code work with max_training_size
+            while (line != "" and n < self.lengths[self.TRAIN]):
                 expression, expression_prime = line.split(";");
                 if (self.only_cause_expression):
                     expression_prime = "";
                 self.expressionsByPrefix.add(expression, expression_prime);
                 self.expressionLengths[len(expression)] += 1;
                 line = f.readline().strip();
+                n += 1;
             f.close();
             
             self.testExpressionsByPrefix = ExpressionsByPrefix();
             self.testExpressionLengths = Counter();
             f = open(self.sources[self.TEST],'r');
             line = f.readline().strip();
-            while (line != ""):
+            n = 0;
+            while (line != "" and n < self.lengths[self.TEST]):
                 expression, expression_prime = line.split(";");
                 if (self.only_cause_expression):
                     expression_prime = "";
@@ -180,13 +184,13 @@ class GeneratedExpressionDataset(Dataset):
         
         return True;
     
-    def filemeta(self, source):
+    def filemeta(self, source, max_length=False):
         f = open(source, 'r');
         length = 0;
         data_length = 0;
         target_length = 0;
         line = f.readline();
-        while (line.strip() != ""):
+        while (line.strip() != "" and (max_length is False or length+1 <= max_length)):
             length += 1;
             try:
                 data, target, _, _, _ = self.processor(line.strip(), [], [], [], []);
