@@ -9,6 +9,7 @@
         "finish_subsystems": "True",
         "n_max_digits": "34",
         "intervention_base_offset": "9",
-        "intervention_range": "25"
+        "intervention_range": "25",
+        "nesterov_optimizer": "True"
     }
 ]

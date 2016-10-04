@@ -10,6 +10,7 @@
         "n_max_digits": "17",
         "intervention_base_offset": "5",
         "intervention_range": "12",
-        "operators": "3"
+        "operators": "3",
+        "nesterov_optimizer": "True"
     }
 ]
