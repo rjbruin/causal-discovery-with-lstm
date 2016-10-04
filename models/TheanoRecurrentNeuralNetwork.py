@@ -580,6 +580,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     stats['correct'] += 1.0;
                     stats['effectCorrect'] += 1.0;
             else:
+                difference1 = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][0]);
+                difference2 = TheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, labels_to_use[j][1]);
+                stats['error_histogram'][difference1 + difference2] += 1;
                 if (not self.only_cause_expression and np.array_equal(map(lambda x: mutate(x),prediction[0][j][:eos_location]),prediction[1][j][:eos_location])):
                     stats['effectCorrect'] += 1.0;
             
@@ -625,3 +628,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 op_scores[key_indices[op],0] += 1;
             op_scores[key_indices[op],1] += 1;
         return op_scores;
+    
+    @staticmethod
+    def string_difference(string1, string2):
+        # Compute string difference
+        score = 0;
+        for k,s in enumerate(string2):
+            if (len(string1) <= k):
+                score += 1;
+            elif (s != string1[k]):
+                score += 1;
+        score += max(0,len(string1) - (k+1));
+        return score;

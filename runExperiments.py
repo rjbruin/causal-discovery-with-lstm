@@ -21,7 +21,10 @@ if __name__ == '__main__':
                    'Training loss': 'Total error',
                    'Digit precision': 'Digit-based score',
                    'Cause precision': 'Cause score',
-                   'Effect precision': 'Effect score'};
+                   'Effect precision': 'Effect score',
+                   'Mistake (1) precision': 'Error margin 1 score',
+                   'Mistake (2) precision': 'Error margin 2 score',
+                   'Mistake (3) precision': 'Error margin 3 score'};
     trackerreporter.init('http://rjbruin.nl/experimenttracker/api/',api_key);
     
     experiments_file = 'choose';

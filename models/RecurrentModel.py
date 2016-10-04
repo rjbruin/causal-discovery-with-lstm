@@ -119,4 +119,14 @@ class RecurrentModel(object):
         else:
             stats['digit_score'] = 0.0;
         
+        stats['error_1_score'] = 0.0;
+        stats['error_2_score'] = 0.0;
+        stats['error_3_score'] = 0.0;
+        if (stats['prediction_size'] > 0):
+            stats['error_1_score'] = (stats['correct'] + stats['error_histogram'][1]) / float(stats['prediction_size']);
+            stats['error_2_score'] = (stats['correct'] + stats['error_histogram'][1] + \
+                                      stats['error_histogram'][2]) / float(stats['prediction_size']);
+            stats['error_3_score'] = (stats['correct'] + stats['error_histogram'][1] + \
+                                      stats['error_histogram'][2] + stats['error_histogram'][3]) / float(stats['prediction_size']); 
+        
         return stats;
