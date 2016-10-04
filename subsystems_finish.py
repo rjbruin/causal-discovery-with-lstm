@@ -227,8 +227,8 @@ if __name__ == '__main__':
     datasets, model = constructModels(parameters, 0, {});
     
     # Load pretrained only_cause_expression model
-    if (parameters['load_pretrained_cause_expression'] is not False):
-        loadedVars, _ = load_from_pickle_with_filename("./saved_models/" + parameters['load_pretrained_cause_expression']);
+    if (parameters['load_cause_expression'] is not False):
+        loadedVars, _ = load_from_pickle_with_filename("./saved_models/" + parameters['load_cause_expression']);
         if (model.loadPartialDataDimVars(dict(loadedVars), 0, model.data_dim)):
             print("Loaded pretrained model successfully!");
         else:

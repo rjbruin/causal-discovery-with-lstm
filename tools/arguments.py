@@ -5,6 +5,7 @@ Created on 4 mrt. 2016
 '''
 
 import json;
+import copy;
 
 def processString(val):
     return val;
@@ -86,7 +87,7 @@ argumentProcessors = {'name': processString,
                       'operators': processInt,
                       'digits': processInt,
                       'only_cause_expression': processBool,
-                      'load_pretrained_cause_expression': processFalseOrString
+                      'load_cause_expression': processFalseOrString
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -143,7 +144,7 @@ defaults = {'report_to_tracker': True,
             'operators': 4,
             'digits': 10,
             'only_cause_expression': False,
-            'load_pretrained_cause_expression': False
+            'load_cause_expression': False
             }
 
 def processKeyValue(key,value):
@@ -157,7 +158,7 @@ def processKeyValue(key,value):
 
 def processCommandLineArguments(arguments, parameters=None):
     if (parameters is None):
-        parameters = defaults;
+        parameters = copy.deepcopy(defaults);
     
     if ('--params_from_experiment_header' in arguments):
         # If no arguments are provided, ask for parameters as raw input
