@@ -57,8 +57,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.prediction_output_dim = output_dim;
         
         actual_data_dim = self.data_dim * 2;
+        actual_decoding_output_dim = self.decoding_output_dim * 2;
+        actual_prediction_output_dim = self.prediction_output_dim * 2;
         if (self.only_cause_expression):
             actual_data_dim = self.data_dim;
+            actual_decoding_output_dim = self.decoding_output_dim;
+            actual_prediction_output_dim = self.prediction_output_dim;
         
         # Set up shared variables
         varSettings = [];
@@ -82,9 +86,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             varSettings.append(('DXWc',actual_data_dim,self.hidden_dim));
             varSettings.append(('DhWo',self.hidden_dim,self.hidden_dim));
             varSettings.append(('DXWo',actual_data_dim,self.hidden_dim));
-            varSettings.append(('DhWY',self.hidden_dim,self.decoding_output_dim*2));
+            varSettings.append(('DhWY',self.hidden_dim,actual_decoding_output_dim));
         else:
-            varSettings.append(('hWY',self.hidden_dim,self.prediction_output_dim*2));
+            varSettings.append(('hWY',self.hidden_dim,actual_prediction_output_dim));
         
         # Contruct variables
         self.vars = {};
@@ -513,6 +517,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         """
         causeExpressions, _ = zip(*expressions_with_interventions);
         if (labels_to_use is False):
+            if (len(prediction) <= 1):
+                # If we only have one prediction (only_cause_expression) we pad 
+                # the prediction with an empty one 
+                prediction.append([]);
             _, labels_to_use = self.finish_expression_find_labels(prediction[0], prediction[1],
                                                                    dataset, 
                                                                    causeExpressions, 

@@ -162,6 +162,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
         
         if (parameters['only_cause_expression']):
             prediction_1 = predictions;
+            predictions = [predictions];
         else:
             prediction_1 = predictions[0];
             prediction_2 = predictions[1];
