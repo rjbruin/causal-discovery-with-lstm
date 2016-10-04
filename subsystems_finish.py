@@ -344,8 +344,7 @@ if __name__ == '__main__':
         # and we have passed the testing threshold
         #if (r != repetition_size-1):
         test(model, dataset, parameters, max_length, base_offset, intervention_range, print_samples=parameters['debug'], 
-             sample_size=parameters['sample_testing_size'], 
-             trimmed_from_max_length=trimmed_from_max_length);
+             sample_size=parameters['sample_testing_size']);
         # Save weights to pickles
         if (saveModels):
             saveVars = model.getVars();

@@ -262,7 +262,7 @@ class GeneratedExpressionDataset(Dataset):
             nd_data = np.zeros((len(data), max_length, self.data_dim), dtype='float32');
         for i,datapoint in enumerate(data):
             if (datapoint.shape[0] > max_length):
-                raise ValueError("n_max_digits too small! Increase to %d" % datapoint.shape[0]);
+                raise ValueError("n_max_digits too small! Increase from %d to %d" % (max_length, datapoint.shape[0]));
             nd_data[i,:datapoint.shape[0]] = datapoint;
         return nd_data;
     
