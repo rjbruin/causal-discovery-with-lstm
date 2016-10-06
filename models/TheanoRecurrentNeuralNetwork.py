@@ -25,7 +25,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  EOS_symbol_index=None, GO_symbol_index=None, n_max_digits=24, 
                  decoder=False, verboseOutputter=None, finishExpressions=False,
                  optimizer=0, learning_rate=0.01,
-                 operators=4, digits=10, only_cause_expression=False):
+                 operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False):
         '''
         Initialize all Theano models.
         '''
@@ -40,6 +40,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.single_digit = single_digit;
         self.decoder = decoder;
         self.only_cause_expression = only_cause_expression;
+        self.seq2ndmarkov = seq2ndmarkov;
         self.optimizer = optimizer;
         self.verboseOutputter = verboseOutputter;
         self.finishExpressions = finishExpressions;
@@ -237,46 +238,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         hidden = output_gate * cell;
         return hidden;
     
-    def adam(self, cost, params, lr=0.0002, b1=0.1, b2=0.001, e=1e-8):
-        """
-        The MIT License (MIT)
-        Copyright (c) 2015 Alec Radford
-        Permission is hereby granted, free of charge, to any person obtaining a copy
-        of this software and associated documentation files (the "Software"), to deal
-        in the Software without restriction, including without limitation the rights
-        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-        copies of the Software, and to permit persons to whom the Software is
-        furnished to do so, subject to the following conditions:
-        The above copyright notice and this permission notice shall be included in all
-        copies or substantial portions of the Software.
-        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-        SOFTWARE.
-        """  
-        updates = []
-        grads = T.grad(cost, params)
-        i = theano.shared(np.float32(0.))
-        i_t = i + 1.
-        fix1 = 1. - (1. - b1)**i_t
-        fix2 = 1. - (1. - b2)**i_t
-        lr_t = lr * (T.sqrt(fix2) / fix1)
-        for p, g in zip(params, grads):
-            m = theano.shared(p.get_value() * 0.)
-            v = theano.shared(p.get_value() * 0.)
-            m_t = (b1 * g) + ((1. - b1) * m)
-            v_t = (b2 * T.sqr(g)) + ((1. - b2) * v)
-            g_t = m_t / (T.sqrt(v_t) + e)
-            p_t = p - (lr_t * g_t)
-            updates.append((m, m_t))
-            updates.append((v, v_t))
-            updates.append((p, p_t))
-        #updates.append((i, i_t))
-        return updates, grads
-    
     # END OF INITIALIZATION
     
     def sanityChecks(self, training_data, training_labels):
@@ -289,7 +250,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     
     def sgd(self, dataset, data, label, learning_rate, emptySamples=None, 
             expressions=None, intervention=False, intervention_expressions=None, 
-            interventionLocation=None, fixedDecoderInputs=False):
+            interventionLocation=None, fixedDecoderInputs=False, topcause=True):
         """
         The intervention location for finish expressions must be the same for 
         all samples in this batch.
@@ -299,7 +260,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                               intervention_expressions, interventionLocation, 
                                               learning_rate, emptySamples, 
                                               intervention=intervention, 
-                                              fixedDecoderInputs=fixedDecoderInputs);
+                                              fixedDecoderInputs=fixedDecoderInputs,
+                                              topcause=topcause);
         else:
             return self._sgd(data, label, learning_rate), 0;
         
@@ -344,7 +306,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     def sgd_finish_expression(self, dataset, encoded_expressions, 
                               encoded_expressions_with_intervention, expressions_with_intervention,
                               intervention_location, learning_rate, emptySamples, 
-                              intervention=True, fixedDecoderInputs=True, intervenedExpression=0):
+                              intervention=True, fixedDecoderInputs=True, topcause=True):
         if (not self.only_cause_expression):
             [predictions_1, predictions_2], other = self.predict(encoded_expressions, encoded_expressions_with_intervention, 
                                                                  intervention_location, intervention=intervention,
@@ -358,7 +320,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             right_hand_2 = other['right_hand'][:,:,self.data_dim:];
         
         # Set which expression is cause and which is effect
-        if (intervenedExpression == 0):
+        if (topcause):
             # Assume all samples in the batch have the same setting for
             # which of the expressions is the cause and which is the effect
             causeExpressionPredictions = predictions_1;
@@ -373,7 +335,19 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             # Unzip the tuples of expressions into two lists
             causeExpressions, _ = zip(*expressions_with_intervention);
         else:
-            raise ValueError("Not implemented!");
+            if (self.only_cause_expression):
+                causeExpressionPredictions = predictions_1;
+                causeExpressionRightHand = right_hand_1;
+                effectExpressionPredictions = None;
+                effectExpressionRightHand = None;
+            else:
+                causeExpressionPredictions = predictions_2;
+                causeExpressionRightHand = right_hand_2;
+                effectExpressionPredictions = predictions_1;
+                effectExpressionRightHand = right_hand_1;
+                
+            # Unzip the tuples of expressions into two lists
+            _, causeExpressions = zip(*expressions_with_intervention);
         
         if (intervention):
             # Change the target of the SGD to the nearest valid expression-subsystem
@@ -385,7 +359,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                                    updateTargets=True, updateLabels=True,
                                                    encoded_causeExpression=causeExpressionRightHand,
                                                    encoded_effectExpression=effectExpressionRightHand,
-                                                   emptySamples=emptySamples);
+                                                   emptySamples=emptySamples, topcause=topcause);
         else:
             if (fixedDecoderInputs):
                 intervention_location = self.n_max_digits - 1;
@@ -409,7 +383,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                        intervention_location,
                                        updateTargets=False, updateLabels=False,
                                        encoded_causeExpression=False, encoded_effectExpression=False,
-                                       emptySamples=False, test_n=False, useTestStorage=False):
+                                       emptySamples=False, test_n=False, useTestStorage=False,
+                                       topcause=True):
         if (not self.only_cause_expression):
             target = np.zeros((self.minibatch_size,self.n_max_digits,self.decoding_output_dim*2));
         else:
@@ -420,9 +395,28 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (test_n is False):
             test_n = len(causeExpressionPredictions);
         
+        # Set the storage and helper methods
         storage = dataset.expressionsByPrefix;
+        appendToLabels = lambda cause, effect: (cause, effect);
+        def setTarget(j,cause,value):
+            if (cause):
+                target[j,:,:self.data_dim] = value;
+            else:
+                target[j,:,self.data_dim:] = value;
+        if (self.seq2ndmarkov and not topcause):
+            storage = dataset.expressionsByPrefixBot;
+        
+        # Set the storage and helper methods for testing
         if (useTestStorage):
             storage = dataset.testExpressionsByPrefix;
+            appendToLabels = lambda cause, effect: (effect, cause);
+            if (self.seq2ndmarkov and not topcause):
+                storage = dataset.testExpressionsByPrefixBot;
+            def setTarget(j,cause,value):
+                if (cause):
+                    target[j,:,self.data_dim:] = value;
+                else:
+                    target[j,:,:self.data_dim] = value;
         
         for i, prediction in enumerate(causeExpressionPredictions[:test_n]):
             if (i in emptySamples):
@@ -448,12 +442,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 # that is not a realistic usage of a dataset
                 raise ValueError("No valid predictions available! This should not happen at all...");
                 if (updateLabels):
-                    label_expressions.append((string_prediction,""));
+                    label_expressions.append(appendToLabels(string_prediction,""));
             elif (string_prediction in valid_predictions):
                 # The prediction of the cause expression is right, so we
                 # use the right_hand predicted for this part
                 if (updateTargets):
-                    target[i,:,:self.data_dim] = encoded_causeExpression[i];
+                    setTarget(i,True,encoded_causeExpression[i]);
                 
                 # If our prediction is valid we check if the other expression matches 
                 # the predicted expression
@@ -469,7 +463,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         # expression attached to the cause expression,
                         # this prediction is right, so we use it as right_hand
                         if (updateTargets):
-                            target[i,:,self.data_dim:] = encoded_effectExpression[i];
+                            setTarget(i,False,encoded_effectExpression[i]);
                     else:
                         # If the cause expression was predicted right but the
                         # effect expression is wrong we need to run SGD with
@@ -477,13 +471,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         # expression stored with the cause expression
                         if (updateTargets):
                             other_expression_target_expression = validPredictionEffectExpressions[prediction_index];
-                            target[i,:,self.data_dim:] = dataset.encodeExpression(other_expression_target_expression, \
-                                                                                  self.n_max_digits);
+                            setTarget(i,False,dataset.encodeExpression(other_expression_target_expression, \
+                                                                       self.n_max_digits));
                 if (updateLabels):
                     # Regardless of whether the effect/other prediction is right we know
                     # what labels to supply: the set of correct cause prediction and its
                     # corresponding effect prediction
-                    label_expressions.append((string_prediction,other_string_prediction));
+                    label_expressions.append(appendToLabels(string_prediction,other_string_prediction));
             else:
                 # Find the nearest expression to our prediction
                 pred_length = len(string_prediction)
@@ -507,11 +501,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 # Use as targets the found cause expression and its 
                 # accompanying effect expression
                 if (updateTargets):
-                    target[i,:,:self.data_dim] = dataset.encodeExpression(valid_predictions[nearest], self.n_max_digits);
+                    setTarget(i,True,dataset.encodeExpression(valid_predictions[nearest], self.n_max_digits));
                     if (not self.only_cause_expression):
-                        target[i,:,self.data_dim:] = dataset.encodeExpression(validPredictionEffectExpressions[nearest], self.n_max_digits);
+                        setTarget(i,False,dataset.encodeExpression(validPredictionEffectExpressions[nearest],
+                                                                   self.n_max_digits));
                 if (updateLabels):
-                    label_expressions.append((valid_predictions[nearest],validPredictionEffectExpressions[nearest]));
+                    label_expressions.append(appendToLabels(valid_predictions[nearest],validPredictionEffectExpressions[nearest]));
         
         return target, label_expressions;
     
@@ -524,7 +519,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                          excludeStats=None, no_print_progress=False,
                          eos_symbol_index=None, print_sample=False,
                          emptySamples=None, labels_to_use=False,
-                         training=False):
+                         training=False, topcause=True):
         """
         Overriding for finish-expressions.
         expressions_with_interventions contains the label-expressions (in 
@@ -532,19 +527,39 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         finish_expression_find_labels)
         """
         causeExpressions, _ = zip(*expressions_with_interventions);
+        if (not topcause):
+            _, causeExpressions = zip(*expressions_with_interventions);
+        
+        dont_switch = False;
+        if (len(prediction) <= 1):
+            # If we only have one prediction (only_cause_expression) we pad 
+            # the prediction with an empty one 
+            prediction.append([]);
+            dont_switch = True;
+        
         if (labels_to_use is False):
-            if (len(prediction) <= 1):
-                # If we only have one prediction (only_cause_expression) we pad 
-                # the prediction with an empty one 
-                prediction.append([]);
-            _, labels_to_use = self.finish_expression_find_labels(prediction[0], prediction[1],
+            # Set cause and effect predictions
+            cause = prediction[0];
+            effect = prediction[1];
+            if (not topcause and not dont_switch):
+                cause = prediction[1];
+                effect = prediction[0];
+            
+            _, labels_to_use = self.finish_expression_find_labels(cause, effect,
                                                                    dataset, 
                                                                    causeExpressions, 
                                                                    intervention_location, emptySamples,
                                                                    updateLabels=True, test_n=test_n,
-                                                                   useTestStorage=not training);
+                                                                   useTestStorage=not training,
+                                                                   topcause=topcause);
         
         # Statistics
+        causeIndex = 0;
+        effectIndex = 1;
+        if (not topcause and not dont_switch):
+            causeIndex = 1;
+            effectIndex = 0;
+        
         for j in range(0,test_n):
             if (emptySamples is not None and j in emptySamples):
                 continue;
@@ -552,62 +567,102 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             # Taking argmax over symbols for each sentence returns 
             # the location of the highest index, which is the first 
             # EOS symbol
-            eos_location = np.argmax(prediction[0][j]);
+            eos_location = np.argmax(prediction[causeIndex][j]);
             # Check for edge case where no EOS was found and zero was returned
             if (eos_symbol_index is None):
                 eos_symbol_index = dataset.EOS_symbol_index;
             if (prediction[0][j,eos_location] != eos_symbol_index):
-                eos_location = prediction[0][j].shape[0];
-            
-            def mutate(x):
-                if (x < self.digits):
-                    return (x+1) % self.digits;
-                elif (x < self.digits + self.operators):
-                    x += 1;
-                    if (x == self.digits + self.operators):
-                        x = self.digits;
-                return x;
+                eos_location = prediction[causeIndex][j].shape[0];
             
             # Convert prediction to string expression
-            causeExpressionPrediction = dataset.indicesToStr(prediction[0][j][:eos_location]);
+            causeExpressionPrediction = dataset.indicesToStr(prediction[causeIndex][j][:eos_location]);
             if (not self.only_cause_expression):
-                effectExpressionPrediction = dataset.indicesToStr(prediction[1][j][:eos_location]);
-            if (causeExpressionPrediction == labels_to_use[j][0]):
-                stats['causeCorrect'] += 1.0;
-                if (self.only_cause_expression):
-                    stats['correct'] += 1.0;
-                elif (effectExpressionPrediction == labels_to_use[j][1]):
-                    stats['correct'] += 1.0;
+                effectExpressionPrediction = dataset.indicesToStr(prediction[effectIndex][j][:eos_location]);
+            
+            if (self.seq2ndmarkov):
+                # Check if cause sequence prediction is in dataset
+                causeInDataset = False;
+                if (causeExpressionPrediction == labels_to_use[j][causeIndex]):
+                    stats['causeCorrect'] += 1.0;
+                    causeInDataset = True;
+                
+                # Check if cause sequence prediction is valid
+                causeValid = False;
+                if (dataset.valid_seq2ndmarkov(prediction[causeIndex][j][:eos_location],dataset.digits,dataset.operators)):
+                    causeValid = True;
+                    stats['causeValid'] += 1.0;
+                    print(map(lambda x: dataset.findSymbol[x], prediction[causeIndex][j][:eos_location]));
+                
+                # Check if effect sequence prediction is in dataset
+                effectInDataset = False;
+                if (causeExpressionPrediction == labels_to_use[j][causeIndex]):
+                    stats['causeCorrect'] += 1.0;
+                    effectInDataset = True;
+                
+                # Check if effect sequence prediction is valid
+                effectValid = False;
+                if (dataset.valid_seq2ndmarkov(prediction[effectIndex][j][:eos_location],dataset.digits,dataset.operators)):
+                    effectValid = True;
+                    stats['effectValid'] += 1.0;
+                    print(map(lambda x: dataset.findSymbol[x], prediction[effectIndex][j][:eos_location]));
+                
+                # Check if effect prediction is valid
+                effectMatch = False;
+                if (not self.only_cause_expression and \
+                    dataset.effect_matcher(prediction[causeIndex][j][:eos_location],
+                                           prediction[effectIndex][j][:eos_location],
+                                           self.digits,self.operators,topcause)):
                     stats['effectCorrect'] += 1.0;
+                    effectMatch = True;
+                
+                # Determine validity of sample
+                if (causeValid and effectValid and effectMatch):
+                    stats['valid'] += 1.0;
+                # Determine sample in dataset
+                if (causeInDataset and effectInDataset and effectMatch):
+                    stats['correct'] += 1.0;
+                else:
+                    difference1 = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][causeIndex]);
+                    difference2 = TheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, labels_to_use[j][effectIndex]);
+                    stats['error_histogram'][difference1 + difference2] += 1;
             else:
-                difference1 = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][0]);
-                difference2 = TheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, labels_to_use[j][1]);
-                stats['error_histogram'][difference1 + difference2] += 1;
-                if (not self.only_cause_expression and np.array_equal(map(lambda x: mutate(x),prediction[0][j][:eos_location]),prediction[1][j][:eos_location])):
-                    stats['effectCorrect'] += 1.0;
+                if (causeExpressionPrediction == labels_to_use[j][causeIndex]):
+                    stats['causeCorrect'] += 1.0;
+                    if (self.only_cause_expression):
+                        stats['correct'] += 1.0;
+                    elif (effectExpressionPrediction == labels_to_use[j][effectIndex]):
+                        stats['correct'] += 1.0;
+                        stats['effectCorrect'] += 1.0;
+                else:
+                    difference1 = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][causeIndex]);
+                    difference2 = TheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, labels_to_use[j][effectIndex]);
+                    stats['error_histogram'][difference1 + difference2] += 1;
+                    # Defer matching of effect prediction and what it should be to dataset effect matcher (dependent on dataset)
+                    if (not self.only_cause_expression and dataset.effect_matcher(prediction[causeIndex][j][:eos_location],prediction[effectIndex][j][:eos_location],self.digits,self.operators,topcause)):
+                        stats['effectCorrect'] += 1.0;
             
             # Digit precision and prediction size computation
             i = 0;
-            for i in range(min(len(causeExpressionPrediction),len(labels_to_use[j][0]))):
-                if (causeExpressionPrediction[i] == labels_to_use[j][0][i]):
+            for i in range(min(len(causeExpressionPrediction),len(labels_to_use[j][causeIndex]))):
+                if (causeExpressionPrediction[i] == labels_to_use[j][causeIndex][i]):
                     stats['digit_1_correct'] += 1.0;
             stats['digit_1_prediction_size'] += len(causeExpressionPrediction);
             
             if (not self.only_cause_expression):
                 i = 0;
-                for i in range(min(len(effectExpressionPrediction),len(labels_to_use[j][1]))):
-                    if (effectExpressionPrediction[i] == labels_to_use[j][1][i]):
+                for i in range(min(len(effectExpressionPrediction),len(labels_to_use[j][effectIndex]))):
+                    if (effectExpressionPrediction[i] == labels_to_use[j][effectIndex][i]):
                         stats['digit_2_correct'] += 1.0;
                 stats['digit_2_prediction_size'] += len(effectExpressionPrediction);      
 
        
             stats['prediction_1_size_histogram'][int(eos_location)] += 1;
-            for digit_prediction in prediction[0][j][:len(causeExpressionPrediction)]:
+            for digit_prediction in prediction[causeIndex][j][:len(causeExpressionPrediction)]:
                 stats['prediction_1_histogram'][int(digit_prediction)] += 1;
             
             if (not self.only_cause_expression):
                 stats['prediction_2_size_histogram'][int(eos_location)] += 1;
-                for digit_prediction in prediction[1][j][:len(effectExpressionPrediction)]:
+                for digit_prediction in prediction[effectIndex][j][:len(effectExpressionPrediction)]:
                     stats['prediction_2_histogram'][int(digit_prediction)] += 1;
             
             stats['prediction_size'] += 1;

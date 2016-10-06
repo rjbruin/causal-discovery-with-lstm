@@ -7,7 +7,7 @@ Created on 15 feb. 2016
 import os, sys;
 import numpy as np;
 
-from models.ExpressionsByPrefix import ExpressionsByPrefix;
+from models import SequencesByPrefix.ExpressionsByPrefix
 
 class ExpressionNode(object):
 
@@ -104,7 +104,7 @@ def generateExpressions(baseFilePath, n, test_percentage, filters, minRecursionD
 #     savedExpressions = {};
     savedExpressions = [];
     sequential_fails = 0;
-    storage = ExpressionsByPrefix();
+    storage = SequencesByPrefix();
 
     print("Generating expressions...");
     while len(savedExpressions) < n and sequential_fails < fail_limit:

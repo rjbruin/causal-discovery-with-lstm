@@ -26,14 +26,16 @@ def constructModels(parameters, seed, verboseOutputter):
                 extensions.append(parameters['multipart_%d' % (i+1)]);
         train_paths = map(lambda f: "%s/train%s.txt" % (parameters['dataset'], f), extensions);
         test_paths = map(lambda f: "%s/test%s.txt" % (parameters['dataset'], f), extensions);
+        config_paths = ["%s/config.json" % (parameters['dataset'])];
     else:
         train_paths = ["%s/train.txt" % (parameters['dataset'])];
         test_paths = ["%s/test.txt" % (parameters['dataset'])];
+        config_paths = ["%s/config.json" % (parameters['dataset'])];
     
     datasets = [];
     for i in range(len(train_paths)):
         single_digit = parameters['single_digit'] or parameters['find_x'];
-        dataset = GeneratedExpressionDataset(train_paths[i], test_paths[i], 
+        dataset = GeneratedExpressionDataset(train_paths[i], test_paths[i], config_paths[i],
                                              add_x=parameters['find_x'],
                                              add_multiple_x=parameters['find_multiple_x'],
                                              single_digit=single_digit, 
@@ -54,7 +56,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                              copyMultipleExpressions=parameters['finish_subsystems'],
                                              operators=parameters['operators'],
                                              digits=parameters['digits'],
-                                             only_cause_expression=parameters['only_cause_expression']);
+                                             only_cause_expression=parameters['only_cause_expression'],
+                                             dataset_type=parameters['dataset_type']);
         datasets.append(dataset);
     
     if (parameters['random_baseline']):
@@ -84,7 +87,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                          learning_rate=parameters['learning_rate'],
                                          operators=parameters['operators'],
                                          digits=parameters['digits'],
-                                         only_cause_expression=parameters['only_cause_expression']);
+                                         only_cause_expression=parameters['only_cause_expression'],
+                                         seq2ndmarkov=parameters['dataset_type'] == 1);
     
     return datasets, rnn;
 
@@ -338,7 +342,9 @@ def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=Fal
     return stats;
 
 def set_up_statistics(output_dim, n_max_digits):
-    return {'correct': 0.0, 'effectCorrect': 0.0, 'causeCorrect': 0.0, 
+    return {'correct': 0.0, 'valid': 0.0, 
+            'effectCorrect': 0.0, 'causeCorrect': 0.0, 
+            'effectValid': 0.0, 'causeValid': 0.0,
             'error_histogram': {k: 0 for k in range(1,50)},
             'prediction_1_size': 0, 
             'digit_1_correct': 0.0, 'digit_1_prediction_size': 0,

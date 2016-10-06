@@ -110,10 +110,16 @@ class RecurrentModel(object):
             stats['score'] = stats['correct'] / float(stats['prediction_size']);
             stats['effectScore'] = stats['effectCorrect'] / float(stats['prediction_size']);
             stats['causeScore'] = stats['causeCorrect'] / float(stats['prediction_size']);
+            stats['validScore'] = stats['valid'] / float(stats['prediction_size']);
+            stats['causeValidScore'] = stats['causeValid'] / float(stats['prediction_size']);
+            stats['effectValidScore'] = stats['effectValid'] / float(stats['prediction_size']);
         else:
             stats['score'] = 0.0;
             stats['effectScore'] = 0.0;
             stats['causeScore'] = 0.0;
+            stats['validScore'] = 0.0;
+            stats['causeValidScore'] = 0.0;
+            stats['effectValidScore'] = 0.0;
         if (stats['digit_prediction_size'] > 0):
             stats['digit_score'] = stats['digit_correct'] / float(stats['digit_prediction_size']);
         else:

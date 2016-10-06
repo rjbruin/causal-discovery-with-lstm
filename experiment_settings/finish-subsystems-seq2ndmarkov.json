@@ -1,0 +1,17 @@
+[
+    {
+        "name": "f-subs-s",
+        "script": "subsystems_finish.py",
+        "dataset": "./data/seq2ndmarkov",
+        "repetitions": "500",
+        "minibatch_size": "10",
+        "sample_testing_size": "10000",
+        "finish_subsystems": "True",
+        "n_max_digits": "17",
+        "intervention_base_offset": "5",
+        "intervention_range": "12",
+        "nesterov_optimizer": "True",
+        "dataset_type": "1",
+        "operators": "3"
+    }
+]

@@ -24,7 +24,10 @@ if __name__ == '__main__':
                    'Effect precision': 'Effect score',
                    'Mistake (1) precision': 'Error margin 1 score',
                    'Mistake (2) precision': 'Error margin 2 score',
-                   'Mistake (3) precision': 'Error margin 3 score'};
+                   'Mistake (3) precision': 'Error margin 3 score',
+                   'Validity': 'Valid',
+                   'Cause validity': 'Cause valid',
+                   'Effect validity': 'Effect valid'};
     trackerreporter.init('http://rjbruin.nl/experimenttracker/api/',api_key);
     
     experiments_file = 'choose';

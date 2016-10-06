@@ -7,7 +7,7 @@ from _collections import defaultdict
 
 import numpy as np;
 
-class ExpressionsByPrefix(object):
+class SequencesByPrefix(object):
     '''
     classdocs
     '''
@@ -20,7 +20,7 @@ class ExpressionsByPrefix(object):
         '''
         self.fullExpressions = [];
         self.expressions = [];
-        self.prefixedExpressions = defaultdict(ExpressionsByPrefix);
+        self.prefixedExpressions = defaultdict(SequencesByPrefix);
         self.primedExpressions = [];
         self.maxExpressionSize = 0;
     

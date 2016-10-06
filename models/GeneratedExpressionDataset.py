@@ -5,14 +5,20 @@ Created on 22 feb. 2016
 '''
 
 import numpy as np;
+import json;
+
 from models.Dataset import Dataset
-from models.ExpressionsByPrefix import ExpressionsByPrefix
+from models.SequencesByPrefix import SequencesByPrefix
 
 from collections import Counter;
 
 class GeneratedExpressionDataset(Dataset):
     
-    def __init__(self, trainSource, testSource, preload=True, add_x=False, add_multiple_x=False,
+    DATASET_EXPRESSIONS = 0;
+    DATASET_SEQ2NDMARKOV = 1;
+    
+    def __init__(self, trainSource, testSource, configSource, 
+                 preload=True, add_x=False, add_multiple_x=False,
                  single_digit=False, single_class=False, balanced=False,
                  correction=False, 
                  test_batch_size=10000, train_batch_size=10000,
@@ -20,7 +26,8 @@ class GeneratedExpressionDataset(Dataset):
                  sample_testing_size=False, predictExpressions=False,
                  copyInput=False, fillX=False, use_GO_symbol=False, finishExpressions=False,
                  reverse=False, copyMultipleExpressions=False,
-                 operators=4, digits=10, only_cause_expression=False):
+                 operators=4, digits=10, only_cause_expression=False,
+                 dataset_type=0):
         self.sources = [trainSource, testSource];
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
@@ -28,6 +35,7 @@ class GeneratedExpressionDataset(Dataset):
         self.max_testing_size = max_testing_size;
         self.sample_testing_size = sample_testing_size;
         self.only_cause_expression = only_cause_expression;
+        self.dataset_type = dataset_type;
         
         self.operators = operators;
         self.digits = digits;
@@ -46,7 +54,9 @@ class GeneratedExpressionDataset(Dataset):
         
         # Set the method that should process the lines of the dataset
         self.processor = self.processSample;
-        if (add_x):
+        if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV):
+            self.processor = self.processSeq2ndMarkov;
+        elif (add_x):
             self.processor = self.processSampleWithX;
         elif (add_multiple_x):
             self.processor = self.processSampleWithMultipleX;
@@ -64,6 +74,21 @@ class GeneratedExpressionDataset(Dataset):
             self.processor = self.processSampleCopyInput;
         else:
             self.processor = self.processSampleMultiDigit;
+        
+        # Set the method that matches an effect prediction against an effect 
+        # expression generated from the cause prediction
+        self.effect_matcher = self.effect_matcher_expressions_simple;
+        if (dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV):
+            self.effect_matcher = self.effect_matcher_seq2ndmarkov;
+        
+        # Read config to overwrite settings
+        config_f = open(configSource, 'r');
+        self.config = json.load(config_f);
+        config_f.close();
+        for key in self.config:
+            if (key == 'effect_matcher'):
+                if (self.config[key] == 'seq2ndmarkov_0'):
+                    self.effect_matcher = self.effect_matcher_seq2ndmarkov;
         
         # Setting one-hot encoding
         self.digits_range = self.digits;
@@ -86,9 +111,8 @@ class GeneratedExpressionDataset(Dataset):
             self.oneHot[sym] = i;
             i += 1;
         
-        self.operators = self.oneHot.keys();
         self.findSymbol = {v: k for (k,v) in self.oneHot.items()};
-        self.key_indices = {k: i for (i,k) in enumerate(self.operators)};
+        self.key_indices = {k: i for (i,k) in enumerate(self.oneHot.keys())};
         
         # Data dimension = number of symbols
         self.data_dim = self.digits_range + len(symbols);
@@ -137,32 +161,54 @@ class GeneratedExpressionDataset(Dataset):
         this case only the training data is stored.
         """
         if (onlyStoreByPrefix):
-            self.expressionLengths = Counter(); 
-            self.expressionsByPrefix = ExpressionsByPrefix();
+            self.expressionLengths = Counter();
+            self.expressionsByPrefix = SequencesByPrefix();
+            if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV): 
+                self.expressionsByPrefixBot = SequencesByPrefix();
             f = open(self.sources[self.TRAIN],'r');
             line = f.readline().strip();
             n = 0;
             # Check for n is to make the code work with max_training_size
             while (line != "" and n < self.lengths[self.TRAIN]):
-                expression, expression_prime = line.split(";");
+                result = line.split(";");
+                if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV):
+                    expression, expression_prime, topcause = result;
+                else:
+                    expression, expression_prime = result;
+                
                 if (self.only_cause_expression):
                     expression_prime = "";
-                self.expressionsByPrefix.add(expression, expression_prime);
+                
+                if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV and topcause == '0'):
+                    self.expressionsByPrefixBot.add(expression_prime, expression);
+                else:
+                    self.expressionsByPrefix.add(expression, expression_prime);
                 self.expressionLengths[len(expression)] += 1;
                 line = f.readline().strip();
                 n += 1;
             f.close();
             
-            self.testExpressionsByPrefix = ExpressionsByPrefix();
             self.testExpressionLengths = Counter();
+            self.testExpressionsByPrefix = SequencesByPrefix();
+            if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV): 
+                self.testExpressionsByPrefixBot = SequencesByPrefix();
             f = open(self.sources[self.TEST],'r');
             line = f.readline().strip();
             n = 0;
             while (line != "" and n < self.lengths[self.TEST]):
-                expression, expression_prime = line.split(";");
+                result = line.split(";");
+                if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV):
+                    expression, expression_prime, topcause = result;
+                else:
+                    expression, expression_prime = result;
+                
                 if (self.only_cause_expression):
                     expression_prime = "";
-                self.testExpressionsByPrefix.add(expression, expression_prime);
+                
+                if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV and topcause == '0'):
+                    self.testExpressionsByPrefixBot.add(expression_prime, expression);
+                else:
+                    self.testExpressionsByPrefix.add(expression, expression_prime);
                 self.testExpressionLengths[len(expression)] += 1;
                 line = f.readline().strip();
             f.close();
@@ -595,29 +641,125 @@ class GeneratedExpressionDataset(Dataset):
         
         return data, targets, labels, expressions, 1;
     
-    def insertInterventions(self, targets, target_expressions, expression_index, interventionLocation, possibleInterventions):
-        emptySamples = [];
+    def processSeq2ndMarkov(self, line, data, targets, labels, expressions):
+        expressions_line = line.strip();
+        expression, expression_prime, _ = expressions_line.split(";");
         
-        if (expression_index != 0):
-            raise ValueError("Working with other cause expressions that the top/left expression is not implemented!");
+        # We concatenate the expressions on the data_dim axis
+        # Both expressions are of the same length, so no checks needed here
+        if (not self.only_cause_expression):
+            expression_embeddings = np.zeros((len(expression)+1,self.data_dim*2), dtype='float32');
+        else:
+            expression_embeddings = np.zeros((len(expression)+1,self.data_dim), dtype='float32');
+            
+        for i, literal in enumerate(expression):
+            expression_embeddings[i,self.oneHot[literal]] = 1.0;
+        if (not self.only_cause_expression):
+            for j, literal in enumerate(expression_prime):
+                expression_embeddings[j,self.data_dim + self.oneHot[literal]] = 1.0;
         
+        # Add EOS's
+        expression_embeddings[-1,self.EOS_symbol_index] = 1.0;
+        if (not self.only_cause_expression):
+            expression_embeddings[-1,self.data_dim + self.EOS_symbol_index] = 1.0;
+        
+        # Append data
+        data.append(expression_embeddings);
+        labels.append(np.argmax(expression_embeddings, axis=1));
+        targets.append(expression_embeddings);
+        if (not self.only_cause_expression):
+            expressions.append((expression, expression_prime));
+        else:
+            expressions.append((expression, ""));
+        
+        return data, targets, labels, expressions, 1;
+    
+    def insertInterventions(self, targets, target_expressions, topcause, interventionLocation, possibleInterventions):
         # Apply interventions to targets samples in this batch
         for i in range(targets.shape[0]):
-            currentSymbol = np.argmax(targets[i,interventionLocation,:self.data_dim]);
+            if (topcause):
+                currentSymbol = np.argmax(targets[i,interventionLocation,:self.data_dim]);
+            else:
+                currentSymbol = np.argmax(targets[i,interventionLocation,self.data_dim:]);
             
             # Pick a new symbol
             newSymbol = possibleInterventions[i][np.random.randint(0,len(possibleInterventions[i]))];
             while (newSymbol == currentSymbol):
                 newSymbol = possibleInterventions[i][np.random.randint(0,len(possibleInterventions[i]))];
             
-            targets[i,interventionLocation,currentSymbol] = 0.0;
-            targets[i,interventionLocation,newSymbol] = 1.0;
-            target_expressions[i] = (target_expressions[i][expression_index][:interventionLocation] + \
+            offset = 0;
+            expression_index = 0;
+            if (not topcause):
+                offset += self.data_dim;
+                expression_index = 1;
+            
+            targets[i,interventionLocation,offset+currentSymbol] = 0.0;
+            targets[i,interventionLocation,offset+newSymbol] = 1.0;
+            new_target_cause_expression = target_expressions[i][expression_index][:interventionLocation] + \
                                         self.findSymbol[newSymbol] + \
-                                        target_expressions[i][expression_index][interventionLocation+1:], 
-                                        target_expressions[i][expression_index+1]); 
+                                        target_expressions[i][expression_index][interventionLocation+1:];
+            if (topcause):
+                target_expressions[i] = (new_target_cause_expression,target_expressions[i][1]);
+            else:
+                target_expressions[i] = (target_expressions[i][0],new_target_cause_expression);
         
-        return targets, target_expressions, interventionLocation, emptySamples;
+        return targets, target_expressions, interventionLocation;
+    
+    def effect_matcher_expressions_simple(self, cause_expression_encoded, predicted_effect_expression_encoded, nr_digits, nr_operators, topcause):
+        new_expression_encoded = [];
+        for x in cause_expression_encoded:
+            if (x < nr_digits):
+                x = (x+1) % nr_digits;
+            elif (x < nr_digits + nr_operators):
+                x += 1;
+                if (x == nr_digits + nr_operators):
+                    x = nr_digits;
+            new_expression_encoded.append(x);
+        return np.array_equal(new_expression_encoded, predicted_effect_expression_encoded);
+    
+    def effect_matcher_seq2ndmarkov(self, cause_expression_encoded, predicted_effect_expression_encoded, nr_digits, nr_operators, topcause):
+        success = True;
+        if (topcause):
+            for i, symbolIndex in enumerate(cause_expression_encoded):
+                if (i % 3 == 2):
+                    if (symbolIndex == 8):
+                        success &= predicted_effect_expression_encoded[i] == 8;
+                    if (symbolIndex == 7):
+                        success &= predicted_effect_expression_encoded[i] == 6;
+        else:
+            for i, symbolIndex in enumerate(cause_expression_encoded):
+                if (i % 3 == 2):
+                    if (symbolIndex == 5):
+                        success &= predicted_effect_expression_encoded[i] == 5;
+                    if (symbolIndex == 4):
+                        success &= predicted_effect_expression_encoded[i] == 3;
+        
+        return success;
+    
+    def valid_seq2ndmarkov(self, expression_encoded, nr_digits, nr_operators):
+        OPERATORS = [lambda x, y, max: (x+y) % max,
+                     lambda x, y, max: (x-y) % max,
+                     lambda x, y, max: (x*y) % max];
+        
+        if (len(expression_encoded) < 4):
+            return False;
+        if (expression_encoded[0] >= nr_digits):
+            return False;
+        result = expression_encoded[0];
+        i = 1;
+        while ((i+2) < len(expression_encoded)):
+            if (expression_encoded[i] - nr_digits >= nr_operators or \
+                expression_encoded[i] - nr_digits < 0):
+                if (self.findSymbol[expression_encoded[i]] == "_" and i > 1):
+                    return True;
+                return False;
+            op = OPERATORS[expression_encoded[i] - nr_digits];
+            arg2 = expression_encoded[i+1];
+            result = op(result,arg2,nr_digits);
+            if (result != expression_encoded[i+2]):
+                return False;
+            i += 3;
+        return True;
     
     def findAnswer(self, onehot_encodings):
         answer_allzeros = map(lambda d: d.sum() == 0.0, onehot_encodings);
