@@ -490,6 +490,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 for i_near, neighbourExpr in enumerate(valid_predictions):
                     # Compute string difference
                     score = 0;
+                    j = intervention_location + 1
                     for k,s in enumerate(neighbourExpr[intervention_location+1:]):
                         j = k + intervention_location + 1;
                         if (pred_length <= j):
