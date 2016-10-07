@@ -132,7 +132,7 @@ if __name__ == '__main__':
     # Settings
     folder = 'seq2ndmarkov';
     test_size = 0.10;
-    n = 10000;
+    n = 1000000;
     max_digits = 10;
     max_ops = 3;
     top_to_bot_mutators = [lambda top, bot: _mutator_digit_copy(8, top, bot),

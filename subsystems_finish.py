@@ -68,11 +68,11 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=Fal
     
     if (isTrain):
         storage = dataset.expressionsByPrefix;
-        if (seq2ndmarkov):
+        if (seq2ndmarkov and not parameters['only_cause_expression']):
             storage_bot = dataset.expressionsByPrefixBot;
     else:
         storage = dataset.testExpressionsByPrefix;
-        if (seq2ndmarkov):
+        if (seq2ndmarkov and not parameters['only_cause_expression']):
             storage_bot = dataset.testExpressionsByPrefixBot;
     
     batch = [];
@@ -93,7 +93,7 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=Fal
                 interventionLocation = int(floor((interventionLocation - offset) / 3) * 3) + offset;
         
         # Choose top or bottom cause
-        if (not seq2ndmarkov):
+        if (not seq2ndmarkov or parameters['only_cause_expression'] is not False):
             topcause = True;
         else:
             topcause = np.random.randint(2) == 1;
@@ -150,6 +150,9 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=Fal
     interventionSymbols = [];
     for (expression, expression_prime, possibleInterventions) in batch:
         if (seq2ndmarkov):
+            if (parameters['only_cause_expression'] == 2):
+                expression_prime = expression;
+                expression = "";
             data, targets, labels, expressions, _ = dataset.processor(";".join([expression, expression_prime, str(int(topcause))]), 
                                                                       data,targets, labels, expressions);
         else:

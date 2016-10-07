@@ -86,7 +86,7 @@ argumentProcessors = {'name': processString,
                       'train_statistics': processBool,
                       'operators': processInt,
                       'digits': processInt,
-                      'only_cause_expression': processBool,
+                      'only_cause_expression': processFalseOrInt,
                       'load_cause_expression': processFalseOrString,
                       'dataset_type': processInt # 0 = expressions, 1 = seq2ndmarkov
                       }
