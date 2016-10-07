@@ -1,6 +1,6 @@
 [
     {
-        "name": "f-subs-s",
+        "name": "f-subs-s2m",
         "script": "subsystems_finish.py",
         "dataset": "./data/seq2ndmarkov",
         "repetitions": "500",

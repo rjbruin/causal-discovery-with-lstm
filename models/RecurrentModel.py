@@ -113,7 +113,7 @@ class RecurrentModel(object):
             stats['structureScoreTop'] = stats['structureCorrectTop'] / float(stats['prediction_size']);
             stats['structureScoreBot'] = stats['structureCorrectBot'] / float(stats['prediction_size']);
             stats['structureScore'] = stats['structureCorrect'] / float(stats['prediction_size']);
-            stats['effectScore'] = stats['effectCorrect'] / float(stats['prediction_size']);
+            stats['allEffectScore'] = stats['effectCorrect'] / float(stats['prediction_size']);
             stats['noEffectScore'] = stats['noEffect'] / float(stats['prediction_size']);
             stats['validScore'] = stats['valid'] / float(stats['prediction_size']);
             stats['structureValidScoreCause'] = stats['structureValidCause'] / float(stats['prediction_size']);
@@ -127,7 +127,7 @@ class RecurrentModel(object):
             stats['structureScoreTop'] = 0.0;
             stats['structureScoreBot'] = 0.0;
             stats['structureScore'] = 0.0;
-            stats['effectScore'] = 0.0;
+            stats['allEffectScore'] = 0.0;
             stats['noEffectScore'] = 0.0;
             stats['validScore'] = 0.0;
             stats['structureValidScoreCause'] = 0.0;
@@ -138,6 +138,7 @@ class RecurrentModel(object):
             stats['digit_score'] = stats['digit_correct'] / float(stats['digit_prediction_size']);
         else:
             stats['digit_score'] = 0.0;
+        stats['effectScore'] = stats['allEffectScore'] - stats['noEffectScore'];
         
         stats['error_1_score'] = 0.0;
         stats['error_2_score'] = 0.0;

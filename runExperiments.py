@@ -20,14 +20,16 @@ if __name__ == '__main__':
     score_types = {'Precision': 'Score',
                    'Training loss': 'Total error',
                    'Digit precision': 'Digit-based score',
-                   'Cause precision': 'Cause score',
+                   'Structure precision': 'Structure score',
+                   'Structure pr. (c)': 'Structure score cause',
+                   'Structure pr. (e)': 'Structure score effect',
                    'Effect precision': 'Effect score',
                    'Mistake (1) precision': 'Error margin 1 score',
                    'Mistake (2) precision': 'Error margin 2 score',
                    'Mistake (3) precision': 'Error margin 3 score',
                    'Validity': 'Valid',
-                   'Cause validity': 'Cause valid',
-                   'Effect validity': 'Effect valid'};
+                   'Validity (c)': 'Structure valid cause',
+                   'Validity (e)': 'Structure valid effect'};
     trackerreporter.init('http://rjbruin.nl/experimenttracker/api/',api_key);
     
     experiments_file = 'choose';
@@ -120,3 +122,4 @@ if __name__ == '__main__':
                     f = open(outputPath,'a');
                     f.write(out.strip() + "\n");
                     f.close();
+                    

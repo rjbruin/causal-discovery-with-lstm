@@ -29,7 +29,7 @@ def print_stats(stats, prefix=''):
     output += prefix + "Structure score bot: %.2f percent\n" % (stats['structureScoreBot']*100);
     output += prefix + "Structure score: %.2f percent\n" % (stats['structureScore']*100);
     output += prefix + "Effect score: %.2f percent\n" % (stats['effectScore']*100);
-    output += prefix + "No effect: %.2f percent\n" % (stats['noEffectScore']*100);
+    output += prefix + "Effect score including no effect: %.2f percent\n" % (stats['allEffectScore']*100);
     
     output += prefix + "Valid: %.2f percent\n" % (stats['validScore']*100);
     output += prefix + "Structure valid cause: %.2f percent\n" % (stats['structureValidScoreCause']*100);

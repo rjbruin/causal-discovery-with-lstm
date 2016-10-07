@@ -131,13 +131,18 @@ def fromExperimentOutput(experiment_id, output,
         return False;
     
     typeFound = None;
+    colonLocation = output.find(":");
+    if (colonLocation == -1):
+        # No score type matched: add output as message
+        addMessage(experiment_id, output);
+        return True;
+    
     for typeId, scoreIdentifier in experiments[experiment_id]['scoreIdentifiers'].items():
-        if (output[:len(scoreIdentifier)] == scoreIdentifier):
+        if (output[:colonLocation] == scoreIdentifier):
             typeFound = int(typeId);
             break;
     
-    colonLocation = output.find(":");
-    if (typeFound is None or colonLocation == -1):
+    if (typeFound is None):
         # No score type matched: add output as message
         addMessage(experiment_id, output);
         return True;
