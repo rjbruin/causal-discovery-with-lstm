@@ -108,18 +108,32 @@ class RecurrentModel(object):
         
         if (stats['prediction_size'] > 0):
             stats['score'] = stats['correct'] / float(stats['prediction_size']);
+            stats['structureScoreCause'] = stats['structureCorrectCause'] / float(stats['prediction_size']);
+            stats['structureScoreEffect'] = stats['structureCorrectEffect'] / float(stats['prediction_size']);
+            stats['structureScoreTop'] = stats['structureCorrectTop'] / float(stats['prediction_size']);
+            stats['structureScoreBot'] = stats['structureCorrectBot'] / float(stats['prediction_size']);
+            stats['structureScore'] = stats['structureCorrect'] / float(stats['prediction_size']);
             stats['effectScore'] = stats['effectCorrect'] / float(stats['prediction_size']);
-            stats['causeScore'] = stats['causeCorrect'] / float(stats['prediction_size']);
+            stats['noEffectScore'] = stats['noEffect'] / float(stats['prediction_size']);
             stats['validScore'] = stats['valid'] / float(stats['prediction_size']);
-            stats['causeValidScore'] = stats['causeValid'] / float(stats['prediction_size']);
-            stats['effectValidScore'] = stats['effectValid'] / float(stats['prediction_size']);
+            stats['structureValidScoreCause'] = stats['structureValidCause'] / float(stats['prediction_size']);
+            stats['structureValidScoreEffect'] = stats['structureValidEffect'] / float(stats['prediction_size']);
+            stats['structureValidScoreTop'] = stats['structureValidTop'] / float(stats['prediction_size']);
+            stats['structureValidScoreBot'] = stats['structureValidBot'] / float(stats['prediction_size']);
         else:
             stats['score'] = 0.0;
+            stats['structureScoreCause'] = 0.0;
+            stats['structureScoreEffect'] = 0.0;
+            stats['structureScoreTop'] = 0.0;
+            stats['structureScoreBot'] = 0.0;
+            stats['structureScore'] = 0.0;
             stats['effectScore'] = 0.0;
-            stats['causeScore'] = 0.0;
+            stats['noEffectScore'] = 0.0;
             stats['validScore'] = 0.0;
-            stats['causeValidScore'] = 0.0;
-            stats['effectValidScore'] = 0.0;
+            stats['structureValidScoreCause'] = 0.0;
+            stats['structureValidScoreEffect'] = 0.0;
+            stats['structureValidScoreTop'] = 0.0;
+            stats['structureValidScoreBot'] = 0.0;
         if (stats['digit_prediction_size'] > 0):
             stats['digit_score'] = stats['digit_correct'] / float(stats['digit_prediction_size']);
         else:

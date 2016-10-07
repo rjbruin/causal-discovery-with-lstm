@@ -23,12 +23,19 @@ def print_stats(stats, prefix=''):
 
     # Print statistics
     output += prefix + "Score: %.2f percent\n" % (stats['score']*100);
-    output += prefix + "Cause score: %.2f percent\n" % (stats['causeScore']*100);
+    output += prefix + "Structure score cause: %.2f percent\n" % (stats['structureScoreCause']*100);
+    output += prefix + "Structure score effect: %.2f percent\n" % (stats['structureScoreEffect']*100);
+    output += prefix + "Structure score top: %.2f percent\n" % (stats['structureScoreTop']*100);
+    output += prefix + "Structure score bot: %.2f percent\n" % (stats['structureScoreBot']*100);
+    output += prefix + "Structure score: %.2f percent\n" % (stats['structureScore']*100);
     output += prefix + "Effect score: %.2f percent\n" % (stats['effectScore']*100);
+    output += prefix + "No effect: %.2f percent\n" % (stats['noEffectScore']*100);
     
     output += prefix + "Valid: %.2f percent\n" % (stats['validScore']*100);
-    output += prefix + "Cause valid: %.2f percent\n" % (stats['causeValidScore']*100);
-    output += prefix + "Effect valid: %.2f percent\n" % (stats['effectValidScore']*100);
+    output += prefix + "Structure valid cause: %.2f percent\n" % (stats['structureValidScoreCause']*100);
+    output += prefix + "Structure valid effect: %.2f percent\n" % (stats['structureValidScoreEffect']*100);
+    output += prefix + "Structure valid top: %.2f percent\n" % (stats['structureValidScoreTop']*100);
+    output += prefix + "Structure valid bot: %.2f percent\n" % (stats['structureValidScoreBot']*100);
     
     output += prefix + "Intervention locations:   %s\n" % (str(stats['intervention_locations']));
 
@@ -65,6 +72,8 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=Fal
             storage_bot = dataset.expressionsByPrefixBot;
     else:
         storage = dataset.testExpressionsByPrefix;
+        if (seq2ndmarkov):
+            storage_bot = dataset.testExpressionsByPrefixBot;
     
     batch = [];
     fails = 0;
@@ -81,7 +90,7 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=Fal
             if (interventionLocation % 3 != 2 and interventionLocation % 3 != 1):
                 # Offset is 2 for right argument and 1 for operator 
                 offset = interventionLocation % 3;
-                interventionLocation = (floor((interventionLocation - offset) / 3) * 3) + offset;
+                interventionLocation = int(floor((interventionLocation - offset) / 3) * 3) + offset;
         
         # Choose top or bottom cause
         if (not seq2ndmarkov):
@@ -108,7 +117,7 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=Fal
                 # We use all prefixes for seq2ndmarkov because we can only have valid intervention locations
                 # We know this because the samples all have the same repeating symtax of 
                 # <left><op><right><answer/left><op>...
-                validPrefixes = {p: branch.prefixedExpressions[prefix] for p in branch.prefixedExpressions};
+                validPrefixes = {p: branch.prefixedExpressions[p] for p in branch.prefixedExpressions};
             
             if (not applyIntervention or len(validPrefixes.keys()) >= 2):
                 # If there are at least two valid prefixes we will always be
@@ -140,8 +149,12 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=Fal
     expressions = [];
     interventionSymbols = [];
     for (expression, expression_prime, possibleInterventions) in batch:
-        data, targets, labels, expressions, _ = dataset.processor(";".join([expression, expression_prime, str(int(topcause))]), 
-                                                                  data,targets, labels, expressions);
+        if (seq2ndmarkov):
+            data, targets, labels, expressions, _ = dataset.processor(";".join([expression, expression_prime, str(int(topcause))]), 
+                                                                      data,targets, labels, expressions);
+        else:
+            data, targets, labels, expressions, _ = dataset.processor(";".join([expression, expression_prime]), 
+                                                                      data,targets, labels, expressions);
         # Convert symbols to indices
         if (applyIntervention):
             interventionSymbols.append(map(lambda s: dataset.oneHot[s], possibleInterventions));
@@ -185,7 +198,8 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                                                                               intervention_range, 
                                                                               max_length, debug=parameters['debug'],
                                                                               base_offset=base_offset,
-                                                                              applyIntervention=parameters['test_interventions']);
+                                                                              applyIntervention=parameters['test_interventions'],
+                                                                              seq2ndmarkov=parameters['dataset_type'] == 1);
         test_n = model.minibatch_size;
         stats['intervention_locations'][interventionLocation] += 1;
         
@@ -325,7 +339,8 @@ if __name__ == '__main__':
                           intervention_range, max_length, 
                           debug=parameters['debug'],
                           base_offset=base_offset,
-                          applyIntervention=parameters['train_interventions']);
+                          applyIntervention=parameters['train_interventions'],
+                          seq2ndmarkov=parameters['dataset_type'] == 1);
             
             # Perform interventions
             if (parameters['train_interventions']):
@@ -408,4 +423,5 @@ if __name__ == '__main__':
         print("Experiment terminated prematurely!");
     else:
         print("Training all datasets finished!");
+    
     

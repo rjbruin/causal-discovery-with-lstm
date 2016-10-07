@@ -343,8 +343,11 @@ def test(model, dataset, parameters, start_time, show_prediction_conf_matrix=Fal
 
 def set_up_statistics(output_dim, n_max_digits):
     return {'correct': 0.0, 'valid': 0.0, 
-            'effectCorrect': 0.0, 'causeCorrect': 0.0, 
-            'effectValid': 0.0, 'causeValid': 0.0,
+            'structureCorrectCause': 0.0, 'structureCorrectEffect': 0.0, 
+            'structureValidCause': 0.0, 'structureValidEffect': 0.0,
+            'structureCorrectTop': 0.0, 'structureCorrectBot': 0.0,
+            'structureValidTop': 0.0, 'structureValidBot': 0.0, 
+            'structureCorrect': 0.0, 'effectCorrect': 0.0, 'noEffect': 0.0,
             'error_histogram': {k: 0 for k in range(1,50)},
             'prediction_1_size': 0, 
             'digit_1_correct': 0.0, 'digit_1_prediction_size': 0,

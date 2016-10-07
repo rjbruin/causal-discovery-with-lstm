@@ -583,42 +583,64 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 # Check if cause sequence prediction is in dataset
                 causeInDataset = False;
                 if (causeExpressionPrediction == labels_to_use[j][causeIndex]):
-                    stats['causeCorrect'] += 1.0;
+                    stats['structureCorrectCause'] += 1.0;
+                    if (topcause):
+                        stats['structureCorrectTop'] += 1.0;
+                    else:
+                        stats['structureCorrectBot'] += 1.0;
                     causeInDataset = True;
                 
                 # Check if cause sequence prediction is valid
                 causeValid = False;
                 if (dataset.valid_seq2ndmarkov(prediction[causeIndex][j][:eos_location],dataset.digits,dataset.operators)):
                     causeValid = True;
-                    stats['causeValid'] += 1.0;
-                    print(map(lambda x: dataset.findSymbol[x], prediction[causeIndex][j][:eos_location]));
+                    stats['structureValidCause'] += 1.0;
+                    if (topcause):
+                        stats['structureValidTop'] += 1.0;
+                    else:
+                        stats['structureValidBot'] += 1.0;
                 
                 # Check if effect sequence prediction is in dataset
                 effectInDataset = False;
-                if (causeExpressionPrediction == labels_to_use[j][causeIndex]):
-                    stats['causeCorrect'] += 1.0;
+                if (effectExpressionPrediction == labels_to_use[j][effectIndex]):
+                    stats['structureCorrectEffect'] += 1.0;
+                    if (topcause):
+                        stats['structureCorrectBot'] += 1.0;
+                    else:
+                        stats['structureCorrectTop'] += 1.0;
                     effectInDataset = True;
                 
                 # Check if effect sequence prediction is valid
                 effectValid = False;
                 if (dataset.valid_seq2ndmarkov(prediction[effectIndex][j][:eos_location],dataset.digits,dataset.operators)):
                     effectValid = True;
-                    stats['effectValid'] += 1.0;
-                    print(map(lambda x: dataset.findSymbol[x], prediction[effectIndex][j][:eos_location]));
+                    stats['structureValidEffect'] += 1.0;
+                    if (topcause):
+                        stats['structureValidBot'] += 1.0;
+                    else:
+                        stats['structureValidTop'] += 1.0;
                 
                 # Check if effect prediction is valid
                 effectMatch = False;
-                if (not self.only_cause_expression and \
-                    dataset.effect_matcher(prediction[causeIndex][j][:eos_location],
-                                           prediction[effectIndex][j][:eos_location],
-                                           self.digits,self.operators,topcause)):
-                    stats['effectCorrect'] += 1.0;
-                    effectMatch = True;
+                if (not self.only_cause_expression):
+                    effect = dataset.effect_matcher(prediction[causeIndex][j][:eos_location],
+                                                    prediction[effectIndex][j][:eos_location],
+                                                    self.digits,self.operators,topcause);
+                    if (effect == 1 or effect == 2):
+                        stats['effectCorrect'] += 1.0;
+                        if (effect == 2):
+                            stats['noEffect'] += 1.0;
+                        #print("".join(map(lambda x: dataset.findSymbol[x], prediction[causeIndex][j][:eos_location])) + '/'\
+                        #      + "".join(map(lambda x: dataset.findSymbol[x], prediction[effectIndex][j][:eos_location])));
+                        effectMatch = True;
                 
                 # Determine validity of sample
                 if (causeValid and effectValid and effectMatch):
                     stats['valid'] += 1.0;
+                
                 # Determine sample in dataset
+                if (causeInDataset and effectInDataset):
+                    stats['structureCorrect'] += 1.0;
                 if (causeInDataset and effectInDataset and effectMatch):
                     stats['correct'] += 1.0;
                 else:
@@ -627,7 +649,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     stats['error_histogram'][difference1 + difference2] += 1;
             else:
                 if (causeExpressionPrediction == labels_to_use[j][causeIndex]):
-                    stats['causeCorrect'] += 1.0;
+                    stats['structureCorrect'] += 1.0;
                     if (self.only_cause_expression):
                         stats['correct'] += 1.0;
                     elif (effectExpressionPrediction == labels_to_use[j][effectIndex]):

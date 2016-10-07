@@ -5,7 +5,7 @@ Created on 22 feb. 2016
 '''
 
 import numpy as np;
-import json;
+import json, os;
 
 from models.Dataset import Dataset
 from models.SequencesByPrefix import SequencesByPrefix
@@ -82,13 +82,14 @@ class GeneratedExpressionDataset(Dataset):
             self.effect_matcher = self.effect_matcher_seq2ndmarkov;
         
         # Read config to overwrite settings
-        config_f = open(configSource, 'r');
-        self.config = json.load(config_f);
-        config_f.close();
-        for key in self.config:
-            if (key == 'effect_matcher'):
-                if (self.config[key] == 'seq2ndmarkov_0'):
-                    self.effect_matcher = self.effect_matcher_seq2ndmarkov;
+        if (os.path.exists(configSource)):
+            config_f = open(configSource, 'r');
+            self.config = json.load(config_f);
+            config_f.close();
+            for key in self.config:
+                if (key == 'effect_matcher'):
+                    if (self.config[key] == 'seq2ndmarkov_0'):
+                        self.effect_matcher = self.effect_matcher_seq2ndmarkov;
         
         # Setting one-hot encoding
         self.digits_range = self.digits;
@@ -715,24 +716,31 @@ class GeneratedExpressionDataset(Dataset):
                 if (x == nr_digits + nr_operators):
                     x = nr_digits;
             new_expression_encoded.append(x);
-        return np.array_equal(new_expression_encoded, predicted_effect_expression_encoded);
+        return int(np.array_equal(new_expression_encoded, predicted_effect_expression_encoded));
     
     def effect_matcher_seq2ndmarkov(self, cause_expression_encoded, predicted_effect_expression_encoded, nr_digits, nr_operators, topcause):
-        success = True;
+        """
+        Success = 0 (no match), 1 (match), 2 (no effect)
+        """
+        success = 2;
         if (topcause):
             for i, symbolIndex in enumerate(cause_expression_encoded):
                 if (i % 3 == 2):
                     if (symbolIndex == 8):
-                        success &= predicted_effect_expression_encoded[i] == 8;
+                        success = int(predicted_effect_expression_encoded[i] == 8);
                     if (symbolIndex == 7):
-                        success &= predicted_effect_expression_encoded[i] == 6;
+                        success = int(predicted_effect_expression_encoded[i] == 6);
+                if (success == 0):
+                    return success;
         else:
             for i, symbolIndex in enumerate(cause_expression_encoded):
                 if (i % 3 == 2):
                     if (symbolIndex == 5):
-                        success &= predicted_effect_expression_encoded[i] == 5;
+                        success = int(predicted_effect_expression_encoded[i] == 5);
                     if (symbolIndex == 4):
-                        success &= predicted_effect_expression_encoded[i] == 3;
+                        success = int(predicted_effect_expression_encoded[i] == 3);
+                if (success == 0):
+                    return success;
         
         return success;
     
