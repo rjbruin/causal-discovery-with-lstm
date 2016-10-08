@@ -130,9 +130,9 @@ def writeToFiles(sequences,baseFilePath,test_percentage,isList=False):
 
 if __name__ == '__main__':
     # Settings
-    folder = 'seq2ndmarkov';
+    folder = 'seq2ndmarkov_small';
     test_size = 0.10;
-    n = 1000000;
+    n = 150000;
     max_digits = 10;
     max_ops = 3;
     top_to_bot_mutators = [lambda top, bot: _mutator_digit_copy(8, top, bot),
