@@ -87,7 +87,8 @@ argumentProcessors = {'name': processString,
                       'operators': processInt,
                       'digits': processInt,
                       'only_cause_expression': processFalseOrInt,
-                      'load_cause_expression': processFalseOrString,
+                      'load_cause_expression_1': processFalseOrString,
+                      'load_cause_expression_2': processFalseOrString,
                       'dataset_type': processInt # 0 = expressions, 1 = seq2ndmarkov
                       }
 defaults = {'report_to_tracker': True,
@@ -145,7 +146,8 @@ defaults = {'report_to_tracker': True,
             'operators': 4,
             'digits': 10,
             'only_cause_expression': False,
-            'load_cause_expression': False,
+            'load_cause_expression_1': False,
+            'load_cause_expression_2': False,
             'dataset_type': 0
             }
 

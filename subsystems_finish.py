@@ -280,11 +280,19 @@ if __name__ == '__main__':
     # Construct models
     datasets, model = constructModels(parameters, 0, {});
     
-    # Load pretrained only_cause_expression model
-    if (parameters['load_cause_expression'] is not False):
-        loadedVars, _ = load_from_pickle_with_filename("./saved_models/" + parameters['load_cause_expression']);
+    # Load pretrained only_cause_expression = 1 model
+    if (parameters['load_cause_expression_1'] is not False):
+        loadedVars, _ = load_from_pickle_with_filename("./saved_models/" + parameters['load_cause_expression_1']);
         if (model.loadPartialDataDimVars(dict(loadedVars), 0, model.data_dim)):
-            print("Loaded pretrained model successfully!");
+            print("Loaded pretrained model (expression 1) successfully!");
+        else:
+            raise ValueError("Loading pretrained model failed: wrong variables supplied!");
+    
+    # Load pretrained only_cause_expression = 2 model
+    if (parameters['load_cause_expression_2'] is not False):
+        loadedVars, _ = load_from_pickle_with_filename("./saved_models/" + parameters['load_cause_expression_2']);
+        if (model.loadPartialDataDimVars(dict(loadedVars), model.data_dim, model.data_dim)):
+            print("Loaded pretrained model (expression 2) successfully!");
         else:
             raise ValueError("Loading pretrained model failed: wrong variables supplied!");
     
