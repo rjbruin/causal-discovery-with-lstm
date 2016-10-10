@@ -68,7 +68,7 @@ def createSeq(length):
     return finishSeq(seq, length, result);
 
 def createSample(min_length, max_length,
-                 top_to_bot_mutators, bot_to_top_mutators):
+                 top_to_bot_mutators, bot_to_top_mutators, bothways=False):
     # Create top and bottom sequences apart from each other
     length = np.random.randint(min_length, max_length+1);
     top = createSeq(length);
@@ -76,14 +76,13 @@ def createSample(min_length, max_length,
 
     # Add in causal mutations from cause to effect
     topcause = np.random.randint(2) == 1;
-    if (topcause):
-        for i in range(2,len(top),3):
+    for i in range(2,len(top),3):
+        if (topcause or bothways):
             symbolVal = TO_VALUE(top[i])
             if (symbolVal in top_to_bot_mutators):
                 mutator = top_to_bot_mutators[symbolVal];
                 bot = mutator(top, bot);
-    else:
-        for i in range(2,len(bot),3):
+        if (not topcause or bothways):
             symbolVal = TO_VALUE(bot[i]);
             if (symbolVal in bot_to_top_mutators):
                 mutator = bot_to_top_mutators[symbolVal];
@@ -93,7 +92,8 @@ def createSample(min_length, max_length,
 def generateSequences(baseFilePath, n, test_percentage,
                       top_to_bot_mutators, bot_to_top_mutators,
                       min_length=5,
-                      max_length=21, verbose=False):
+                      max_length=21, verbose=False,
+                      bothways=False):
     savedSequences = {};
     sequential_fails = 0;
     fail_limit = 1000000000;
@@ -102,7 +102,8 @@ def generateSequences(baseFilePath, n, test_percentage,
     while len(savedSequences) < n and sequential_fails < fail_limit:
         top, bot, topcause = createSample(min_length, max_length,
                                           top_to_bot_mutators,
-                                          bot_to_top_mutators);
+                                          bot_to_top_mutators,
+                                          bothways=bothways);
         full_seq = top + ";" + bot + ";" + str(int(topcause));
         # Check if sequence already exists
         if (full_seq in savedSequences):
@@ -149,8 +150,28 @@ if __name__ == '__main__':
 #     min_length = 8;
 #     max_length = 15;
 #     verbose = False;
+#     bothways = False;
 
-    folder = 'seq2ndmarkov_2';
+#     folder = 'seq2ndmarkov_2';
+#     n = 1000000;
+#     max_digits = 8;
+#     max_ops = 2;
+#     top_to_bot_mutators = {6: lambda top, bot: _mutator_digit_copy(6, top, bot),
+#                            1: lambda top, bot: _mutator_digit_copy(1, top, bot),
+#                            3: lambda top, bot: _mutator_digit_change(3, 5, top, bot),
+#                            0: lambda top, bot: _mutator_digit_change(0, 3, top, bot),
+#                            2: lambda top, bot: _mutator_digit_change(2, 0, top, bot)};
+#     bot_to_top_mutators = {7: lambda bot, top: _mutator_digit_copy(7, bot, top),
+#                            2: lambda bot, top: _mutator_digit_copy(2, bot, top),
+#                            4: lambda bot, top: _mutator_digit_change(4, 3, bot, top),
+#                            1: lambda bot, top: _mutator_digit_change(1, 7, bot, top),
+#                            0: lambda bot, top: _mutator_digit_change(0, 4, bot, top)};
+#     min_length = 8;
+#     max_length = 15;
+#     verbose = False;
+#     bothways = False;
+    
+    folder = 'seq2ndmarkov_both';
     n = 1000000;
     max_digits = 8;
     max_ops = 2;
@@ -167,6 +188,7 @@ if __name__ == '__main__':
     min_length = 8;
     max_length = 15;
     verbose = False;
+    bothways = True;
 
     # Generate other variables
     trainFilePath = folder + '/train.txt';
@@ -193,4 +215,4 @@ if __name__ == '__main__':
         generateSequences(folder, n, test_size,
                           top_to_bot_mutators, bot_to_top_mutators,
                           min_length=min_length, max_length=max_length,
-                          verbose=verbose);
+                          verbose=verbose, bothways=bothways);

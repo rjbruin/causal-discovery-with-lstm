@@ -90,6 +90,8 @@ class GeneratedExpressionDataset(Dataset):
                 if (key == 'effect_matcher'):
                     if (self.config[key] == 'seq2ndmarkov_0'):
                         self.effect_matcher = self.effect_matcher_seq2ndmarkov;
+                    elif (self.config[key] == 'seq2ndmarkov_2'):
+                        self.effect_matcher = self.effect_matcher_seq2ndmarkov_2;
         
         # Setting one-hot encoding
         self.digits_range = self.digits;
@@ -757,6 +759,81 @@ class GeneratedExpressionDataset(Dataset):
                     return success;
         
         return success;
+    
+    def effect_matcher_seq2ndmarkov_2(self, cause_expression_encoded, predicted_effect_expression_encoded, nr_digits, nr_operators, topcause):
+        """
+        Success = 0 (no match), 1 (match), 2 (no effect)
+        """
+        success = 2;
+        if (topcause):
+            for i, symbolIndex in enumerate(cause_expression_encoded):
+                if (i % 3 == 2):
+                    if (symbolIndex == 6):
+                        success = int(predicted_effect_expression_encoded[i] == 6);
+                    if (symbolIndex == 1):
+                        success = int(predicted_effect_expression_encoded[i] == 1);
+                    if (symbolIndex == 3):
+                        success = int(predicted_effect_expression_encoded[i] == 5);
+                    if (symbolIndex == 0):
+                        success = int(predicted_effect_expression_encoded[i] == 3);
+                    if (symbolIndex == 2):
+                        success = int(predicted_effect_expression_encoded[i] == 2);
+                if (success == 0):
+                    return success;
+        else:
+            for i, symbolIndex in enumerate(cause_expression_encoded):
+                if (i % 3 == 2):
+                    if (symbolIndex == 7):
+                        success = int(predicted_effect_expression_encoded[i] == 7);
+                    if (symbolIndex == 2):
+                        success = int(predicted_effect_expression_encoded[i] == 2);
+                    if (symbolIndex == 4):
+                        success = int(predicted_effect_expression_encoded[i] == 4);
+                    if (symbolIndex == 1):
+                        success = int(predicted_effect_expression_encoded[i] == 1);
+                    if (symbolIndex == 0):
+                        success = int(predicted_effect_expression_encoded[i] == 0);
+                if (success == 0):
+                    return success;
+        
+        return success;
+    
+#     def effect_matcher_seq2ndmarkov_both(self, cause_expression_encoded, predicted_effect_expression_encoded, nr_digits, nr_operators, topcause):
+#         """
+#         Success = 0 (no match), 1 (match), 2 (no effect)
+#         """
+#         success = 2;
+#         for i, symbolIndex in enumerate(cause_expression_encoded):
+#             if (topcause):
+#                 if (i % 3 == 2):
+#                     if (symbolIndex == 6):
+#                         success = int(predicted_effect_expression_encoded[i] == 6);
+#                     if (symbolIndex == 1):
+#                         success = int(predicted_effect_expression_encoded[i] == 1);
+#                     if (symbolIndex == 3):
+#                         success = int(predicted_effect_expression_encoded[i] == 5);
+#                     if (symbolIndex == 0):
+#                         success = int(predicted_effect_expression_encoded[i] == 3);
+#                     if (symbolIndex == 2):
+#                         success = int(predicted_effect_expression_encoded[i] == 2);
+#                 if (success == 0):
+#                     return success;
+#             else:
+#                 if (i % 3 == 2):
+#                     if (symbolIndex == 7):
+#                         success = int(predicted_effect_expression_encoded[i] == 7);
+#                     if (symbolIndex == 2):
+#                         success = int(predicted_effect_expression_encoded[i] == 2);
+#                     if (symbolIndex == 4):
+#                         success = int(predicted_effect_expression_encoded[i] == 4);
+#                     if (symbolIndex == 1):
+#                         success = int(predicted_effect_expression_encoded[i] == 1);
+#                     if (symbolIndex == 0):
+#                         success = int(predicted_effect_expression_encoded[i] == 0);
+#                 if (success == 0):
+#                     return success;
+#         
+#         return success;
     
     def valid_seq2ndmarkov(self, expression_encoded, nr_digits, nr_operators):
         OPERATORS = [lambda x, y, max: (x+y) % max,
