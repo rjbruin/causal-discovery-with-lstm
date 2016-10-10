@@ -43,7 +43,7 @@ def _mutator_digit_change(digit_in, digit_out, top, bot):
             op = OPERATOR_SYMBOLS.index(bot[i-1]);
             argument2 = TO_VALUE(SYMBOLS[digit_out]);
             result = OPERATORS[op](argument1,argument2,max_digits);
-            bot = finishSeq(bot[:i] + symbol + SYMBOLS[result], len(bot), result);
+            bot = finishSeq(bot[:i] + SYMBOLS[digit_out] + SYMBOLS[result], len(bot), result);
     return bot;
 
 def finishSeq(seq, length, result):
@@ -77,11 +77,17 @@ def createSample(min_length, max_length,
     # Add in causal mutations from cause to effect
     topcause = np.random.randint(2) == 1;
     if (topcause):
-        for mutator in top_to_bot_mutators:
-            bot = mutator(top, bot);
+        for i in range(2,len(top),3):
+            symbolVal = TO_VALUE(top[i])
+            if (symbolVal in top_to_bot_mutators):
+                mutator = top_to_bot_mutators[symbolVal];
+                bot = mutator(top, bot);
     else:
-        for mutator in bot_to_top_mutators:
-            top = mutator(bot, top);
+        for i in range(2,len(bot),3):
+            symbolVal = TO_VALUE(bot[i]);
+            if (symbolVal in bot_to_top_mutators):
+                mutator = bot_to_top_mutators[symbolVal];
+                top = mutator(bot, top);
     return top, bot, topcause;
 
 def generateSequences(baseFilePath, n, test_percentage,
@@ -130,15 +136,34 @@ def writeToFiles(sequences,baseFilePath,test_percentage,isList=False):
 
 if __name__ == '__main__':
     # Settings
-    folder = 'seq2ndmarkov_small';
     test_size = 0.10;
-    n = 150000;
-    max_digits = 10;
-    max_ops = 3;
-    top_to_bot_mutators = [lambda top, bot: _mutator_digit_copy(8, top, bot),
-                           lambda top, bot: _mutator_digit_change(7, 6, top, bot)];
-    bot_to_top_mutators = [lambda bot, top: _mutator_digit_copy(5, bot, top),
-                           lambda bot, top: _mutator_digit_change(4, 3, bot, top)];
+    
+#     folder = 'seq2ndmarkov';
+#     n = 1000000;
+#     max_digits = 10;
+#     max_ops = 3;
+#     top_to_bot_mutators = [lambda top, bot: _mutator_digit_copy(8, top, bot),
+#                            lambda top, bot: _mutator_digit_change(7, 6, top, bot)];
+#     bot_to_top_mutators = [lambda bot, top: _mutator_digit_copy(5, bot, top),
+#                            lambda bot, top: _mutator_digit_change(4, 3, bot, top)];
+#     min_length = 8;
+#     max_length = 15;
+#     verbose = False;
+
+    folder = 'seq2ndmarkov_2';
+    n = 1000000;
+    max_digits = 8;
+    max_ops = 2;
+    top_to_bot_mutators = {6: lambda top, bot: _mutator_digit_copy(6, top, bot),
+                           1: lambda top, bot: _mutator_digit_copy(1, top, bot),
+                           3: lambda top, bot: _mutator_digit_change(3, 5, top, bot),
+                           0: lambda top, bot: _mutator_digit_change(0, 3, top, bot),
+                           2: lambda top, bot: _mutator_digit_change(2, 0, top, bot)};
+    bot_to_top_mutators = {7: lambda bot, top: _mutator_digit_copy(7, bot, top),
+                           2: lambda bot, top: _mutator_digit_copy(2, bot, top),
+                           4: lambda bot, top: _mutator_digit_change(4, 3, bot, top),
+                           1: lambda bot, top: _mutator_digit_change(1, 7, bot, top),
+                           0: lambda bot, top: _mutator_digit_change(0, 4, bot, top)};
     min_length = 8;
     max_length = 15;
     verbose = False;
