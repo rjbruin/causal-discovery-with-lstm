@@ -46,5 +46,5 @@ def load_from_pickle(f):
     return savedVars, settings;
 
 def load_from_pickle_with_filename(filepath):
-    f = open(filepath, 'r');
+    f = open(filepath, 'rb');
     return load_from_pickle(f);
