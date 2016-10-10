@@ -661,11 +661,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             else:
                 if (causeExpressionPrediction == labels_to_use[j][causeIndex]):
                     stats['structureCorrect'] += 1.0;
+                    stats['structureValidCause'] += 1.0;
                     if (self.only_cause_expression is not False):
                         stats['correct'] += 1.0;
+                        stats['valid'] += 1.0;
                     elif (effectExpressionPrediction == labels_to_use[j][effectIndex]):
                         stats['correct'] += 1.0;
+                        stats['valid'] += 1.0;
                         stats['effectCorrect'] += 1.0;
+                        stats['structureValidEffect'] += 1.0;
                 else:
                     difference1 = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][causeIndex]);
                     if (not self.only_cause_expression):
@@ -676,6 +680,37 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     # Defer matching of effect prediction and what it should be to dataset effect matcher (dependent on dataset)
                     if (not self.only_cause_expression and dataset.effect_matcher(prediction[causeIndex][j][:eos_location],prediction[effectIndex][j][:eos_location],self.digits,self.operators,topcause)):
                         stats['effectCorrect'] += 1.0;
+                    
+                    # Check for validity - check the test storage because all 
+                    # expressions are contained in the combination of training 
+                    # and test storage
+                    testStorageToCheck = dataset.testExpressionsByPrefix;
+                    if (self.only_cause_expression is False):
+                        testStorageToCheckEffect = dataset.testExpressionsByPrefixBot;
+                    if (not topcause):
+                        testStorageToCheck = dataset.testExpressionsByPrefixBot;
+                        if (self.only_cause_expression is False):
+                            testStorageToCheckEffect = dataset.testExpressionsByPrefix;
+                    validPrediction, validEffectPrediction, _, _ = testStorageToCheck.get(causeExpressionPrediction);
+                    causeValid = False;
+                    effectValid = False;
+                    if (validPrediction is not False):
+                        stats['structureValidCause'] += 1.0;
+                        causeValid = True;
+                    if (validEffectPrediction is not False):
+                        # If we found a match in the test storage we can check 
+                        # the corresponding prime expression
+                        if (validEffectPrediction == effectExpressionPrediction):
+                            effectValid = True;
+                    elif (self.only_cause_expression is False):
+                        # Else we can check the effect expression storage if that exists
+                        validEffectPrediction, _, _, _ = testStorageToCheckEffect.get(causeExpressionPrediction);
+                        if (validEffectPrediction is not False):
+                            effectValid = True;
+                    if (effectValid):
+                        stats['structureValidEffect'] += 1.0;
+                        if (causeValid):
+                            stats['valid'] += 1.0;
             
             # Digit precision and prediction size computation
             i = 0;

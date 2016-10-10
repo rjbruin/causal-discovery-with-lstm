@@ -164,7 +164,7 @@ class GeneratedExpressionDataset(Dataset):
         if (onlyStoreByPrefix):
             self.expressionLengths = Counter();
             self.expressionsByPrefix = SequencesByPrefix();
-            if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV and not self.only_cause_expression): 
+            if (not self.only_cause_expression): 
                 self.expressionsByPrefixBot = SequencesByPrefix();
             f = open(self.sources[self.TRAIN],'r');
             line = f.readline().strip();
@@ -176,6 +176,7 @@ class GeneratedExpressionDataset(Dataset):
                     expression, expression_prime, topcause = result;
                 else:
                     expression, expression_prime = result;
+                    topcause = '1';
                 
                 if (self.only_cause_expression == 1):
                     expression_prime = "";
@@ -183,10 +184,10 @@ class GeneratedExpressionDataset(Dataset):
                     expression = expression_prime;
                     expression_prime = "";
                 
-                if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV and \
-                    topcause == '0' and not self.only_cause_expression):
+                if ((topcause == '0' and not self.only_cause_expression) or \
+                        self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS):
                     self.expressionsByPrefixBot.add(expression_prime, expression);
-                else:
+                if (topcause == '1'):
                     self.expressionsByPrefix.add(expression, expression_prime);
                 self.expressionLengths[len(expression)] += 1;
                 line = f.readline().strip();
@@ -195,7 +196,7 @@ class GeneratedExpressionDataset(Dataset):
             
             self.testExpressionLengths = Counter();
             self.testExpressionsByPrefix = SequencesByPrefix();
-            if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV and not self.only_cause_expression): 
+            if (not self.only_cause_expression): 
                 self.testExpressionsByPrefixBot = SequencesByPrefix();
             f = open(self.sources[self.TEST],'r');
             line = f.readline().strip();
@@ -206,6 +207,7 @@ class GeneratedExpressionDataset(Dataset):
                     expression, expression_prime, topcause = result;
                 else:
                     expression, expression_prime = result;
+                    topcause = '1';
                 
                 if (self.only_cause_expression == 1):
                     expression_prime = "";
@@ -213,10 +215,10 @@ class GeneratedExpressionDataset(Dataset):
                     expression = expression_prime;
                     expression_prime = "";
                 
-                if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV and \
-                    topcause == '0' and not self.only_cause_expression):
+                if ((topcause == '0' and not self.only_cause_expression) or \
+                        self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS):
                     self.testExpressionsByPrefixBot.add(expression_prime, expression);
-                else:
+                if (topcause == '1'):
                     self.testExpressionsByPrefix.add(expression, expression_prime);
                 self.testExpressionLengths[len(expression)] += 1;
                 line = f.readline().strip();
