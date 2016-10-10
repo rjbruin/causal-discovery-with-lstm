@@ -17,7 +17,7 @@ def save_to_pickle(filepath, variables, settings={}):
     Saves models to pickle with settings as header.
     Provide all settings as strings.
     """
-    f = open(filepath, 'w');
+    f = open(filepath, 'wb');
     
     f.write("### %d\n" % len(settings));
     f.write(" ".join(arg.parametersArguments(settings)) + "\n");

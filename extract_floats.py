@@ -35,7 +35,7 @@ if __name__ == '__main__':
                 settingsLine = f_model.readline();
                 f_model.close();
                 
-                f = open('./saved_models/%s.floats' % name, 'w');
+                f = open('./saved_models/%s.floats' % name, 'wb');
                 f.writelines(['###\n',settingsLine]);
                 pickle.dump(floats,f);
                 f.close();
