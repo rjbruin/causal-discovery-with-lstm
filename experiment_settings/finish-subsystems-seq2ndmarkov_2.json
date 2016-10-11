@@ -2,7 +2,7 @@
     {
         "name": "f-subs-s2m",
         "script": "subsystems_finish.py",
-        "dataset": "./data/seq2ndmarkov",
+        "dataset": "./data/seq2ndmarkov_2",
         "repetitions": "500",
         "minibatch_size": "10",
         "sample_testing_size": "10000",
@@ -12,6 +12,7 @@
         "intervention_range": "17",
         "nesterov_optimizer": "True",
         "dataset_type": "1",
-        "operators": "3"
+        "operators": "2",
+        "digits": "8"
     }
 ]
