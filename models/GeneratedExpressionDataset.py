@@ -27,7 +27,7 @@ class GeneratedExpressionDataset(Dataset):
                  copyInput=False, fillX=False, use_GO_symbol=False, finishExpressions=False,
                  reverse=False, copyMultipleExpressions=False,
                  operators=4, digits=10, only_cause_expression=False,
-                 dataset_type=0):
+                 dataset_type=0, bothcause=False):
         self.sources = [trainSource, testSource];
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
@@ -36,6 +36,7 @@ class GeneratedExpressionDataset(Dataset):
         self.sample_testing_size = sample_testing_size;
         self.only_cause_expression = only_cause_expression;
         self.dataset_type = dataset_type;
+        self.bothcause = bothcause;
         
         self.operators = operators;
         self.digits = digits;
@@ -92,6 +93,8 @@ class GeneratedExpressionDataset(Dataset):
                         self.effect_matcher = self.effect_matcher_seq2ndmarkov;
                     elif (self.config[key] == 'seq2ndmarkov_2'):
                         self.effect_matcher = self.effect_matcher_seq2ndmarkov_2;
+                    elif (self.config[key] == 'seq2ndmarkov_both'):
+                        self.effect_matcher = self.effect_matcher_seq2ndmarkov_both;
         
         # Setting one-hot encoding
         self.digits_range = self.digits;
@@ -174,7 +177,7 @@ class GeneratedExpressionDataset(Dataset):
             # Check for n is to make the code work with max_training_size
             while (line != "" and n < self.lengths[self.TRAIN]):
                 result = line.split(";");
-                if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV):
+                if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV and not self.bothcause):
                     expression, expression_prime, topcause = result;
                 else:
                     expression, expression_prime = result;
@@ -187,7 +190,8 @@ class GeneratedExpressionDataset(Dataset):
                     expression_prime = "";
                 
                 if ((topcause == '0' and not self.only_cause_expression) or \
-                        self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS):
+                        self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
+                        self.bothcause):
                     self.expressionsByPrefixBot.add(expression_prime, expression);
                 if (topcause == '1'):
                     self.expressionsByPrefix.add(expression, expression_prime);
@@ -205,7 +209,7 @@ class GeneratedExpressionDataset(Dataset):
             n = 0;
             while (line != "" and n < self.lengths[self.TEST]):
                 result = line.split(";");
-                if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV):
+                if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV and not self.bothcause):
                     expression, expression_prime, topcause = result;
                 else:
                     expression, expression_prime = result;
@@ -218,7 +222,8 @@ class GeneratedExpressionDataset(Dataset):
                     expression_prime = "";
                 
                 if ((topcause == '0' and not self.only_cause_expression) or \
-                        self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS):
+                        self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
+                        self.bothcause):
                     self.testExpressionsByPrefixBot.add(expression_prime, expression);
                 if (topcause == '1'):
                     self.testExpressionsByPrefix.add(expression, expression_prime);
@@ -656,7 +661,10 @@ class GeneratedExpressionDataset(Dataset):
     
     def processSeq2ndMarkov(self, line, data, targets, labels, expressions):
         expressions_line = line.strip();
-        expression, expression_prime, _ = expressions_line.split(";");
+        if (not self.bothcause):
+            expression, expression_prime, _ = expressions_line.split(";");
+        else:
+            expression, expression_prime = expressions_line.split(";");
         
         if (self.only_cause_expression == 2):
             expression = expression_prime;
@@ -766,74 +774,85 @@ class GeneratedExpressionDataset(Dataset):
         """
         success = 2;
         if (topcause):
-            for i, symbolIndex in enumerate(cause_expression_encoded):
-                if (i % 3 == 2):
-                    if (symbolIndex == 6):
-                        success = int(predicted_effect_expression_encoded[i] == 6);
-                    if (symbolIndex == 1):
-                        success = int(predicted_effect_expression_encoded[i] == 1);
-                    if (symbolIndex == 3):
-                        success = int(predicted_effect_expression_encoded[i] == 5);
-                    if (symbolIndex == 0):
-                        success = int(predicted_effect_expression_encoded[i] == 3);
-                    if (symbolIndex == 2):
-                        success = int(predicted_effect_expression_encoded[i] == 0);
+            for i in range(2,len(cause_expression_encoded),3):
+                symbolIndex = cause_expression_encoded[i];
+                if (symbolIndex == 6):
+                    success = int(predicted_effect_expression_encoded[i] == 6);
+                if (symbolIndex == 1):
+                    success = int(predicted_effect_expression_encoded[i] == 1);
+                if (symbolIndex == 3):
+                    success = int(predicted_effect_expression_encoded[i] == 5);
+                if (symbolIndex == 0):
+                    success = int(predicted_effect_expression_encoded[i] == 3);
+                if (symbolIndex == 2):
+                    success = int(predicted_effect_expression_encoded[i] == 0);
                 if (success == 0):
                     return success;
         else:
-            for i, symbolIndex in enumerate(cause_expression_encoded):
-                if (i % 3 == 2):
-                    if (symbolIndex == 7):
-                        success = int(predicted_effect_expression_encoded[i] == 7);
-                    if (symbolIndex == 2):
-                        success = int(predicted_effect_expression_encoded[i] == 2);
-                    if (symbolIndex == 4):
-                        success = int(predicted_effect_expression_encoded[i] == 3);
-                    if (symbolIndex == 1):
-                        success = int(predicted_effect_expression_encoded[i] == 7);
-                    if (symbolIndex == 0):
-                        success = int(predicted_effect_expression_encoded[i] == 4);
+            for i in range(2,len(cause_expression_encoded),3):
+                symbolIndex = cause_expression_encoded[i];
+                if (symbolIndex == 7):
+                    success = int(predicted_effect_expression_encoded[i] == 7);
+                if (symbolIndex == 2):
+                    success = int(predicted_effect_expression_encoded[i] == 2);
+                if (symbolIndex == 4):
+                    success = int(predicted_effect_expression_encoded[i] == 3);
+                if (symbolIndex == 1):
+                    success = int(predicted_effect_expression_encoded[i] == 7);
+                if (symbolIndex == 0):
+                    success = int(predicted_effect_expression_encoded[i] == 4);
                 if (success == 0):
                     return success;
         
         return success;
-    
-#     def effect_matcher_seq2ndmarkov_both(self, cause_expression_encoded, predicted_effect_expression_encoded, nr_digits, nr_operators, topcause):
-#         """
-#         Success = 0 (no match), 1 (match), 2 (no effect)
-#         """
-#         success = 2;
-#         for i, symbolIndex in enumerate(cause_expression_encoded):
-#             if (topcause):
-#                 if (i % 3 == 2):
-#                     if (symbolIndex == 6):
-#                         success = int(predicted_effect_expression_encoded[i] == 6);
-#                     if (symbolIndex == 1):
-#                         success = int(predicted_effect_expression_encoded[i] == 1);
-#                     if (symbolIndex == 3):
-#                         success = int(predicted_effect_expression_encoded[i] == 5);
-#                     if (symbolIndex == 0):
-#                         success = int(predicted_effect_expression_encoded[i] == 3);
-#                     if (symbolIndex == 2):
-#                         success = int(predicted_effect_expression_encoded[i] == 2);
-#                 if (success == 0):
-#                     return success;
-#             else:
-#                 if (i % 3 == 2):
-#                     if (symbolIndex == 7):
-#                         success = int(predicted_effect_expression_encoded[i] == 7);
-#                     if (symbolIndex == 2):
-#                         success = int(predicted_effect_expression_encoded[i] == 2);
-#                     if (symbolIndex == 4):
-#                         success = int(predicted_effect_expression_encoded[i] == 4);
-#                     if (symbolIndex == 1):
-#                         success = int(predicted_effect_expression_encoded[i] == 1);
-#                     if (symbolIndex == 0):
-#                         success = int(predicted_effect_expression_encoded[i] == 0);
-#                 if (success == 0):
-#                     return success;
-#         
-#         return success;
+
+    def effect_matcher_seq2ndmarkov_both(self, top_expression_encoded, bot_expression_encoded, nr_digits, nr_operators, topcause):
+        """
+        Success = 0 (no match), 1 (match), 2 (no effect)
+        """
+        success = 2;
+        for i in range(2,min(len(top_expression_encoded),len(bot_expression_encoded)),3):
+            symbolIndex = bot_expression_encoded[i];
+            effectHere = False;
+            if (symbolIndex == 7):
+                success = int(top_expression_encoded[i] == 7);
+                effectHere = True;
+            if (symbolIndex == 2):
+                success = int(top_expression_encoded[i] == 2);
+                effectHere = True;
+            if (symbolIndex == 4):
+                success = int(top_expression_encoded[i] == 3);
+                effectHere = True;
+            if (symbolIndex == 1):
+                success = int(top_expression_encoded[i] == 7);
+                effectHere = True;
+            if (symbolIndex == 0):
+                success = int(top_expression_encoded[i] == 4);
+                effectHere = True;
+                
+            if (success == 0):
+                return success;
+            
+            if (effectHere == False):
+                # If no effect was found for bot to top, continue looking for
+                # an effect from top to bottom
+                # Stop otherwise because any relationship from top to bot
+                # might have been overwritten by a bot to top relationship
+                symbolIndex = top_expression_encoded[i];
+                if (symbolIndex == 6):
+                    success = int(bot_expression_encoded[i] == 6);
+                if (symbolIndex == 1):
+                    success = int(bot_expression_encoded[i] == 1);
+                if (symbolIndex == 3):
+                    success = int(bot_expression_encoded[i] == 5);
+                if (symbolIndex == 0):
+                    success = int(bot_expression_encoded[i] == 3);
+                if (symbolIndex == 2):
+                    success = int(bot_expression_encoded[i] == 0);
+                if (success == 0):
+                    return success;
+        
+        return success;
     
     def valid_seq2ndmarkov(self, expression_encoded, nr_digits, nr_operators):
         OPERATORS = [lambda x, y, max: (x+y) % max,

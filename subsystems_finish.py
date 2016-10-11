@@ -16,6 +16,7 @@ from tools.gpu import using_gpu; # @UnresolvedImport
 import numpy as np;
 import theano;
 import copy;
+from profiler import profiler
 
 def print_stats(stats, prefix=''):
     # Print statistics
@@ -60,7 +61,9 @@ def print_stats(stats, prefix=''):
     output += "\n";
     print(output);
 
-def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=False, base_offset=12, applyIntervention=True, seq2ndmarkov=False):
+def get_batch(isTrain, dataset, model, intervention_range, max_length, 
+              debug=False, base_offset=12, applyIntervention=True, 
+              seq2ndmarkov=False, bothcause=False):
     limit = 1000;
     
     # Reseed the random generator to prevent generating identical batches
@@ -149,7 +152,7 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=Fal
     expressions = [];
     interventionSymbols = [];
     for (expression, expression_prime, possibleInterventions) in batch:
-        if (seq2ndmarkov):
+        if (seq2ndmarkov and not bothcause):
             if (parameters['only_cause_expression'] == 2):
                 expression_prime = expression;
                 expression = "";
@@ -202,7 +205,8 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                                                                               max_length, debug=parameters['debug'],
                                                                               base_offset=base_offset,
                                                                               applyIntervention=parameters['test_interventions'],
-                                                                              seq2ndmarkov=parameters['dataset_type'] == 1);
+                                                                              seq2ndmarkov=parameters['dataset_type'] == 1,
+                                                                              bothcause=parameters['bothcause']);
         test_n = model.minibatch_size;
         stats['intervention_locations'][interventionLocation] += 1;
         
@@ -247,10 +251,14 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                                        test_expressions, interventionLocation, 
                                        other, test_n, dataset, 
                                        eos_symbol_index=dataset.EOS_symbol_index,
-                                       topcause=topcause);
+                                       topcause=topcause or parameters['bothcause'], # If bothcause then topcause = 1
+                                       testExtraValidity=parameters['test_extra_validity'],
+                                       bothcause=parameters['bothcause']);
     
         if (stats['prediction_size'] % printing_interval == 0):
             print("# %d / %d" % (stats['prediction_size'], total));
+    
+#     profiler.profile();
     
     stats = model.total_statistics(stats);
     
@@ -345,14 +353,19 @@ if __name__ == '__main__':
         # Train model per minibatch
         batch_range = range(0,repetition_size,model.minibatch_size);
         for k in batch_range:
+#             profiler.start('train batch');
+#             profiler.start('get train batch');
             data, target, _, expressions, possibleInterventions, interventionLocation, topcause = \
                 get_batch(True, dataset, model, 
                           intervention_range, max_length, 
                           debug=parameters['debug'],
                           base_offset=base_offset,
                           applyIntervention=parameters['train_interventions'],
-                          seq2ndmarkov=parameters['dataset_type'] == 1);
+                          seq2ndmarkov=parameters['dataset_type'] == 1,
+                          bothcause=parameters['bothcause']);
+#             profiler.stop('get train batch');
             
+#             profiler.start('train interventions');
             # Perform interventions
             if (parameters['train_interventions']):
                 target, target_expressions, interventionLocation = \
@@ -362,8 +375,10 @@ if __name__ == '__main__':
                                                 possibleInterventions);
                 intervention_locations_train[interventionLocation] += 1;
                 #differences = map(lambda (d,t): d == t, zip(np.argmax(data, axis=2), np.argmax(target, axis=2)));
+#             profiler.stop('train interventions');
             
             # Run training
+#             profiler.start('train sgd');
             if (parameters['train_interventions']):
                 outputs, predictions, labels_to_use = \
                     model.sgd(dataset, data, target, parameters['learning_rate'],
@@ -372,30 +387,34 @@ if __name__ == '__main__':
                               interventionLocation=interventionLocation,
                               intervention=parameters['train_interventions'],
                               fixedDecoderInputs=parameters['fixed_decoder_inputs'],
-                              topcause=topcause);
+                              topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
             else:
                 outputs, predictions, labels_to_use = \
                     model.sgd(dataset, data, target, parameters['learning_rate'],
                               emptySamples=[], expressions=expressions,
                               intervention=parameters['train_interventions'],
                               fixedDecoderInputs=parameters['fixed_decoder_inputs'],
-                              topcause=topcause);
+                              topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
             total_error += outputs[0];
+#             profiler.stop('train sgd');
             
             # Training prediction
+#             profiler.start('train stats');
             if (parameters['train_statistics']):
                 stats = model.batch_statistics(stats, predictions, 
                                                expressions, interventionLocation, 
                                                {}, len(expressions), dataset, 
                                                eos_symbol_index=dataset.EOS_symbol_index,
                                                labels_to_use=labels_to_use,
-                                               training=True, topcause=topcause);
+                                               training=True, topcause=topcause or parameters['bothcause'],
+                                               testExtraValidity=parameters['test_extra_validity'],
+                                               bothcause=parameters['bothcause']);
             
-            if (str(outputs[0]) == 'nan' and parameters['debug']):
-                print("NaN at batch %d" % k);
-                print("Cross entropy: " + str(outputs[1]));
-                print("Label: " + str(np.sum(np.sum(outputs[3], axis=2), axis=1)));
-                print("Smallest right hand value: " + np.array_str(np.min(outputs[2]), precision=16));                   
+#             if (str(outputs[0]) == 'nan' and parameters['debug']):
+#                 print("NaN at batch %d" % k);
+#                 print("Cross entropy: " + str(outputs[1]));
+#                 print("Label: " + str(np.sum(np.sum(outputs[3], axis=2), axis=1)));
+#                 print("Smallest right hand value: " + np.array_str(np.min(outputs[2]), precision=16));                   
             
             if (str(outputs[0]) == 'nan'):
                 # Terminate since we cannot work with NaN values
@@ -405,6 +424,9 @@ if __name__ == '__main__':
             
             if ((k+model.minibatch_size) % 100 == 0):
                 print("# %d / %d (error = %.2f)" % (k+model.minibatch_size, repetition_size, total_error));
+            
+#             profiler.stop('train stats');
+#             profiler.stop('train batch');
             
         # Update stats
         total_datapoints_processed += repetition_size;

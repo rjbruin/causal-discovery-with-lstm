@@ -89,7 +89,9 @@ argumentProcessors = {'name': processString,
                       'only_cause_expression': processFalseOrInt,
                       'load_cause_expression_1': processFalseOrString,
                       'load_cause_expression_2': processFalseOrString,
-                      'dataset_type': processInt # 0 = expressions, 1 = seq2ndmarkov
+                      'dataset_type': processInt, # 0 = expressions, 1 = seq2ndmarkov
+                      'test_extra_validity': processBool,
+                      'bothcause': processBool
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -116,7 +118,7 @@ defaults = {'report_to_tracker': True,
             'random_baseline': False,
             'n_max_digits': 5,
             'decoder': False,
-            'nesterov_optimizer': False,
+            'nesterov_optimizer': True,
             'correction': False,
             'fill_x': False,
             'print_sample': False,
@@ -148,7 +150,9 @@ defaults = {'report_to_tracker': True,
             'only_cause_expression': False,
             'load_cause_expression_1': False,
             'load_cause_expression_2': False,
-            'dataset_type': 0
+            'dataset_type': 0,
+            'test_extra_validity': False,
+            'bothcause': False
             }
 
 def processKeyValue(key,value):

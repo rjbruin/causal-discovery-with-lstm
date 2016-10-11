@@ -104,7 +104,10 @@ def generateSequences(baseFilePath, n, test_percentage,
                                           top_to_bot_mutators,
                                           bot_to_top_mutators,
                                           bothways=bothways);
-        full_seq = top + ";" + bot + ";" + str(int(topcause));
+        if (not bothways):
+            full_seq = top + ";" + bot + ";" + str(int(topcause));
+        else:
+            full_seq = top + ";" + bot;
         # Check if sequence already exists
         if (full_seq in savedSequences):
             sequential_fails += 1;
@@ -152,26 +155,7 @@ if __name__ == '__main__':
 #     verbose = False;
 #     bothways = False;
 
-    folder = 'seq2ndmarkov_2';
-    n = 1000000;
-    max_digits = 8;
-    max_ops = 2;
-    top_to_bot_mutators = {6: lambda top, bot: _mutator_digit_copy(6, top, bot),
-                           1: lambda top, bot: _mutator_digit_copy(1, top, bot),
-                           3: lambda top, bot: _mutator_digit_change(3, 5, top, bot),
-                           0: lambda top, bot: _mutator_digit_change(0, 3, top, bot),
-                           2: lambda top, bot: _mutator_digit_change(2, 0, top, bot)};
-    bot_to_top_mutators = {7: lambda bot, top: _mutator_digit_copy(7, bot, top),
-                           2: lambda bot, top: _mutator_digit_copy(2, bot, top),
-                           4: lambda bot, top: _mutator_digit_change(4, 3, bot, top),
-                           1: lambda bot, top: _mutator_digit_change(1, 7, bot, top),
-                           0: lambda bot, top: _mutator_digit_change(0, 4, bot, top)};
-    min_length = 8;
-    max_length = 15;
-    verbose = False;
-    bothways = False;
-    
-#     folder = 'seq2ndmarkov_both';
+#     folder = 'seq2ndmarkov_2';
 #     n = 1000000;
 #     max_digits = 8;
 #     max_ops = 2;
@@ -188,7 +172,26 @@ if __name__ == '__main__':
 #     min_length = 8;
 #     max_length = 15;
 #     verbose = False;
-#     bothways = True;
+#     bothways = False;
+    
+    folder = 'seq2ndmarkov_both';
+    n = 1000000;
+    max_digits = 8;
+    max_ops = 2;
+    top_to_bot_mutators = {6: lambda top, bot: _mutator_digit_copy(6, top, bot),
+                           1: lambda top, bot: _mutator_digit_copy(1, top, bot),
+                           3: lambda top, bot: _mutator_digit_change(3, 5, top, bot),
+                           0: lambda top, bot: _mutator_digit_change(0, 3, top, bot),
+                           2: lambda top, bot: _mutator_digit_change(2, 0, top, bot)};
+    bot_to_top_mutators = {7: lambda bot, top: _mutator_digit_copy(7, bot, top),
+                           2: lambda bot, top: _mutator_digit_copy(2, bot, top),
+                           4: lambda bot, top: _mutator_digit_change(4, 3, bot, top),
+                           1: lambda bot, top: _mutator_digit_change(1, 7, bot, top),
+                           0: lambda bot, top: _mutator_digit_change(0, 4, bot, top)};
+    min_length = 8;
+    max_length = 15;
+    verbose = False;
+    bothways = True;
 
     # Generate other variables
     trainFilePath = folder + '/train.txt';

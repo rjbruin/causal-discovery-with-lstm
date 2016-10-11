@@ -57,7 +57,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                              operators=parameters['operators'],
                                              digits=parameters['digits'],
                                              only_cause_expression=parameters['only_cause_expression'],
-                                             dataset_type=parameters['dataset_type']);
+                                             dataset_type=parameters['dataset_type'],
+                                             bothcause=parameters['bothcause']);
         datasets.append(dataset);
     
     if (parameters['random_baseline']):
