@@ -657,6 +657,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         difference2 = TheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, labels_to_use[j][effectIndex]);
                     else:
                         difference2 = 0;
+                    if (difference1 + difference2 == 0):
+                        print("%s vs %s" % (causeExpressionPrediction, labels_to_use[j][causeIndex]));
+                        print("%s vs %s" % (effectExpressionPrediction, labels_to_use[j][effectIndex]));
+                        print("causeValid: %s, effectValid: %s, effectMatch: %s, self.only_cause_exression: %s" % \
+                              (str(causeValid), str(effectValid), str(effectMatch), str(self.only_cause_expression)));
+                        raise ValueError("Difference is zero!");
                     stats['error_histogram'][difference1 + difference2] += 1;
             else:
                 if (causeExpressionPrediction == labels_to_use[j][causeIndex]):

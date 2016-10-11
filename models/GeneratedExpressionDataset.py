@@ -777,7 +777,7 @@ class GeneratedExpressionDataset(Dataset):
                     if (symbolIndex == 0):
                         success = int(predicted_effect_expression_encoded[i] == 3);
                     if (symbolIndex == 2):
-                        success = int(predicted_effect_expression_encoded[i] == 2);
+                        success = int(predicted_effect_expression_encoded[i] == 0);
                 if (success == 0):
                     return success;
         else:
@@ -788,11 +788,11 @@ class GeneratedExpressionDataset(Dataset):
                     if (symbolIndex == 2):
                         success = int(predicted_effect_expression_encoded[i] == 2);
                     if (symbolIndex == 4):
-                        success = int(predicted_effect_expression_encoded[i] == 4);
+                        success = int(predicted_effect_expression_encoded[i] == 3);
                     if (symbolIndex == 1):
-                        success = int(predicted_effect_expression_encoded[i] == 1);
+                        success = int(predicted_effect_expression_encoded[i] == 7);
                     if (symbolIndex == 0):
-                        success = int(predicted_effect_expression_encoded[i] == 0);
+                        success = int(predicted_effect_expression_encoded[i] == 4);
                 if (success == 0):
                     return success;
         
