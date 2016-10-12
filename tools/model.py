@@ -58,7 +58,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                              digits=parameters['digits'],
                                              only_cause_expression=parameters['only_cause_expression'],
                                              dataset_type=parameters['dataset_type'],
-                                             bothcause=parameters['bothcause']);
+                                             bothcause=parameters['bothcause'],
+                                             debug=parameters['debug']);
         datasets.append(dataset);
     
     if (parameters['random_baseline']):
@@ -83,7 +84,7 @@ def constructModels(parameters, seed, verboseOutputter):
                                          decoder=parameters['decoder'],
                                          verboseOutputter=verboseOutputter,
                                          GO_symbol_index=dataset.GO_symbol_index,
-                                         finishExpressions=parameters['finish_expressions'] or parameters['finish_subsystems'],
+                                         finishExpressions=(parameters['finish_expressions'] or parameters['finish_subsystems']) and not parameters['no_label_search'],
                                          optimizer=1 if parameters['nesterov_optimizer'] else 0,
                                          learning_rate=parameters['learning_rate'],
                                          operators=parameters['operators'],

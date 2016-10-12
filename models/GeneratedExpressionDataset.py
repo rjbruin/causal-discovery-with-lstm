@@ -27,7 +27,7 @@ class GeneratedExpressionDataset(Dataset):
                  copyInput=False, fillX=False, use_GO_symbol=False, finishExpressions=False,
                  reverse=False, copyMultipleExpressions=False,
                  operators=4, digits=10, only_cause_expression=False,
-                 dataset_type=0, bothcause=False):
+                 dataset_type=0, bothcause=False, debug=False):
         self.sources = [trainSource, testSource];
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
@@ -37,6 +37,7 @@ class GeneratedExpressionDataset(Dataset):
         self.only_cause_expression = only_cause_expression;
         self.dataset_type = dataset_type;
         self.bothcause = bothcause;
+        self.debug = debug;
         
         self.operators = operators;
         self.digits = digits;
@@ -174,6 +175,11 @@ class GeneratedExpressionDataset(Dataset):
             f = open(self.sources[self.TRAIN],'r');
             line = f.readline().strip();
             n = 0;
+            
+            # TODO: remove debug
+#             if (self.debug):
+#                 self.lengths = [900000,100000];
+            
             # Check for n is to make the code work with max_training_size
             while (line != "" and n < self.lengths[self.TRAIN]):
                 result = line.split(";");
@@ -191,7 +197,7 @@ class GeneratedExpressionDataset(Dataset):
                 
                 if ((topcause == '0' and not self.only_cause_expression) or \
                         self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
-                        self.bothcause):
+                        (self.bothcause and not self.only_cause_expression)):
                     self.expressionsByPrefixBot.add(expression_prime, expression);
                 if (topcause == '1'):
                     self.expressionsByPrefix.add(expression, expression_prime);
@@ -223,7 +229,7 @@ class GeneratedExpressionDataset(Dataset):
                 
                 if ((topcause == '0' and not self.only_cause_expression) or \
                         self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
-                        self.bothcause):
+                        (self.bothcause and not self.only_cause_expression)):
                     self.testExpressionsByPrefixBot.add(expression_prime, expression);
                 if (topcause == '1'):
                     self.testExpressionsByPrefix.add(expression, expression_prime);

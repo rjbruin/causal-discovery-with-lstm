@@ -91,7 +91,8 @@ argumentProcessors = {'name': processString,
                       'load_cause_expression_2': processFalseOrString,
                       'dataset_type': processInt, # 0 = expressions, 1 = seq2ndmarkov
                       'test_extra_validity': processBool,
-                      'bothcause': processBool
+                      'bothcause': processBool,
+                      'no_label_search': processBool
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -152,7 +153,8 @@ defaults = {'report_to_tracker': True,
             'load_cause_expression_2': False,
             'dataset_type': 0,
             'test_extra_validity': False,
-            'bothcause': False
+            'bothcause': False,
+            'no_label_search': False
             }
 
 def processKeyValue(key,value):
