@@ -14,5 +14,8 @@
         "dataset_type": "1",
         "operators": "2",
         "digits": "8"
+        "decoder": "True",
+        "learning_rate": "0.005",
+        "hidden_dim": "256"
     }
 ]

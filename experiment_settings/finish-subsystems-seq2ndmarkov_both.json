@@ -14,6 +14,9 @@
         "dataset_type": "1",
         "operators": "2",
         "digits": "8",
-        "bothcause": "True"
+        "bothcause": "True",
+        "decoder": "True",
+        "learning_rate": "0.005",
+        "hidden_dim": "256"
     }
 ]
