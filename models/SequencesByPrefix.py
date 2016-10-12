@@ -4,7 +4,6 @@ Created on 8 sep. 2016
 @author: Robert-Jan
 '''
 from _collections import defaultdict
-
 import numpy as np;
 
 class SequencesByPrefix(object):
@@ -39,7 +38,7 @@ class SequencesByPrefix(object):
             prefix = expression[0];
             self.prefixedExpressions[prefix]._add(expression[1:], fullExpression, expression_prime);
     
-    def get(self, prefix, getStructure=False, safe=False):
+    def get(self, prefix, getStructure=False, safe=False, alsoGetStructure=False):
         if (len(prefix) == 0):
             if (getStructure):
                 return self;
@@ -47,12 +46,19 @@ class SequencesByPrefix(object):
                 try:
                     index = self.expressions.index("");
                 except ValueError:
-                    return (False, False, self.fullExpressions, self.primedExpressions);
-                return (self.fullExpressions[index], self.primedExpressions[index], 
-                        self.fullExpressions, self.primedExpressions);
+                    if (not alsoGetStructure):
+                        return (False, False, self.fullExpressions, self.primedExpressions);
+                    else:
+                        return (False, False, self.fullExpressions, self.primedExpressions, self);
+                if (not alsoGetStructure):
+                    return (self.fullExpressions[index], self.primedExpressions[index], 
+                            self.fullExpressions, self.primedExpressions);
+                else:
+                    return (self.fullExpressions[index], self.primedExpressions[index], 
+                            self.fullExpressions, self.primedExpressions, self);
         if (safe and prefix[0] not in self.prefixedExpressions):
             return False; 
-        return self.prefixedExpressions[prefix[0]].get(prefix[1:], getStructure=getStructure, safe=safe);
+        return self.prefixedExpressions[prefix[0]].get(prefix[1:], getStructure=getStructure, safe=safe, alsoGetStructure=alsoGetStructure);
     
     def get_random_by_length(self, length, getStructure=False):
         if (length == 0):
@@ -80,6 +86,24 @@ class SequencesByPrefix(object):
                     return ([],[]);
         
         return self.prefixedExpressions[availablePrefixes[prefix]].get_random_by_length(length-1, getStructure=getStructure);
+    
+    def get_closest(self, target):
+        # Go down as far as possible into the given target
+        # Where it starts to deviate, choose a target that is 
+        if (len(target) == 0):
+            if ("" in self.expressions):
+                return self.get(target);
+        elif (target[0] in self.prefixedExpressions):
+            return self.prefixedExpressions[target[0]].get_closest(target[1:]);
+        nearest = -1;
+        nearest_score = 1000000;
+        for i, expr in enumerate(self.expressions):
+            current_score = SequencesByPrefix.string_difference(target, expr);
+            if (current_score < nearest_score):
+                nearest = i;
+                nearest_score = current_score;
+        return (self.fullExpressions[nearest], self.primedExpressions[nearest], 
+                self.fullExpressions, self.primedExpressions);
     
     def get_next(self, lastPath):
         availablePrefixes = sorted(self.prefixedExpressions.keys());
@@ -179,3 +203,17 @@ class SequencesByPrefix(object):
             return self.prefixedExpressions[prefix[0]].exists(prefix[1:]);
         else:
             return False;
+        
+    @staticmethod
+    def string_difference(string1, string2):
+        # Compute string difference
+        score = 0;
+        string1len = len(string1);
+        k = 0;
+        for k,s in enumerate(string2):
+            if (string1len <= k):
+                score += 1;
+            elif (s != string1[k]):
+                score += 1;
+        score += max(0,len(string1) - (k+1));
+        return score;

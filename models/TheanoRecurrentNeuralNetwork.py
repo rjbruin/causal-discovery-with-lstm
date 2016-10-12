@@ -469,7 +469,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             # prediction will not be in valid_prediction) because we do want to use a label 
             # that does the intervention right so the model can learn from this mistake
             profiler.start("fl storage querying");
-            _, _, valid_predictions, validPredictionEffectExpressions = storage.get(causeExpressions[i][:intervention_location+1]);
+            _, _, valid_predictions, validPredictionEffectExpressions, branch = storage.get(causeExpressions[i][:intervention_location+1], alsoGetStructure=True);
             profiler.stop("fl storage querying");
             if (len(valid_predictions) == 0):
                 # Invalid example because the intervention has no corrected examples
@@ -518,34 +518,37 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             else:
                 # Find the nearest expression to our prediction
                 profiler.start("fl nearest finding");
-                pred_length = len(string_prediction)
-                nearest = 0;
-                nearestScore = 100000;
-                for i_near, neighbourExpr in enumerate(valid_predictions):
-                    # Compute string difference
-                    score = 0;
-                    j = intervention_location + 1
-                    for k,s in enumerate(neighbourExpr[intervention_location+1:]):
-                        j = k + intervention_location + 1;
-                        if (pred_length <= j):
-                            score += 1;
-                        elif (s != string_prediction[j]):
-                            score += 1;
-                    score += max(0,pred_length - (j+1));
-                    
-                    if (score < nearestScore):
-                        nearest = i_near;
-                        nearestScore = score;
+#                 pred_length = len(string_prediction)
+#                 nearest = 0;
+#                 nearestScore = 100000;
+#                 for i_near, neighbourExpr in enumerate(valid_predictions):
+#                     # Compute string difference
+#                     score = 0;
+#                     j = intervention_location + 1
+#                     for k,s in enumerate(neighbourExpr[intervention_location+1:]):
+#                         j = k + intervention_location + 1;
+#                         if (pred_length <= j):
+#                             score += 1;
+#                         elif (s != string_prediction[j]):
+#                             score += 1;
+#                     score += max(0,pred_length - (j+1));
+#                      
+#                     if (score < nearestScore):
+#                         nearest = i_near;
+#                         nearestScore = score;
+#                 closest_expression = valid_predictions[nearest];
+#                 closest_expression_prime = validPredictionEffectExpressions[nearest];
+                closest_expression, closest_expression_prime, _, _ = branch.get_closest(string_prediction[intervention_location+1:]);
                 
                 # Use as targets the found cause expression and its 
                 # accompanying effect expression
                 if (updateTargets):
-                    setTarget(i,True,dataset.encodeExpression(valid_predictions[nearest], self.n_max_digits));
+                    setTarget(i,True,dataset.encodeExpression(closest_expression, self.n_max_digits));
                     if (not self.only_cause_expression):
-                        setTarget(i,False,dataset.encodeExpression(validPredictionEffectExpressions[nearest],
+                        setTarget(i,False,dataset.encodeExpression(closest_expression_prime,
                                                                    self.n_max_digits));
                 if (updateLabels):
-                    label_expressions.append(appendToLabels(valid_predictions[nearest],validPredictionEffectExpressions[nearest]));
+                    label_expressions.append(appendToLabels(closest_expression,closest_expression_prime));
                 profiler.stop("fl nearest finding");
         
         return target, label_expressions;
@@ -679,9 +682,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         # Compute string difference
                         score = 0;
                         if (checkWhich == -1 or checkWhich == 0):
-                            score += TheanoRecurrentNeuralNetwork.string_difference(top_string_prediction[intervention_location:], topLabel[intervention_location:]);
+                            score += TheanoRecurrentNeuralNetwork.string_difference(top_string_prediction[intervention_location+1:], topLabel[intervention_location+1:]);
                         if (checkWhich == -1 or checkWhich == 1):
-                            score += TheanoRecurrentNeuralNetwork.string_difference(bot_string_prediction[intervention_location:], botLabel[intervention_location:]);
+                            score += TheanoRecurrentNeuralNetwork.string_difference(bot_string_prediction[intervention_location+1:], botLabel[intervention_location+1:]);
                         if (score < nearestScore):
                             nearest = i_near;
                             nearestScore = score;
@@ -972,6 +975,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # Compute string difference
         score = 0;
         string1len = len(string1);
+        k = 0;
         for k,s in enumerate(string2):
             if (string1len <= k):
                 score += 1;
