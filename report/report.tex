@@ -1,0 +1,63 @@
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2017_conference,times}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{todonotes}
+
+
+\title{Thesis Deep Causal Learning}
+
+
+\author{Robert-Jan Bruintjes
+}
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to \LaTeX{} to determine where to break
+% the lines. Using \AND forces a linebreak at that point. So, if \LaTeX{}
+% puts 3 of 4 authors names on the first line, and the last on the second
+% line, try using \AND instead of \And before the third author name.
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+%\iclrfinalcopy % Uncomment for camera-ready version
+
+\begin{document}
+
+
+\maketitle
+
+\begin{abstract}
+We propose a method to train a model of a dataset containing sequential data where interventions can be applied to individual sequences to obtain new sequences that match the syntax and semantics of the original dataset.
+Our method finds the structure of individual sequences as well as the structure of sequences in coherent (sub)systems and the structural relations within the (sub)system.
+We introduce a training procedure that matches the model’s prediction over the training sample with the most closely matching label in the dataset, thereby encouraging the model to converge to one answer for each input even if multiple valid predictions are possible.
+We show \todo[inline]{good/decent/better than random} performance on several datasets varying in complexity of sequence structure and subsystem relations complexity.
+\end{abstract}
+
+\section{Introduction}
+
+\section{Prerequisites}
+
+\section{Intervening on sequences}
+
+\section{Learning with multiple labels}
+
+\section{Experiments}
+\subsection{Tasks}
+\subsection{Datasets}
+\subsection{Results}
+
+\section{Discussion}
+
+\section{Related work}
+
+\section{Implementation notes}
+
+\section{Conclusion}
+
+\bibliography{report}
+\bibliographystyle{iclr2017_conference}
+
+\end{document}
