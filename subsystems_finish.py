@@ -295,7 +295,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
 if __name__ == '__main__':
     theano.config.floatX = 'float32';
     np.set_printoptions(precision=3, threshold=10000000);
-#     profiler.off();
+    profiler.off();
     
     # Specific settings - default name is time of experiment
     name = time.strftime("%d-%m-%Y_%H-%M-%S");
@@ -436,15 +436,9 @@ if __name__ == '__main__':
                                                labels_to_use=labels_to_use,
                                                training=True, topcause=topcause or parameters['bothcause'],
                                                testExtraValidity=parameters['test_extra_validity'],
-                                               bothcause=parameters['bothcause']);             
+                                               bothcause=parameters['bothcause']);
             
-            if (str(outputs[0]) == 'nan'):
-                # Terminate since we cannot work with NaN values
-                print("ERROR! ENCOUNTERED NAN ERROR! TERMINATING RUN.")
-                terminate = True;
-                break;
-            
-            if ((k+model.minibatch_size) % 100 == 0):
+            if ((k+model.minibatch_size) % (model.minibatch_size*4) == 0):
                 print("# %d / %d (error = %.2f)" % (k+model.minibatch_size, repetition_size, total_error));
             
             profiler.stop('train stats');
