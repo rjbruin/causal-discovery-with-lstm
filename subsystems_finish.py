@@ -64,7 +64,7 @@ def print_stats(stats, prefix=''):
 def get_batch(isTrain, dataset, model, intervention_range, max_length, 
               debug=False, base_offset=12, applyIntervention=True, 
               seq2ndmarkov=False, bothcause=False):
-    limit = 1000;
+    limit = 100;
     
     # Reseed the random generator to prevent generating identical batches
     np.random.seed();
@@ -145,7 +145,7 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
                         fail = True;
                         if (debug):
                             fails += 1;
-                            print("#\tBatching failed at iteration %d" % (fails));
+#                             print("#\tBatching failed at iteration %d with intervention location %d" % (fails, interventionLocation));
             else:
                 # No intervention, just the sample, but we still need to select a random sample
                 if (len(validPrefixes.keys()) >= 1):

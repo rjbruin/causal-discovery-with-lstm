@@ -518,26 +518,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             else:
                 # Find the nearest expression to our prediction
                 profiler.start("fl nearest finding");
-#                 pred_length = len(string_prediction)
-#                 nearest = 0;
-#                 nearestScore = 100000;
-#                 for i_near, neighbourExpr in enumerate(valid_predictions):
-#                     # Compute string difference
-#                     score = 0;
-#                     j = intervention_location + 1
-#                     for k,s in enumerate(neighbourExpr[intervention_location+1:]):
-#                         j = k + intervention_location + 1;
-#                         if (pred_length <= j):
-#                             score += 1;
-#                         elif (s != string_prediction[j]):
-#                             score += 1;
-#                     score += max(0,pred_length - (j+1));
-#                      
-#                     if (score < nearestScore):
-#                         nearest = i_near;
-#                         nearestScore = score;
-#                 closest_expression = valid_predictions[nearest];
-#                 closest_expression_prime = validPredictionEffectExpressions[nearest];
                 closest_expression, closest_expression_prime, _, _ = branch.get_closest(string_prediction[intervention_location+1:]);
                 
                 # Use as targets the found cause expression and its 

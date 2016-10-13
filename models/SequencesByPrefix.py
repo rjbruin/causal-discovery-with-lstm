@@ -22,6 +22,7 @@ class SequencesByPrefix(object):
         self.prefixedExpressions = defaultdict(SequencesByPrefix);
         self.primedExpressions = [];
         self.maxExpressionSize = 0;
+        self.nearest_cache = {};
     
     def add(self, expression, expression_prime):
         self._add(expression, expression, expression_prime);
@@ -60,6 +61,58 @@ class SequencesByPrefix(object):
             return False; 
         return self.prefixedExpressions[prefix[0]].get(prefix[1:], getStructure=getStructure, safe=safe, alsoGetStructure=alsoGetStructure);
     
+    def get_closest(self, target):
+        # Go down as far as possible into the given target
+        # Where it starts to deviate, choose a target that is 
+        if (len(target) == 0):
+            if ("" in self.expressions):
+                return self.get(target);
+        elif (target[0] in self.prefixedExpressions):
+            return self.prefixedExpressions[target[0]].get_closest(target[1:]);
+        
+        if (target not in self.nearest_cache):
+        
+            nearest = -1;
+            nearest_score = 1000000;
+            
+            exprSize = len(self.expressions);
+            
+#             limit = 1000;
+#             sample = False;
+#             if (exprSize > limit):
+#                 sample = True;
+#             else:
+#                 limit = exprSize;
+#             samples = {};
+#             if (sample):
+#                 for _ in range(10):
+#             for j in range(limit):
+#                 if (sample):
+#                     i = np.random.randint(0,exprSize);
+#                 else:
+#                     i = j;
+#                 expr = self.expressions[i];
+#                 current_score = SequencesByPrefix.string_difference(target, expr);
+#                 if (current_score < nearest_sampled_score):
+#                     nearest = i;
+#                     nearest_score = current_score;
+                
+            for j in range(exprSize):
+                expr = self.expressions[j];
+                current_score = SequencesByPrefix.string_difference(target, expr);
+                if (current_score < nearest_score):
+                    nearest = j;
+                    nearest_score = current_score;
+            
+            self.nearest_cache[target] = nearest;
+        else:
+            nearest = self.nearest_cache[target];
+        
+        return (self.fullExpressions[nearest], self.primedExpressions[nearest], 
+                self.fullExpressions, self.primedExpressions);
+#         return (self.fullExpressions[nearest], self.primedExpressions[nearest], 
+#                 self.fullExpressions, self.primedExpressions);
+    
     def get_random_by_length(self, length, getStructure=False):
         if (length == 0):
             if (getStructure):
@@ -87,114 +140,61 @@ class SequencesByPrefix(object):
         
         return self.prefixedExpressions[availablePrefixes[prefix]].get_random_by_length(length-1, getStructure=getStructure);
     
-    def get_closest(self, target):
-        # Go down as far as possible into the given target
-        # Where it starts to deviate, choose a target that is 
-        if (len(target) == 0):
-            if ("" in self.expressions):
-                return self.get(target);
-        elif (target[0] in self.prefixedExpressions):
-            return self.prefixedExpressions[target[0]].get_closest(target[1:]);
-        nearest = -1;
-        nearest_score = 1000000;
-        for i, expr in enumerate(self.expressions):
-            current_score = SequencesByPrefix.string_difference(target, expr);
-            if (current_score < nearest_score):
-                nearest = i;
-                nearest_score = current_score;
-        return (self.fullExpressions[nearest], self.primedExpressions[nearest], 
-                self.fullExpressions, self.primedExpressions);
     
-    def get_next(self, lastPath):
-        availablePrefixes = sorted(self.prefixedExpressions.keys());
-        if (len(lastPath) > 0):
-            # If the path is not empty we try the path instructions
-            pathType, index = lastPath[0];
-            if (pathType == 0):
-                if (index >= len(availablePrefixes)):
-                    # whut
-                    pass;
-                result = self.prefixedExpressions[availablePrefixes[index]].get_next(lastPath[1:]);
-                if (result != False):
-                    return result[0], [(0, index)] + result[1];
-                # If the path instructions fail we fall through to iterating over
-                # the options at the current level
-        else:
-            # If there is no path left we start iterating over the options at
-            # the current level
-            pathType = 0;
-            index = -1;
-            lastPath = [(0, 0)];
-        
-        if (pathType == 0):
-            # We start with checking the prefixes for options if 1) we don't
-            # have path instructions or 2) the path says the last option was
-            # a prefix
-            if (len(availablePrefixes) > 0):
-                success = False;
-                currentIndex = index;
-                while (not success):
-                    # Iterate over all prefixes until we find a valid one
-                    currentIndex += 1;
-                    if (currentIndex >= len(self.prefixedExpressions)):
-                        # We ran out of valid prefixes to explore
-                        break;
-                    # Call without path because we are changing the path branch 
-                    # we follow
-                    result = self.prefixedExpressions[availablePrefixes[currentIndex]].get_next([]);
-                    if (result == False):
-                        # The explored prefix has no valid options left
-                        continue;
-                    return result[0], [(0, currentIndex)] + result[1];
-            # If we need to explore the expressions after considering the
-            # prefixes we need to reset the index as it was supposed to point
-            # to a prefix, not an expression
-            index = -1;
-        
-        # Find the next expression
-        expressionsAtCurrentLevel = filter(lambda e: e[1] == "", enumerate(self.expressions));
-        choiceExpression = index + 1;
-        if (choiceExpression >= len(expressionsAtCurrentLevel)):
-            # Expressions are done as well
-            return False;
-        return self.fullExpressions[expressionsAtCurrentLevel[choiceExpression][0]], [(1, choiceExpression)];
     
-#     def count(self, prefix):
-#         if (prefix == ""):
-#             return len(self.candidates);
-#         return self.prefixedExpressions[prefix[0]].count(prefix[1:]);
-#     
-#     def countForPrefixes(self, prefix, allowedPrefixes):
-#         if (prefix == ""):
-#             count = 0;
-#             for pref in allowedPrefixes:
-#                 if (pref in self.prefixedExpressions):
-#                     count += len(self.prefixedExpressions[pref].expressions);
-#             return count;
-#         return self.prefixedExpressions[prefix[0]].count(prefix[1:], allowedPrefixes);
-#     
-#     def countAll(self, debug=False):
-#         return self._countAll(0, debug=debug);
-    
-#     def _countAll(self, level, debug=False):
-#         thisLevel = len(filter(lambda e: len(e) == 1, self.expressions));
-#         if (len(self.prefixedExpressions.keys()) == 0):
-#             if (debug):
-#                 print("Bottom reached at level %d" % level);
-#             return [thisLevel];
-#         # Get the lists of level counts for each prefix
-#         # deeper contains #prefixes lists of flat integer lists with length
-#         # equal to the longer expression in the branch 
-#         deeper = map(lambda p: self.prefixedExpressions[p]._countAll(level+1, debug=debug), self.prefixedExpressions.keys())
-#         # We fill out the shorter lists with zeros so we can map the sum
-#         max_length = max(map(lambda d: len(d), deeper));
-#         max_lengthed_deeper = [];
-#         for d in deeper:
-#             d.extend([0 for _ in range(max_length - len(d))]);
-#             max_lengthed_deeper.append(d);
-#         # Flatten using sum to obtain a flat list of lengths per level
-#         levelSums = map(lambda *ls: sum(ls), *max_lengthed_deeper);
-#         return [thisLevel] + levelSums;
+#     def get_next(self, lastPath):
+#         availablePrefixes = sorted(self.prefixedExpressions.keys());
+#         if (len(lastPath) > 0):
+#             # If the path is not empty we try the path instructions
+#             pathType, index = lastPath[0];
+#             if (pathType == 0):
+#                 if (index >= len(availablePrefixes)):
+#                     # whut
+#                     pass;
+#                 result = self.prefixedExpressions[availablePrefixes[index]].get_next(lastPath[1:]);
+#                 if (result != False):
+#                     return result[0], [(0, index)] + result[1];
+#                 # If the path instructions fail we fall through to iterating over
+#                 # the options at the current level
+#         else:
+#             # If there is no path left we start iterating over the options at
+#             # the current level
+#             pathType = 0;
+#             index = -1;
+#             lastPath = [(0, 0)];
+#         
+#         if (pathType == 0):
+#             # We start with checking the prefixes for options if 1) we don't
+#             # have path instructions or 2) the path says the last option was
+#             # a prefix
+#             if (len(availablePrefixes) > 0):
+#                 success = False;
+#                 currentIndex = index;
+#                 while (not success):
+#                     # Iterate over all prefixes until we find a valid one
+#                     currentIndex += 1;
+#                     if (currentIndex >= len(self.prefixedExpressions)):
+#                         # We ran out of valid prefixes to explore
+#                         break;
+#                     # Call without path because we are changing the path branch 
+#                     # we follow
+#                     result = self.prefixedExpressions[availablePrefixes[currentIndex]].get_next([]);
+#                     if (result == False):
+#                         # The explored prefix has no valid options left
+#                         continue;
+#                     return result[0], [(0, currentIndex)] + result[1];
+#             # If we need to explore the expressions after considering the
+#             # prefixes we need to reset the index as it was supposed to point
+#             # to a prefix, not an expression
+#             index = -1;
+#         
+#         # Find the next expression
+#         expressionsAtCurrentLevel = filter(lambda e: e[1] == "", enumerate(self.expressions));
+#         choiceExpression = index + 1;
+#         if (choiceExpression >= len(expressionsAtCurrentLevel)):
+#             # Expressions are done as well
+#             return False;
+#         return self.fullExpressions[expressionsAtCurrentLevel[choiceExpression][0]], [(1, choiceExpression)];
     
     def exists(self, prefix):
         if (len(prefix) == 0):

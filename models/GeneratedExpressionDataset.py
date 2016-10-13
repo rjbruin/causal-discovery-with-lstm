@@ -177,8 +177,8 @@ class GeneratedExpressionDataset(Dataset):
             n = 0;
             
             # TODO: remove debug
-#             if (self.debug):
-#                 self.lengths = [900000,100000];
+            if (self.debug):
+                self.lengths = [900000,100000];
             
             # Check for n is to make the code work with max_training_size
             while (line != "" and n < self.lengths[self.TRAIN]):
