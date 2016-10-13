@@ -1,6 +1,6 @@
 [
     {
-        "name": "finish-subs-s",
+        "name": "f-subs-s",
         "script": "subsystems_finish.py",
         "dataset": "./data/subsystems_shallow_simple_topcause",
         "repetitions": "500",
@@ -8,7 +8,11 @@
         "sample_testing_size": "10000",
         "finish_subsystems": "True",
         "n_max_digits": "17",
-        "intervention_base_offset": "5",
-        "intervention_range": "12"
+        "intervention_base_offset": "0",
+        "intervention_range": "17",
+        "nesterov_optimizer": "True",
+        "decoder": "True",
+        "learning_rate": "0.005",
+        "hidden_dim": "256"
     }
 ]

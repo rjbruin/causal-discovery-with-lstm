@@ -97,10 +97,57 @@ class RecurrentModel(object):
         stats['digit_correct'] = stats['digit_1_correct'] + stats['digit_2_correct'];
         stats['digit_prediction_size'] = stats['digit_1_prediction_size'] + stats['digit_2_prediction_size'];
         
-        stats['digit_1_score'] = stats['digit_1_correct'] / float(stats['digit_1_prediction_size']);
-        stats['digit_2_score'] = stats['digit_2_correct'] / float(stats['digit_2_prediction_size']);
+        if (stats['digit_1_prediction_size'] > 0):
+            stats['digit_1_score'] = stats['digit_1_correct'] / float(stats['digit_1_prediction_size']);
+        else:
+            stats['digit_1_score'] = 0.0;
+        if (stats['digit_2_prediction_size'] > 0):
+            stats['digit_2_score'] = stats['digit_2_correct'] / float(stats['digit_2_prediction_size']);
+        else:
+            stats['digit_2_score'] = 0.0;
         
-        stats['score'] = stats['correct'] / float(stats['prediction_size']);
-        stats['digit_score'] = stats['digit_correct'] / float(stats['digit_prediction_size']);
+        if (stats['prediction_size'] > 0):
+            stats['score'] = stats['correct'] / float(stats['prediction_size']);
+            stats['structureScoreCause'] = stats['structureCorrectCause'] / float(stats['prediction_size']);
+            stats['structureScoreEffect'] = stats['structureCorrectEffect'] / float(stats['prediction_size']);
+            stats['structureScoreTop'] = stats['structureCorrectTop'] / float(stats['prediction_size']);
+            stats['structureScoreBot'] = stats['structureCorrectBot'] / float(stats['prediction_size']);
+            stats['structureScore'] = stats['structureCorrect'] / float(stats['prediction_size']);
+            stats['allEffectScore'] = stats['effectCorrect'] / float(stats['prediction_size']);
+            stats['noEffectScore'] = stats['noEffect'] / float(stats['prediction_size']);
+            stats['validScore'] = stats['valid'] / float(stats['prediction_size']);
+            stats['structureValidScoreCause'] = stats['structureValidCause'] / float(stats['prediction_size']);
+            stats['structureValidScoreEffect'] = stats['structureValidEffect'] / float(stats['prediction_size']);
+            stats['structureValidScoreTop'] = stats['structureValidTop'] / float(stats['prediction_size']);
+            stats['structureValidScoreBot'] = stats['structureValidBot'] / float(stats['prediction_size']);
+        else:
+            stats['score'] = 0.0;
+            stats['structureScoreCause'] = 0.0;
+            stats['structureScoreEffect'] = 0.0;
+            stats['structureScoreTop'] = 0.0;
+            stats['structureScoreBot'] = 0.0;
+            stats['structureScore'] = 0.0;
+            stats['allEffectScore'] = 0.0;
+            stats['noEffectScore'] = 0.0;
+            stats['validScore'] = 0.0;
+            stats['structureValidScoreCause'] = 0.0;
+            stats['structureValidScoreEffect'] = 0.0;
+            stats['structureValidScoreTop'] = 0.0;
+            stats['structureValidScoreBot'] = 0.0;
+        if (stats['digit_prediction_size'] > 0):
+            stats['digit_score'] = stats['digit_correct'] / float(stats['digit_prediction_size']);
+        else:
+            stats['digit_score'] = 0.0;
+        stats['effectScore'] = stats['allEffectScore'] - stats['noEffectScore'];
+        
+        stats['error_1_score'] = 0.0;
+        stats['error_2_score'] = 0.0;
+        stats['error_3_score'] = 0.0;
+        if (stats['prediction_size'] > 0):
+            stats['error_1_score'] = (stats['correct'] + stats['error_histogram'][1]) / float(stats['prediction_size']);
+            stats['error_2_score'] = (stats['correct'] + stats['error_histogram'][1] + \
+                                      stats['error_histogram'][2]) / float(stats['prediction_size']);
+            stats['error_3_score'] = (stats['correct'] + stats['error_histogram'][1] + \
+                                      stats['error_histogram'][2] + stats['error_histogram'][3]) / float(stats['prediction_size']); 
         
         return stats;

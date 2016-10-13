@@ -7,8 +7,10 @@ Created on 24 jun. 2016
 import sys;
 import numpy as np;
 
+# str_digits = [str(i) for i in range(10)];
+# operators = ['+','-','*','/'];
 str_digits = [str(i) for i in range(10)];
-operators = ['+','-','*','/'];
+operators = ['+','-','*'];
 
 def changeSimpleBracket(symbol):
     # Don't change brackets
@@ -38,9 +40,6 @@ def changeSimple(expression):
     return newExpression;
 
 if __name__ == '__main__':
-    # Set internal constants
-    new_symbols = map(str,range(10)) + ['+','-','*','/','(',')'];
-
     # Set default parameters
     copies_per_expression = 1;
     seed = 1;
@@ -67,8 +66,15 @@ if __name__ == '__main__':
             expression = line;
 
             for i in range(copies_per_expression):
-                expression = expression.strip();
-                expression_prime = changeSimple(expression);
+                #topcause = np.random.randint(2) == 1;
+                topcause = True;
+                if (topcause):
+                    expression = expression.strip();
+                    expression_prime = changeSimple(expression);
+                else:
+                    # TODO
+                    expression_prime = expression.strip();
+                    expression = changeSimple(expression_prime);
 
                 # Write expression
                 new_expressions.append((expression,expression_prime));

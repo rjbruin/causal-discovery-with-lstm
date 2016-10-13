@@ -15,6 +15,12 @@ class Profiler(object):
         self.durations = {};
         self.precision = precision;
     
+    def off(self):
+        self.on = False;
+    
+    def on(self):
+        self.on = True;
+    
     def time(self, function, *args):
         start = time.clock();
         results = function(*args);
@@ -24,15 +30,18 @@ class Profiler(object):
         return results;
     
     def start(self, name):
-        self.starts[name] = time.clock();
+        if (self.on):
+            self.starts[name] = time.clock();
     
     def stop(self, name):
-        if (name not in self.durations):
-            self.durations[name] = 0.0;
-        self.durations[name] += time.clock() - self.starts[name];
+        if (self.on):
+            if (name not in self.durations):
+                self.durations[name] = 0.0;
+            self.durations[name] += time.clock() - self.starts[name];
     
     def profile(self):
-        for f in self.durations:
-            print(("%s: %." + str(self.precision) + "f seconds") % (str(f),self.durations[f]));
+        if (self.on):
+            for name, duration in sorted(self.durations.items(), key=lambda x: x[1], reverse=True):
+                print(("%s:\t%." + str(self.precision) + "f seconds") % (str(name),duration));
             
 profiler = Profiler();

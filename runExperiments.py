@@ -8,30 +8,29 @@ import subprocess;
 from subprocess import PIPE, STDOUT;
 import os, sys;
 import json, time;
-import requests;
+import trackerreporter;
 
 request_headers = {'user-agent': 'Chrome/51.0.2704.103'};
 
-def progressStackToTracker(stack):
-    newStack = [];
-    for data in stack:
-        if ('url' in data):
-            try:
-                r = requests.post(data['url'], data, headers=request_headers);
-                if (r.status_code != 200):
-                    print("Posting to tracker failed with status code! Added data to stack.");
-                    newStack.append(data);
-            except Exception:
-                print("Posting to tracker failed! Added data to stack.");
-                newStack.append(data);
-    return newStack;
-
 if __name__ == '__main__':
     # Settings
-    report_to_tracker_criteria = [lambda s: s[0] != '#'];
     api_key = os.environ.get('TCDL_API_KEY');
     if (api_key is None):
         raise ValueError("No API key present for reporting to tracker!");
+    score_types = {'Precision': 'Score',
+                   'Training loss': 'Total error',
+                   'Digit precision': 'Digit-based score',
+                   'Structure precision': 'Structure score',
+                   'Structure pr. (c)': 'Structure score cause',
+                   'Structure pr. (e)': 'Structure score effect',
+                   'Effect precision': 'Effect score',
+                   'Mistake (1) precision': 'Error margin 1 score',
+                   'Mistake (2) precision': 'Error margin 2 score',
+                   'Mistake (3) precision': 'Error margin 3 score',
+                   'Validity': 'Valid',
+                   'Validity (c)': 'Structure valid cause',
+                   'Validity (e)': 'Structure valid effect'};
+    trackerreporter.init('http://rjbruin.nl/experimenttracker/api/',api_key);
     
     experiments_file = 'choose';
     if (len(sys.argv) > 1):
@@ -84,19 +83,11 @@ if __name__ == '__main__':
                 datasets = exp['multipart_dataset'];
             else:
                 datasets = 1;
-            data = {'url': "http://rjbruin.nl/experimenttracker/api/postExperiment.php", 
-                    'exp': exp['name'], 'key': api_key, 'totalProgress': exp['repetitions'],
-                    'totalDatasets': datasets}
-            try:
-                r = requests.post(data['url'], data, headers=request_headers);
-                if (r.json() != "false"):
-                    experimentId = r.json()['id'];
-                else:
-                    print("WARNING! Experiment could not be posted to tracker!");
-                    experimentId = -1;
-            except Exception as e:
-                print(e);
-                raise ValueError("Posting experiment to tracker failed!");
+            experimentId = trackerreporter.initExperiment(exp['name'], totalProgress=exp['repetitions'], 
+                                                totalDatasets=datasets, scoreTypes=score_types.keys(), 
+                                                scoreIdentifiers=score_types);
+            if (experimentId is False):
+                print("WARNING! Experiment could not be posted to tracker!");
             
         outputPath = experiment_outputPaths[i];
         extraArgs = experiment_args[i];
@@ -107,7 +98,7 @@ if __name__ == '__main__':
                 args.append(str(value));
         joined_args = " ".join(args) + " " + extraArgs;
         if (gpu):
-            joined_args = "THEANO_FLAGS=device=gpu " + joined_args;
+            joined_args = "THEANO_FLAGS='device=gpu,floatX=float32' " + joined_args;
         print("Command string: %s" % (joined_args));
         p = subprocess.Popen(joined_args,stdout=PIPE,stderr=STDOUT,shell=True);
         
@@ -122,18 +113,13 @@ if __name__ == '__main__':
                     currentBatch = int(out.split(" ")[1]);
                     currentIteration = int(out.split(" ")[3]);
                     currentDataset = int(out.split(" ")[7]);
-                if (report and all(map(lambda f: f(out), report_to_tracker_criteria))):
-                    # Compose data object
-                    data = {'url': "http://rjbruin.nl/experimenttracker/api/post.php", 
-                            'exp': experimentId, 'msg': out, 'atProgress': currentIteration, 
-                            'atDataset': currentDataset, 'key': api_key};
-                    # Add data to stack of data to send
-                    trackerStack.append(data);
-                    # Retrieve new stack containing all failed requests
-                    trackerStack = progressStackToTracker(trackerStack);
+                # Compose data object
+                trackerreporter.fromExperimentOutput(experimentId, out, 
+                    atProgress=currentIteration, atDataset=currentDataset);
                         
                 if (out != '' and out[0] != '#'):
                     # Write to file
                     f = open(outputPath,'a');
                     f.write(out.strip() + "\n");
                     f.close();
+                    

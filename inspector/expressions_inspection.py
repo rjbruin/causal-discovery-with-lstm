@@ -11,6 +11,7 @@ import copy;
 
 import tools.model;
 from tools.file import load_from_pickle_with_filename
+from tools.model import set_up_statistics;
 
 app = Flask(__name__)
 
@@ -86,34 +87,54 @@ def predictInterventionSample():
     Provide intervention as a string symbol.
     """
     response = {'success': False};
-    if ('sample' in request.form):
-        sample = request.form['sample'];
-        response['sample'] = sample;
+    if ('sample1' in request.form):
+        sample1 = request.form['sample1'];
+        sample2 = request.form['sample2'];
+        response['sample1'] = sample1;
+        response['sample2'] = sample2;
         
         interventionLocation = int(request.form['interventionLocation']);
         intervention = request.form['intervention'];
         
-        datasample, _, _, _, _ = data['dataset'].processor(sample,[],[],[],[]);
+        datasample, _, _, _, _ = data['dataset'].processor(";".join([sample1,sample2]),[],[],[],[]);
         response['data'] = datasample[0].tolist();
         
-        datasample = np.array(datasample).reshape((1,datasample[0].shape[0],datasample[0].shape[1]));
+        datasample = data['dataset'].fill_ndarray(datasample,1).reshape((1,datasample[0].shape[0],datasample[0].shape[1]));
         label = copy.deepcopy(datasample);
-        label[0,interventionLocation] = np.zeros((datasample[0].shape[1]));
+        label[0,interventionLocation] = np.zeros((datasample[0].shape[1]), dtype='float32');
+        # Only supports interventions on the first sample
         label[0,interventionLocation,data['dataset'].oneHot[intervention]] = 1.0;
         if (len(datasample) < data['rnn'].minibatch_size):
             missing_datapoints = data['rnn'].minibatch_size - datasample.shape[0];
-            datasample = np.concatenate((datasample,np.zeros((missing_datapoints, datasample.shape[1], datasample.shape[2]))), axis=0);
-            label = np.concatenate((label,np.zeros((missing_datapoints, datasample.shape[1], datasample.shape[2]))), axis=0);
-        prediction, other = data['rnn'].predict(datasample, label=label, interventionLocation=interventionLocation);
+            datasample = np.concatenate((datasample,np.zeros((missing_datapoints, datasample.shape[1], datasample.shape[2]), dtype='float32')), axis=0);
+            label = np.concatenate((label,np.zeros((missing_datapoints, datasample.shape[1], datasample.shape[2]), dtype='float32')), axis=0);
+        prediction, _ = data['rnn'].predict(datasample, label=label, interventionLocation=interventionLocation);
         
-        response['prediction'] = prediction[0].tolist();
-        response['predictionPretty'] = "";
-        for index in response['prediction']:
+        response['prediction1'] = prediction[0][0].tolist();
+        response['prediction2'] = prediction[1][0].tolist();
+        
+        response['prediction1Pretty'] = "";
+        for index in response['prediction1']:
             if (index == data['dataset'].EOS_symbol_index):
-                response['predictionPretty'] += "_";
+                response['prediction1Pretty'] += "_";
             else:
-                response['predictionPretty'] += data['dataset'].findSymbol[index];
+                response['prediction1Pretty'] += data['dataset'].findSymbol[index];
+        
+        response['prediction2Pretty'] = "";
+        for index in response['prediction2']:
+            if (index == data['dataset'].EOS_symbol_index):
+                response['prediction2Pretty'] += "_";
+            else:
+                response['prediction2Pretty'] += data['dataset'].findSymbol[index];
+        
         response['success'] = True;
+        
+        test_n = 1;
+        stats = data['rnn'].batch_statistics(set_up_statistics(data['rnn'].decoding_output_dim, data['rnn'].n_max_digits), 
+                                             prediction, [(sample1,sample2)], interventionLocation,
+                                             {}, test_n, data['dataset'])
+        response['stats'] = {};
+        response['stats']['correct'] = stats['correct'];
         
     return flask.jsonify(response);
 

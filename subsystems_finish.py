@@ -6,22 +6,77 @@ Created on 9 sep. 2016
 
 import time;
 import sys;
+from math import floor;
 
-from tools.file import save_to_pickle;
+from tools.file import save_to_pickle, load_from_pickle_with_filename;
 from tools.arguments import processCommandLineArguments;
 from tools.model import constructModels, set_up_statistics;
 from tools.gpu import using_gpu; # @UnresolvedImport
 
 import numpy as np;
+import theano;
 import copy;
+from profiler import profiler
 
-def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=False, base_offset=12):
-    limit = 1000;
+def print_stats(stats, prefix=''):
+    # Print statistics
+    output = "\n";
+
+    # Print statistics
+    output += prefix + "Score: %.2f percent\n" % (stats['score']*100);
+    output += prefix + "Structure score cause: %.2f percent\n" % (stats['structureScoreCause']*100);
+    output += prefix + "Structure score effect: %.2f percent\n" % (stats['structureScoreEffect']*100);
+    output += prefix + "Structure score top: %.2f percent\n" % (stats['structureScoreTop']*100);
+    output += prefix + "Structure score bot: %.2f percent\n" % (stats['structureScoreBot']*100);
+    output += prefix + "Structure score: %.2f percent\n" % (stats['structureScore']*100);
+    output += prefix + "Effect score: %.2f percent\n" % (stats['effectScore']*100);
+    output += prefix + "Effect score including no effect: %.2f percent\n" % (stats['allEffectScore']*100);
+    
+    output += prefix + "Valid: %.2f percent\n" % (stats['validScore']*100);
+    output += prefix + "Structure valid cause: %.2f percent\n" % (stats['structureValidScoreCause']*100);
+    output += prefix + "Structure valid effect: %.2f percent\n" % (stats['structureValidScoreEffect']*100);
+    output += prefix + "Structure valid top: %.2f percent\n" % (stats['structureValidScoreTop']*100);
+    output += prefix + "Structure valid bot: %.2f percent\n" % (stats['structureValidScoreBot']*100);
+    
+    output += prefix + "Intervention locations:   %s\n" % (str(stats['intervention_locations']));
+
+    output += prefix + "Digit-based (1) score: %.2f percent\n" % (stats['digit_1_score']*100);
+    output += prefix + "Prediction size (1) histogram:   %s\n" % (str(stats['prediction_1_size_histogram']));
+    output += prefix + "Digit (1) histogram:   %s\n" % (str(stats['prediction_1_histogram']));
+    
+    output += prefix + "Digit-based (2) score: %.2f percent\n" % (stats['digit_2_score']*100);
+    output += prefix + "Prediction size (2) histogram:   %s\n" % (str(stats['prediction_2_size_histogram']));
+    output += prefix + "Digit (2) histogram:   %s\n" % (str(stats['prediction_2_histogram']));
+        
+    output += prefix + "Digit-based score: %.2f percent\n" % (stats['digit_score']*100);
+    output += prefix + "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
+    output += prefix + "Digit histogram:   %s\n" % (str(stats['prediction_histogram']));
+    
+    output += prefix + "Error margin 1 score: %.2f percent\n" % stats['error_1_score'];
+    output += prefix + "Error margin 2 score: %.2f percent\n" % stats['error_2_score'];
+    output += prefix + "Error margin 3 score: %.2f percent\n" % stats['error_3_score'];
+    
+    output += prefix + "All error margins: %s\n" % str(stats['error_histogram']);
+    
+    output += "\n";
+    print(output);
+
+def get_batch(isTrain, dataset, model, intervention_range, max_length, 
+              debug=False, base_offset=12, applyIntervention=True, 
+              seq2ndmarkov=False, bothcause=False):
+    limit = 100;
+    
+    # Reseed the random generator to prevent generating identical batches
+    np.random.seed();
     
     if (isTrain):
         storage = dataset.expressionsByPrefix;
+        if (seq2ndmarkov and not parameters['only_cause_expression']):
+            storage_bot = dataset.expressionsByPrefixBot;
     else:
         storage = dataset.testExpressionsByPrefix;
+        if (seq2ndmarkov and not parameters['only_cause_expression']):
+            storage_bot = dataset.testExpressionsByPrefixBot;
     
     batch = [];
     fails = 0;
@@ -32,46 +87,81 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=Fal
         
         interventionLocation = np.random.randint(max_length-intervention_range-base_offset, 
                                                  max_length-base_offset);
+        if (seq2ndmarkov):
+            # Change interventionLocation to nearest valid location to the left 
+            # of current location (which is the operator or the right argument)
+            if (interventionLocation % 3 != 2 and interventionLocation % 3 != 1):
+                # Offset is 2 for right argument and 1 for operator 
+                offset = interventionLocation % 3;
+                interventionLocation = int(floor((interventionLocation - offset) / 3) * 3) + offset;
+        
+        # Choose top or bottom cause
+        if (not seq2ndmarkov or parameters['only_cause_expression'] is not False):
+            topcause = True;
+        else:
+            topcause = np.random.randint(2) == 1;
         
         while (not fail and len(batch) < model.minibatch_size):
-            branch = storage.get_random_by_length(interventionLocation, getStructure=True);
-            # The branch check is removed because the get_random_by_length() 
-            # will not return empty branches anymore
-#             if (branch is None):
-#                 tries_no_branch += 1;
-#                 if (tries_no_valid_prefixes + tries_no_branch >= limit):
-#                     # Catch where we are stuck with an impossible intervention location
-#                     fail = True;
-#                     if (debug):
-#                         fails += 1;
-#                         print("#\tBatching failed at iteration %d (%d no branches, %d no prefixes)" % (fails, tries_no_branch, tries_no_valid_prefixes));
-#                 continue;
-            validPrefixes = {};
-            if (len(branch.prefixedExpressions) >= 2):
-                for prefix in branch.prefixedExpressions:
-                    symbolIndex = dataset.oneHot[prefix];
-                    if (symbolIndex < dataset.EOS_symbol_index-4 and len(branch.prefixedExpressions[prefix].fullExpressions) >= 1):
-                        # Check for valid intervention symbol: has to be the right
-                        # symbol and has to have expressions
-                        validPrefixes[prefix] = branch.prefixedExpressions[prefix];
-            
-            if (len(validPrefixes.keys()) >= 2):
-                # If there are at least two valid prefixes we will always be
-                # able to find an intervention sample for a random sample from
-                # this branch 
-                randomPrefix = validPrefixes.keys()[np.random.randint(0,len(validPrefixes.keys()))];
-                randomCandidate = np.random.randint(0,len(branch.prefixedExpressions[randomPrefix].fullExpressions));
-                batch.append((branch.prefixedExpressions[randomPrefix].fullExpressions[randomCandidate],
-                              branch.prefixedExpressions[randomPrefix].primedExpressions[randomCandidate],
-                              validPrefixes.keys()));
+            if (seq2ndmarkov and not topcause):
+                branch = storage_bot.get_random_by_length(interventionLocation, getStructure=True);
             else:
-                tries += 1;
-                if (tries >= limit):
-                    # Catch where we are stuck with an impossible intervention location
-                    fail = True;
-                    if (debug):
-                        fails += 1;
-                        print("#\tBatching failed at iteration %d" % (fails));
+                branch = storage.get_random_by_length(interventionLocation, getStructure=True);
+            validPrefixes = {};
+            
+            if (not seq2ndmarkov or not applyIntervention):
+                if (len(branch.prefixedExpressions) >= 2):
+                    for prefix in branch.prefixedExpressions:
+                        symbolIndex = dataset.oneHot[prefix];
+                        if (symbolIndex < dataset.EOS_symbol_index-4 and len(branch.prefixedExpressions[prefix].fullExpressions) >= 1):
+                            # Check for valid intervention symbol: has to be the right
+                            # symbol and has to have expressions
+                            validPrefixes[prefix] = branch.prefixedExpressions[prefix];
+            else:
+                # We use all prefixes for seq2ndmarkov because we can only have valid intervention locations
+                # We know this because the samples all have the same repeating symtax of 
+                # <left><op><right><answer/left><op>...
+                validPrefixes = {p: branch.prefixedExpressions[p] for p in branch.prefixedExpressions};
+            
+            if (applyIntervention):
+                if (len(validPrefixes.keys()) >= 2):
+                    # If there are at least two valid prefixes we will always be
+                    # able to find an intervention sample for a random sample from
+                    # this branch 
+                    randomPrefix = validPrefixes.keys()[np.random.randint(0,len(validPrefixes.keys()))];
+                    randomCandidate = np.random.randint(0,len(branch.prefixedExpressions[randomPrefix].fullExpressions));
+                    # Keep the order of top and bottom
+                    if (seq2ndmarkov and not topcause):
+                        batch.append((branch.prefixedExpressions[randomPrefix].primedExpressions[randomCandidate],
+                                      branch.prefixedExpressions[randomPrefix].fullExpressions[randomCandidate],
+                                      validPrefixes.keys()));
+                    else:
+                        batch.append((branch.prefixedExpressions[randomPrefix].fullExpressions[randomCandidate],
+                                      branch.prefixedExpressions[randomPrefix].primedExpressions[randomCandidate],
+                                      validPrefixes.keys()));
+                else:
+                    tries += 1;
+                    if (tries >= limit):
+                        # Catch where we are stuck with an impossible intervention location
+                        fail = True;
+                        if (debug):
+                            fails += 1;
+#                             print("#\tBatching failed at iteration %d with intervention location %d" % (fails, interventionLocation));
+            else:
+                # No intervention, just the sample, but we still need to select a random sample
+                if (len(validPrefixes.keys()) >= 1):
+                    randomPrefix = validPrefixes.keys()[np.random.randint(0,len(validPrefixes.keys()))];
+                    randomCandidate = np.random.randint(0,len(branch.prefixedExpressions[randomPrefix].fullExpressions));
+                    batch.append((branch.prefixedExpressions[randomPrefix].fullExpressions[randomCandidate],
+                                  branch.prefixedExpressions[randomPrefix].primedExpressions[randomCandidate],
+                                  validPrefixes.keys()));
+                else:
+                    tries += 1;
+                    if (tries >= limit):
+                        # Catch where we are stuck with an impossible intervention location
+                        fail = True;
+                        if (debug):
+                            fails += 1;
+                            print("#\tBatching failed at iteration %d" % (fails));
     
     data = [];
     targets = [];
@@ -79,15 +169,23 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=Fal
     expressions = [];
     interventionSymbols = [];
     for (expression, expression_prime, possibleInterventions) in batch:
-        data, targets, labels, expressions, _ = dataset.processor(";".join([expression, expression_prime]), 
-                                                                  data,targets, labels, expressions);
+        if (seq2ndmarkov and not bothcause):
+            if (parameters['only_cause_expression'] == 2):
+                expression_prime = expression;
+                expression = "";
+            data, targets, labels, expressions, _ = dataset.processor(";".join([expression, expression_prime, str(int(topcause))]), 
+                                                                      data,targets, labels, expressions);
+        else:
+            data, targets, labels, expressions, _ = dataset.processor(";".join([expression, expression_prime]), 
+                                                                      data,targets, labels, expressions);
         # Convert symbols to indices
-        interventionSymbols.append(map(lambda s: dataset.oneHot[s], possibleInterventions));
+        if (applyIntervention):
+            interventionSymbols.append(map(lambda s: dataset.oneHot[s], possibleInterventions));
     
     data = dataset.fill_ndarray(data, 1);
     targets = dataset.fill_ndarray(copy.deepcopy(targets), 1, fixed_length=model.n_max_digits);
     
-    if (debug):
+    if (debug and applyIntervention):
         # Sanity check: interventionSymbols must match each other
         passed = True;
         for indices in interventionSymbols:
@@ -96,9 +194,9 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, debug=Fal
         if (not passed):
             raise ValueError("Illegal intervention symbols! => %s" % str(interventionSymbols));
     
-    return data, targets, labels, expressions, interventionSymbols, interventionLocation;
+    return data, targets, labels, expressions, interventionSymbols, interventionLocation, topcause;
 
-def test(model, dataset, parameters, max_length, print_samples=False, sample_size=False, trimmed_from_max_length=0):
+def test(model, dataset, parameters, max_length, base_offset, intervention_range, print_samples=False, sample_size=False):
     # Test
     print("Testing...");
         
@@ -118,77 +216,86 @@ def test(model, dataset, parameters, max_length, print_samples=False, sample_siz
     batch_range = range(0,total,model.minibatch_size);
     for _ in batch_range:
         # Get data from batch
-        test_data, test_targets, test_labels, test_expressions, \
-            possibleInterventions, interventionLocation = get_batch(False, dataset, model, 
-                                                                    parameters['intervention_range'], 
-                                                                    max_length, debug=parameters['debug'],
-                                                                    base_offset=parameters['intervention_base_offset'] - trimmed_from_max_length);
+        test_data, test_targets, _, test_expressions, \
+            possibleInterventions, interventionLocation, topcause = get_batch(False, dataset, model, 
+                                                                              intervention_range, 
+                                                                              max_length, debug=parameters['debug'],
+                                                                              base_offset=base_offset,
+                                                                              applyIntervention=parameters['test_interventions'],
+                                                                              seq2ndmarkov=parameters['dataset_type'] == 1,
+                                                                              bothcause=parameters['bothcause']);
         test_n = model.minibatch_size;
         stats['intervention_locations'][interventionLocation] += 1;
         
         # Interventions are not optional in testing
-        test_targets, _, interventionLocation, _ = \
-            dataset.insertInterventions(test_targets, test_expressions, 
-                                        0,
-                                        interventionLocation, 
-                                        possibleInterventions);
+        if (parameters['test_interventions']):
+            test_targets, test_expressions, interventionLocation = \
+                dataset.insertInterventions(test_targets, test_expressions, 
+                                            topcause,
+                                            interventionLocation, 
+                                            possibleInterventions);
+            # Overwrite interventionLocation for model and batch stats purpose
+            interventionLocation = 0;
         
         predictions, other = model.predict(test_data, label=test_targets, 
-                                           interventionLocation=interventionLocation);
+                                           interventionLocation=interventionLocation,
+                                           intervention=parameters['test_interventions'],
+                                           fixedDecoderInputs=parameters['fixed_decoder_inputs']);
+        
+        if (parameters['only_cause_expression']):
+            prediction_1 = predictions;
+            predictions = [predictions];
+        else:
+            prediction_1 = predictions[0];
+            prediction_2 = predictions[1];
         
         # Print samples
         if (print_samples and not printed_samples):
-            for i in range(predictions[0].shape[0]):
+            for i in range(prediction_1.shape[0]):
                 print("# Input 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                      np.argmax(test_data[i,:,:model.data_dim],len(test_data.shape)-2)))));
                 print("# Label 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                    np.argmax(test_targets[i,:,:model.data_dim],len(test_data.shape)-2)))));
-                print("# Output 1: %s" % "".join(map(lambda x: dataset.findSymbol[x], predictions[0][i])));
+                print("# Output 1: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_1[i])));
                 
-                print("# Input 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-                                                     np.argmax(test_data[i,:,model.data_dim:],len(test_data.shape)-2)))));
-                print("# Label 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-                                                   np.argmax(test_targets[i,:,model.data_dim:],len(test_data.shape)-2)))));
-                print("# Output 2: %s" % "".join(map(lambda x: dataset.findSymbol[x], predictions[1][i])));
+                if (not parameters['only_cause_expression']):
+                    print("# Input 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+                                                         np.argmax(test_data[i,:,model.data_dim:],len(test_data.shape)-2)))));
+                    print("# Label 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+                                                       np.argmax(test_targets[i,:,model.data_dim:],len(test_data.shape)-2)))));
+                    print("# Output 2: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_2[i])));
             printed_samples = True;
         
-        stats = model.batch_statistics(stats, predictions, test_labels, 
-                                       test_targets, test_expressions, 
-                                       other,
-                                       test_n, dataset, 
-                                       eos_symbol_index=dataset.EOS_symbol_index);
+        profiler.start("test batch stats");
+        labels_to_use = False;
+        if (parameters['no_label_search']):
+            # If we don't use label searching we need to provide labels_to_use
+            labels_to_use = test_expressions;
+        stats = model.batch_statistics(stats, predictions, 
+                                       test_expressions, interventionLocation, 
+                                       other, test_n, dataset, 
+                                       eos_symbol_index=dataset.EOS_symbol_index,
+                                       topcause=topcause or parameters['bothcause'], # If bothcause then topcause = 1
+                                       testExtraValidity=parameters['test_extra_validity'],
+                                       bothcause=parameters['bothcause'],
+                                       labels_to_use=labels_to_use);
     
         if (stats['prediction_size'] % printing_interval == 0):
             print("# %d / %d" % (stats['prediction_size'], total));
+        profiler.stop("test batch stats");
+    
+    profiler.profile();
     
     stats = model.total_statistics(stats);
     
-    # Print statistics
-    output = "\n";
-
-    # Print statistics
-    output += "Score: %.2f percent\n" % (stats['score']*100);
-    output += "Intervention locations:   %s\n" % (str(stats['intervention_locations']));
-
-    output += "Digit-based (1) score: %.2f percent\n" % (stats['digit_1_score']*100);
-    output += "Prediction size (1) histogram:   %s\n" % (str(stats['prediction_1_size_histogram']));
-    output += "Digit (1) histogram:   %s\n" % (str(stats['prediction_1_histogram']));
-    
-    output += "Digit-based (2) score: %.2f percent\n" % (stats['digit_2_score']*100);
-    output += "Prediction size (2) histogram:   %s\n" % (str(stats['prediction_2_size_histogram']));
-    output += "Digit (2) histogram:   %s\n" % (str(stats['prediction_2_histogram']));
-        
-    output += "Digit-based score: %.2f percent\n" % (stats['digit_score']*100);
-    output += "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
-    output += "Digit histogram:   %s\n" % (str(stats['prediction_histogram']));
-    
-    output += "\n";
-    print(output);
+    print_stats(stats);
     
     return stats;
 
 if __name__ == '__main__':
+    theano.config.floatX = 'float32';
     np.set_printoptions(precision=3, threshold=10000000);
+#     profiler.off();
     
     # Specific settings - default name is time of experiment
     name = time.strftime("%d-%m-%Y_%H-%M-%S");
@@ -208,9 +315,25 @@ if __name__ == '__main__':
     # Construct models
     datasets, model = constructModels(parameters, 0, {});
     
+    # Load pretrained only_cause_expression = 1 model
+    if (parameters['load_cause_expression_1'] is not False):
+        loadedVars, _ = load_from_pickle_with_filename("./saved_models/" + parameters['load_cause_expression_1']);
+        if (model.loadPartialDataDimVars(dict(loadedVars), 0, model.data_dim)):
+            print("Loaded pretrained model (expression 1) successfully!");
+        else:
+            raise ValueError("Loading pretrained model failed: wrong variables supplied!");
+    
+    # Load pretrained only_cause_expression = 2 model
+    if (parameters['load_cause_expression_2'] is not False):
+        loadedVars, _ = load_from_pickle_with_filename("./saved_models/" + parameters['load_cause_expression_2']);
+        if (model.loadPartialDataDimVars(dict(loadedVars), model.data_dim, model.data_dim)):
+            print("Loaded pretrained model (expression 2) successfully!");
+        else:
+            raise ValueError("Loading pretrained model failed: wrong variables supplied!");
+    
     # Train on all datasets in succession
     # Print settings headers to raw results file
-    print(str(parameters));
+    print("# " + str(parameters));
     
     dataset = datasets[0];
     reps = parameters['repetitions'];
@@ -223,6 +346,7 @@ if __name__ == '__main__':
     
     total_datapoints_processed = 0;
     b = 0;
+    terminate = False;
     
     # Determine the minimum max_length needed to get batches quickly
     min_samples_required = dataset.lengths[dataset.TRAIN] * 0.10;
@@ -234,8 +358,18 @@ if __name__ == '__main__':
         trimmed_from_max_length += 1;
         samples_available += dataset.expressionLengths[max_length];
     
+    # Make the base_offset absorb the max length difference
+    base_offset = parameters['intervention_base_offset'] - trimmed_from_max_length;
+    intervention_range = parameters['intervention_range'];
+    if (parameters['intervention_base_offset'] - trimmed_from_max_length < 0):
+        # If base_offset is below zero make the intervention range absorb the
+        # difference 
+        base_offset = 0;
+        intervention_range += parameters['intervention_base_offset'] - trimmed_from_max_length;
+    
     intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
     for r in range(reps):
+        stats = set_up_statistics(dataset.output_dim, model.n_max_digits);
         unused_in_rep = 0;
         total_error = 0.0;
         # Print progress and save to raw results file
@@ -246,65 +380,103 @@ if __name__ == '__main__':
         # Train model per minibatch
         batch_range = range(0,repetition_size,model.minibatch_size);
         for k in batch_range:
-            data, target, _, expressions, possibleInterventions, interventionLocation = \
+            profiler.start('train batch');
+            profiler.start('get train batch');
+            data, target, _, expressions, possibleInterventions, interventionLocation, topcause = \
                 get_batch(True, dataset, model, 
-                          parameters['intervention_range'], max_length, 
+                          intervention_range, max_length, 
                           debug=parameters['debug'],
-                          base_offset=parameters['intervention_base_offset'] - trimmed_from_max_length);
+                          base_offset=base_offset,
+                          applyIntervention=parameters['train_interventions'],
+                          seq2ndmarkov=parameters['dataset_type'] == 1,
+                          bothcause=parameters['bothcause']);
+            profiler.stop('get train batch');
             
+            profiler.start('train interventions');
             # Perform interventions
             if (parameters['train_interventions']):
-                target, target_expressions, interventionLocation, emptySamples = \
+                target, target_expressions, interventionLocation = \
                     dataset.insertInterventions(target, copy.deepcopy(expressions), 
-                                                0,
+                                                topcause,
                                                 interventionLocation, 
                                                 possibleInterventions);
                 intervention_locations_train[interventionLocation] += 1;
                 #differences = map(lambda (d,t): d == t, zip(np.argmax(data, axis=2), np.argmax(target, axis=2)));
+            profiler.stop('train interventions');
             
-            # Swap axes of index in sentence and datapoint for Theano purposes
-            data = np.swapaxes(data, 0, 1);
-            target = np.swapaxes(target, 0, 1);
             # Run training
+            profiler.start('train sgd');
             if (parameters['train_interventions']):
-                outputs = \
+                outputs, predictions, labels_to_use = \
                     model.sgd(dataset, data, target, parameters['learning_rate'],
-                              emptySamples=emptySamples, expressions=expressions,
+                              emptySamples=[], expressions=expressions,
                               intervention_expressions=target_expressions, 
                               interventionLocation=interventionLocation,
                               intervention=parameters['train_interventions'],
-                              fixedDecoderInputs=parameters['fixed_decoder_inputs']);
+                              fixedDecoderInputs=parameters['fixed_decoder_inputs'],
+                              topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
             else:
-                outputs = \
+                outputs, predictions, labels_to_use = \
                     model.sgd(dataset, data, target, parameters['learning_rate'],
-                              emptySamples=emptySamples, expressions=expressions,
+                              emptySamples=[], expressions=expressions,
+                              intervention_expressions=expressions, 
                               intervention=parameters['train_interventions'],
-                              fixedDecoderInputs=parameters['fixed_decoder_inputs']);
+                              fixedDecoderInputs=parameters['fixed_decoder_inputs'],
+                              topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
             total_error += outputs[0];
+            profiler.stop('train sgd');
+            
+            # Training prediction
+            profiler.start('train stats');
+            if (parameters['train_statistics'] and parameters['train_interventions']):
+                stats = model.batch_statistics(stats, predictions, 
+                                               expressions, interventionLocation, 
+                                               {}, len(expressions), dataset, 
+                                               eos_symbol_index=dataset.EOS_symbol_index,
+                                               labels_to_use=labels_to_use,
+                                               training=True, topcause=topcause or parameters['bothcause'],
+                                               testExtraValidity=parameters['test_extra_validity'],
+                                               bothcause=parameters['bothcause']);             
+            
+            if (str(outputs[0]) == 'nan'):
+                # Terminate since we cannot work with NaN values
+                print("ERROR! ENCOUNTERED NAN ERROR! TERMINATING RUN.")
+                terminate = True;
+                break;
             
             if ((k+model.minibatch_size) % 100 == 0):
                 print("# %d / %d (error = %.2f)" % (k+model.minibatch_size, repetition_size, total_error));
-#                 if (parameters['debug']):
-#                     for p, l, e in zip(prediction_expressions, label_expressions, expressions):
-#                         print("Input:\t%s\tPrediction:\t%s\tLabel used:\t%s" % (e, p, l));
+            
+            profiler.stop('train stats');
+            profiler.stop('train batch');
             
         # Update stats
         total_datapoints_processed += repetition_size;
+        stats = model.total_statistics(stats);
         
         # Report on error
         print("Total error: %.2f" % total_error);
         print("Intervention locations: %s" % (str(intervention_locations_train)));
         
+        if (parameters['train_statistics']):
+            print_stats(stats, prefix='TRAIN ');
+        
         # Intermediate testing if this was not the last iteration of training
         # and we have passed the testing threshold
         #if (r != repetition_size-1):
-        test(model, dataset, parameters, max_length, print_samples=parameters['debug'], 
-             sample_size=parameters['sample_testing_size'], 
-             trimmed_from_max_length=trimmed_from_max_length);
+        test(model, dataset, parameters, max_length, base_offset, intervention_range, print_samples=parameters['debug'], 
+             sample_size=parameters['sample_testing_size']);
         # Save weights to pickles
         if (saveModels):
             saveVars = model.getVars();
             save_to_pickle('saved_models/%s_%d.model' % (name, r), saveVars, settings=parameters);
+        
+        if (terminate):
+            break;
     
-    print("Training all datasets finished!");
+    if (terminate):
+        print("Experiment terminated prematurely!");
+    else:
+        print("Training all datasets finished!");
+    
     

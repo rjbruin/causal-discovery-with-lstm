@@ -5,6 +5,7 @@ Created on 4 mrt. 2016
 '''
 
 import json;
+import copy;
 
 def processString(val):
     return val;
@@ -56,7 +57,7 @@ argumentProcessors = {'name': processString,
                       'random_baseline': processBool,
                       'n_max_digits': processInt,
                       'decoder': processBool,
-                      'adam_optimizer': processBool,
+                      'nesterov_optimizer': processBool,
                       'correction': processBool,
                       'fill_x': processBool,
                       'print_sample': processBool,
@@ -80,7 +81,18 @@ argumentProcessors = {'name': processString,
                       'intervention_base_offset': processInt,
                       'reverse': processBool,
                       'train_interventions': processBool,
-                      'fixed_decoder_inputs': processBool
+                      'test_interventions': processBool,
+                      'fixed_decoder_inputs': processBool,
+                      'train_statistics': processBool,
+                      'operators': processInt,
+                      'digits': processInt,
+                      'only_cause_expression': processFalseOrInt,
+                      'load_cause_expression_1': processFalseOrString,
+                      'load_cause_expression_2': processFalseOrString,
+                      'dataset_type': processInt, # 0 = expressions, 1 = seq2ndmarkov
+                      'test_extra_validity': processBool,
+                      'bothcause': processBool,
+                      'no_label_search': processBool
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -107,7 +119,7 @@ defaults = {'report_to_tracker': True,
             'random_baseline': False,
             'n_max_digits': 5,
             'decoder': False,
-            'adam_optimizer': False,
+            'nesterov_optimizer': True,
             'correction': False,
             'fill_x': False,
             'print_sample': False,
@@ -131,7 +143,18 @@ defaults = {'report_to_tracker': True,
             'intervention_base_offset': 6,
             'reverse': False,
             'train_interventions': True,
-            'fixed_decoder_inputs': True
+            'test_interventions': True,
+            'fixed_decoder_inputs': True,
+            'train_statistics': False,
+            'operators': 4,
+            'digits': 10,
+            'only_cause_expression': False,
+            'load_cause_expression_1': False,
+            'load_cause_expression_2': False,
+            'dataset_type': 0,
+            'test_extra_validity': False,
+            'bothcause': False,
+            'no_label_search': False
             }
 
 def processKeyValue(key,value):
@@ -145,7 +168,7 @@ def processKeyValue(key,value):
 
 def processCommandLineArguments(arguments, parameters=None):
     if (parameters is None):
-        parameters = defaults;
+        parameters = copy.deepcopy(defaults);
     
     if ('--params_from_experiment_header' in arguments):
         # If no arguments are provided, ask for parameters as raw input

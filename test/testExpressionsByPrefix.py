@@ -4,7 +4,7 @@ Created on 8 sep. 2016
 @author: Robert-Jan
 '''
 import unittest
-from models.ExpressionsByPrefix import ExpressionsByPrefix
+from models import SequencesByPrefix.ExpressionsByPrefix
 from models.GeneratedExpressionDataset import GeneratedExpressionDataset
 from profiler import profiler
 
@@ -19,7 +19,7 @@ class Test(unittest.TestCase):
                        '2/2=1'
                        ];
         
-        storage = ExpressionsByPrefix();
+        storage = SequencesByPrefix();
         for exp in expressions:
             storage.add(exp);
         

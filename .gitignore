@@ -11,3 +11,12 @@
 raw_results/*
 saved_models/*
 verbose_output/*
+
+# LaTeX files
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.pdf
+*.synctex.gz

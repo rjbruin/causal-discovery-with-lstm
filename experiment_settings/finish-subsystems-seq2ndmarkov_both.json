@@ -1,0 +1,22 @@
+[
+    {
+        "name": "f-subs-s2mb",
+        "script": "subsystems_finish.py",
+        "dataset": "./data/seq2ndmarkov_both",
+        "repetitions": "500",
+        "minibatch_size": "10",
+        "sample_testing_size": "10000",
+        "finish_subsystems": "True",
+        "n_max_digits": "17",
+        "intervention_base_offset": "0",
+        "intervention_range": "17",
+        "nesterov_optimizer": "True",
+        "dataset_type": "1",
+        "operators": "2",
+        "digits": "8",
+        "bothcause": "True",
+        "decoder": "True",
+        "learning_rate": "0.005",
+        "hidden_dim": "256"
+    }
+]
