@@ -195,9 +195,10 @@ class GeneratedExpressionDataset(Dataset):
                     expression = expression_prime;
                     expression_prime = "";
                 
-                if ((topcause == '0' and not self.only_cause_expression) or \
+                if (not self.only_cause_expression and \
+                        (topcause == '0' or \
                         self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
-                        (self.bothcause and not self.only_cause_expression)):
+                        self.bothcause)):
                     self.expressionsByPrefixBot.add(expression_prime, expression);
                 if (topcause == '1'):
                     self.expressionsByPrefix.add(expression, expression_prime);
@@ -227,9 +228,10 @@ class GeneratedExpressionDataset(Dataset):
                     expression = expression_prime;
                     expression_prime = "";
                 
-                if ((topcause == '0' and not self.only_cause_expression) or \
+                if (not self.only_cause_expression and \
+                        (topcause == '0' or \
                         self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
-                        (self.bothcause and not self.only_cause_expression)):
+                        self.bothcause)):
                     self.testExpressionsByPrefixBot.add(expression_prime, expression);
                 if (topcause == '1'):
                     self.testExpressionsByPrefix.add(expression, expression_prime);
