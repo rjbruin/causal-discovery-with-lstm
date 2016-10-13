@@ -41,7 +41,7 @@ class Profiler(object):
     
     def profile(self):
         if (self.on):
-            for f in sorted(self.durations):
-                print(("%s:\t%." + str(self.precision) + "f seconds") % (str(f),self.durations[f]));
+            for name, duration in sorted(self.durations.items(), key=lambda x: x[1], reverse=True):
+                print(("%s:\t%." + str(self.precision) + "f seconds") % (str(name),duration));
             
 profiler = Profiler();
