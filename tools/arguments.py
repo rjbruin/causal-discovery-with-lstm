@@ -92,7 +92,8 @@ argumentProcessors = {'name': processString,
                       'dataset_type': processInt, # 0 = expressions, 1 = seq2ndmarkov
                       'test_extra_validity': processBool,
                       'bothcause': processBool,
-                      'no_label_search': processBool
+                      'no_label_search': processBool,
+                      'clipping': processBool
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -154,7 +155,8 @@ defaults = {'report_to_tracker': True,
             'dataset_type': 0,
             'test_extra_validity': False,
             'bothcause': False,
-            'no_label_search': False
+            'no_label_search': False,
+            'clipping': False
             }
 
 def processKeyValue(key,value):

@@ -27,7 +27,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  EOS_symbol_index=None, GO_symbol_index=None, n_max_digits=24, 
                  decoder=False, verboseOutputter=None, finishExpressions=False,
                  optimizer=0, learning_rate=0.01,
-                 operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False):
+                 operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
+                 clipping=False):
         '''
         Initialize all Theano models.
         '''
@@ -46,6 +47,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.optimizer = optimizer;
         self.verboseOutputter = verboseOutputter;
         self.finishExpressions = finishExpressions;
+        self.clipping = clipping;
         
         if (not self.lstm):
             raise ValueError("Feature LSTM = False is no longer supported!");
@@ -232,9 +234,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         Y_output = T.nnet.softmax(hidden.dot(hWY));
         
         # Clipping
-        data_summation = T.sum(current_X, 1);
-        zero_check = T.eq(data_summation,0.).nonzero();
-        hidden = T.set_subtensor(hidden[zero_check], previous_hidden[zero_check]);
+        if (self.clipping):
+            data_summation = T.sum(current_X, 1);
+            zero_check = T.eq(data_summation,0.).nonzero();
+            hidden = T.set_subtensor(hidden[zero_check], previous_hidden[zero_check]);
         
         return Y_output, hidden;
     
@@ -247,9 +250,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         hidden = output_gate * cell;
         
         # Clipping
-        data_summation = T.sum(current_X, 1);
-        zero_check = T.eq(data_summation,0.).nonzero();
-        hidden = T.set_subtensor(hidden[zero_check], previous_hidden[zero_check]);
+        if (self.clipping):
+            data_summation = T.sum(current_X, 1);
+            zero_check = T.eq(data_summation,0.).nonzero();
+            hidden = T.set_subtensor(hidden[zero_check], previous_hidden[zero_check]);
         
         return hidden;
     
