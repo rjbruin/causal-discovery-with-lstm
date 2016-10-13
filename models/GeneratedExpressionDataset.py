@@ -264,10 +264,10 @@ class GeneratedExpressionDataset(Dataset):
         line = f.readline();
         while (line.strip() != "" and (max_length is False or length+1 <= max_length)):
             length += 1;
-            try:
-                data, target, _, _, _ = self.processor(line.strip(), [], [], [], []);
-            except Exception:
-                print(line);
+#             try:
+            data, target, _, _, _ = self.processor(line.strip(), [], [], [], []);
+#             except Exception:
+#                 print(line);
             if (data[0].shape[0] > data_length):
                 data_length = data[0].shape[0];
             if (target[0].shape[0] > target_length):

@@ -295,7 +295,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
 if __name__ == '__main__':
     theano.config.floatX = 'float32';
     np.set_printoptions(precision=3, threshold=10000000);
-#     profiler.off();
+    profiler.off();
     
     # Specific settings - default name is time of experiment
     name = time.strftime("%d-%m-%Y_%H-%M-%S");
