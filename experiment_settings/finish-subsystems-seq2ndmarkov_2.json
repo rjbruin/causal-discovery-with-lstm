@@ -1,10 +1,9 @@
 [
     {
-        "name": "f-subs-s2m",
+        "name": "f-subs-s2m2",
         "script": "subsystems_finish.py",
         "dataset": "./data/seq2ndmarkov_2",
         "repetitions": "500",
-        "minibatch_size": "10",
         "sample_testing_size": "10000",
         "finish_subsystems": "True",
         "n_max_digits": "17",

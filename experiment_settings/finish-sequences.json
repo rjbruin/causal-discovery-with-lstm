@@ -1,8 +1,8 @@
 [
     {
-        "name": "f-subs-s2m",
+        "name": "f-seqs-s",
         "script": "subsystems_finish.py",
-        "dataset": "./data/seq2ndmarkov",
+        "dataset": "./data/subsystems_shallow_simple_topcause",
         "repetitions": "500",
         "sample_testing_size": "10000",
         "finish_subsystems": "True",
@@ -10,11 +10,9 @@
         "intervention_base_offset": "0",
         "intervention_range": "17",
         "nesterov_optimizer": "True",
-        "dataset_type": "1",
-        "operators": "3",
-        "digits": "10",
         "decoder": "True",
         "learning_rate": "0.005",
-        "hidden_dim": "256"
+        "hidden_dim": "256",
+        "only_cause_expression": "1"
     }
 ]
