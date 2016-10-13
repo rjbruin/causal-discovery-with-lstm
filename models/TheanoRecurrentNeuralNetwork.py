@@ -230,6 +230,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + current_X.dot(XWo));
         hidden = output_gate * cell;
         Y_output = T.nnet.softmax(hidden.dot(hWY));
+        
+        # Clipping
+        data_summation = T.sum(current_X, 1);
+        zero_check = T.eq(data_summation,0.).nonzero();
+        hidden = T.set_subtensor(hidden[zero_check], previous_hidden[zero_check]);
+        
         return Y_output, hidden;
     
     def lstm_predict_single_no_output(self, current_X, previous_hidden, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo):
@@ -239,6 +245,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         cell = forget_gate * previous_hidden + input_gate * candidate_cell;
         output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + current_X.dot(XWo));
         hidden = output_gate * cell;
+        
+        # Clipping
+        data_summation = T.sum(current_X, 1);
+        zero_check = T.eq(data_summation,0.).nonzero();
+        hidden = T.set_subtensor(hidden[zero_check], previous_hidden[zero_check]);
+        
         return hidden;
     
     # END OF INITIALIZATION
