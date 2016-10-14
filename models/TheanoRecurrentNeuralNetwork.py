@@ -28,7 +28,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  decoder=False, verboseOutputter=None, finishExpressions=False,
                  optimizer=0, learning_rate=0.01,
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
-                 clipping=False):
+                 clipping=False, doubleLayer=False):
         '''
         Initialize all Theano models.
         '''
@@ -48,9 +48,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.verboseOutputter = verboseOutputter;
         self.finishExpressions = finishExpressions;
         self.clipping = clipping;
+        self.doubleLayer = doubleLayer;
         
         if (not self.lstm):
             raise ValueError("Feature LSTM = False is no longer supported!");
+        if (self.clipping and self.doubleLayer):
+            raise ValueError("Clipping and double layer not supported together!");
                 
         self.EOS_symbol_index = EOS_symbol_index;
         self.GO_symbol_index = GO_symbol_index;
@@ -79,6 +82,16 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         varSettings.append(('XWc',actual_data_dim,self.hidden_dim));
         varSettings.append(('hWo',self.hidden_dim,self.hidden_dim));
         varSettings.append(('XWo',actual_data_dim,self.hidden_dim));
+        if (self.doubleLayer):
+            varSettings.append(('hWf2',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('XWf2',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('hWi2',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('XWi2',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('hWc2',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('XWc2',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('hWo2',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('XWo2',self.hidden_dim,self.hidden_dim));
+            
         if (self.decoder):
             # Add variables for the decoding phase
             # All these variables begin with 'D' so they can be 
@@ -91,6 +104,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             varSettings.append(('DXWc',actual_data_dim,self.hidden_dim));
             varSettings.append(('DhWo',self.hidden_dim,self.hidden_dim));
             varSettings.append(('DXWo',actual_data_dim,self.hidden_dim));
+            if (self.doubleLayer):
+                varSettings.append(('DhWf2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DXWf2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DhWi2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DXWi2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DhWc2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DXWc2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DhWo2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DXWo2',self.hidden_dim,self.hidden_dim));
             varSettings.append(('DhWY',self.hidden_dim,actual_decoding_output_dim));
         else:
             varSettings.append(('hWY',self.hidden_dim,actual_prediction_output_dim));
@@ -115,40 +137,65 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             label = T.ftensor3('label');
         intervention_location = T.iscalar('intervention_location');
         
+        # Set the RNN cell to use for encoding and decoding
+        encode_function = self.lstm_predict_single_no_output;
+        decode_function = self.lstm_predict_single;
+        if (self.doubleLayer):
+            encode_function = self.lstm_predict_double_no_output;
+            decode_function = self.lstm_predict_double;
+        
         # Set the prediction parameters to be either the prediction 
         # weights or the decoding weights depending on the setting 
         encode_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] != 'D' and name[0] != 'hWY', varSettings)];
         if (self.decoder):
             decode_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] == 'D', varSettings)];
-            decode_function = self.lstm_predict_single;
         else:
             decode_parameters = encode_parameters + [self.vars['hWY']];
-            decode_function = self.lstm_predict_single;
         
-        first_hidden = T.zeros((self.minibatch_size,self.hidden_dim));        
-        hidden, _ = theano.scan(fn=self.lstm_predict_single_no_output,
+        first_hidden = T.zeros((self.minibatch_size,self.hidden_dim));
+        initial_encode = ({'initial': first_hidden, 'taps': [-1]});
+        if (self.doubleLayer):
+            initial_encode = ({'initial': first_hidden, 'taps': [-1]},{'initial': first_hidden, 'taps': [-1]});  
+        hiddens, _ = theano.scan(fn=encode_function,
                                 sequences=X,
                                 # Input a zero hidden layer
-                                outputs_info=({'initial': first_hidden, 'taps': [-1]}),
+                                outputs_info=initial_encode,
                                 non_sequences=encode_parameters,
                                 name='encode_scan');
+        hidden = hiddens;
+        if (self.doubleLayer):
+            hidden = hiddens[0];
+            hidden_2 = hiddens[1];
     
         if (self.GO_symbol_index is None):
             raise ValueError("GO symbol index not set!");
 
         init_values = (None, {'initial': hidden[-1], 'taps': [-1]});
-        [right_hand_1, right_hand_hiddens], _ = theano.scan(fn=decode_function,
-                                     sequences=(label[:intervention_location+1]),
-                                     outputs_info=init_values,
-                                     non_sequences=decode_parameters,
-                                     name='decode_scan_1')
+        if (self.doubleLayer):
+            init_values = (None, {'initial': hidden[-1], 'taps': [-1]}, {'initial': hidden_2[-1], 'taps': [-1]});
+        outputs, _ = theano.scan(fn=decode_function,
+                                 sequences=(label[:intervention_location+1]),
+                                 outputs_info=init_values,
+                                 non_sequences=decode_parameters,
+                                 name='decode_scan_1')
+        if (self.doubleLayer):
+            right_hand_1, right_hand_hiddens, right_hand_hiddens_2 = outputs;
+        else:
+            right_hand_1, right_hand_hiddens = outputs;
+        
         init_values_2 = ({'initial': right_hand_1[-1], 'taps': [-1]},
                          {'initial': right_hand_hiddens[-1], 'taps': [-1]});
-        [right_hand_2, _], _ = theano.scan(fn=decode_function,
-                                           outputs_info=init_values_2,
-                                           non_sequences=decode_parameters,
-                                           n_steps=self.n_max_digits-(intervention_location+1),
-                                           name='decode_scan_2')
+        if (self.doubleLayer):
+            init_values_2 = ({'initial': right_hand_1[-1], 'taps': [-1]},
+                             {'initial': right_hand_hiddens[-1], 'taps': [-1]},
+                             {'initial': right_hand_hiddens_2[-1], 'taps': [-1]});
+        outputs_postintervention, _ = theano.scan(fn=decode_function,
+                                                  outputs_info=init_values_2,
+                                                  non_sequences=decode_parameters,
+                                                  n_steps=self.n_max_digits-(intervention_location+1),
+                                                  name='decode_scan_2')
+        right_hand_2 = outputs_postintervention[0];
+        
         right_hand_with_zeros = T.join(0, label[:intervention_location+1], right_hand_2);
         right_hand_near_zeros = T.ones_like(right_hand_with_zeros) * 1e-15;
         right_hand = T.maximum(right_hand_with_zeros, right_hand_near_zeros);
@@ -256,6 +303,46 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             hidden = T.set_subtensor(hidden[zero_check], previous_hidden[zero_check]);
         
         return hidden;
+    
+    def lstm_predict_double(self, current_X, previous_hidden_1, previous_hidden_2,
+                            hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo,
+                            hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, hWY):
+        forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + current_X.dot(XWf));
+        input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + current_X.dot(XWi));
+        candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + current_X.dot(XWc));
+        cell = forget_gate * previous_hidden_1 + input_gate * candidate_cell;
+        output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + current_X.dot(XWo));
+        hidden_1 = output_gate * cell;
+        
+        forget_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWf2) + hidden_1.dot(XWf2));
+        input_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWi2) + hidden_1.dot(XWi2));
+        candidate_cell_2 = T.tanh(previous_hidden_2.dot(hWc2) + hidden_1.dot(XWc2));
+        cell_2 = forget_gate_2 * previous_hidden_2 + input_gate_2 * candidate_cell_2;
+        output_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWo2) + hidden_1.dot(XWo2));
+        hidden_2 = output_gate_2 * cell_2;
+        
+        Y_output = T.nnet.softmax(hidden_2.dot(hWY));
+        
+        return Y_output, hidden_1, hidden_2;
+    
+    def lstm_predict_double_no_output(self, current_X, previous_hidden_1, previous_hidden_2,
+                                      hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo,
+                                      hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2):
+        forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + current_X.dot(XWf));
+        input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + current_X.dot(XWi));
+        candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + current_X.dot(XWc));
+        cell = forget_gate * previous_hidden_1 + input_gate * candidate_cell;
+        output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + current_X.dot(XWo));
+        hidden_1 = output_gate * cell;
+        
+        forget_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWf2) + hidden_1.dot(XWf2));
+        input_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWi2) + hidden_1.dot(XWi2));
+        candidate_cell_2 = T.tanh(previous_hidden_2.dot(hWc2) + hidden_1.dot(XWc2));
+        cell_2 = forget_gate_2 * previous_hidden_2 + input_gate_2 * candidate_cell_2;
+        output_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWo2) + hidden_1.dot(XWo2));
+        hidden_2 = output_gate_2 * cell_2;
+        
+        return hidden_1, hidden_2;
     
     # END OF INITIALIZATION
     

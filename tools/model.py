@@ -91,7 +91,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                          digits=parameters['digits'],
                                          only_cause_expression=parameters['only_cause_expression'],
                                          seq2ndmarkov=parameters['dataset_type'] == 1,
-                                         clipping=parameters['clipping']);
+                                         clipping=parameters['clipping'],
+                                         doubleLayer=parameters['double_layer']);
     
     return datasets, rnn;
 

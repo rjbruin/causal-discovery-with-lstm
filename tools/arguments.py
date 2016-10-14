@@ -62,7 +62,6 @@ argumentProcessors = {'name': processString,
                       'fill_x': processBool,
                       'print_sample': processBool,
                       'extreme_verbose': processBool,
-                      'layers': processInt,
                       'predict_expressions': processBool,
                       'multipart_dataset': processFalseOrInt,
                       'multipart_1': processFalseOrString,
@@ -93,7 +92,8 @@ argumentProcessors = {'name': processString,
                       'test_extra_validity': processBool,
                       'bothcause': processBool,
                       'no_label_search': processBool,
-                      'clipping': processBool
+                      'clipping': processBool,
+                      'double_layer': processBool
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -125,7 +125,6 @@ defaults = {'report_to_tracker': True,
             'fill_x': False,
             'print_sample': False,
             'extreme_verbose': False,
-            'layers': 1,
             'predict_expressions': False,
             'multipart_dataset': False,
             'multipart_1': False,
@@ -156,7 +155,8 @@ defaults = {'report_to_tracker': True,
             'test_extra_validity': False,
             'bothcause': False,
             'no_label_search': False,
-            'clipping': False
+            'clipping': False,
+            'double_layer': False
             }
 
 def processKeyValue(key,value):
