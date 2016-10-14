@@ -80,10 +80,8 @@ def createSeq(length):
     seq = SYMBOLS[digit_seed];
     return finishSeq(seq, length, result);
 
-def createSample(min_length, max_length,
-                 top_to_bot_mutators, bot_to_top_mutators, bothways=False):
+def createSample(length, top_to_bot_mutators, bot_to_top_mutators, bothways=False):
     # Create top and bottom sequences apart from each other
-    length = np.random.randint(min_length, max_length+1);
     top = createSeq(length);
     bot = createSeq(length);
 
@@ -104,8 +102,7 @@ def createSample(min_length, max_length,
 
 def generateSequences(baseFilePath, n, test_percentage,
                       top_to_bot_mutators, bot_to_top_mutators,
-                      min_length=5,
-                      max_length=21, verbose=False,
+                      length=15, verbose=False,
                       bothways=False):
     savedSequences = {};
     sequential_fails = 0;
@@ -113,7 +110,7 @@ def generateSequences(baseFilePath, n, test_percentage,
 
     print("Generating expressions...");
     while len(savedSequences) < n and sequential_fails < fail_limit:
-        top, bot, topcause = createSample(min_length, max_length,
+        top, bot, topcause = createSample(length,
                                           top_to_bot_mutators,
                                           bot_to_top_mutators,
                                           bothways=bothways);
@@ -163,8 +160,7 @@ if __name__ == '__main__':
 #                            lambda top, bot: _mutator_digit_change(7, 6, top, bot)];
 #     bot_to_top_mutators = [lambda bot, top: _mutator_digit_copy(5, bot, top),
 #                            lambda bot, top: _mutator_digit_change(4, 3, bot, top)];
-#     min_length = 8;
-#     max_length = 15;
+#     length = 15;
 #     verbose = False;
 #     bothways = False;
 
@@ -182,58 +178,27 @@ if __name__ == '__main__':
 #                            4: lambda bot, top: _mutator_digit_change(4, 3, bot, top),
 #                            1: lambda bot, top: _mutator_digit_change(1, 7, bot, top),
 #                            0: lambda bot, top: _mutator_digit_change(0, 4, bot, top)};
-#     min_length = 8;
-#     max_length = 15;
+#     length = 15;
 #     verbose = False;
 #     bothways = False;
     
-#     folder = 'seq2ndmarkov_both';
-#     n = 1000000;
-#     max_digits = 8;
-#     max_ops = 2;
-#     top_to_bot_mutators = {6: lambda top, bot: _mutator_digit_copy(6, top, bot),
-#                            1: lambda top, bot: _mutator_digit_copy(1, top, bot),
-#                            3: lambda top, bot: _mutator_digit_change(3, 5, top, bot),
-#                            0: lambda top, bot: _mutator_digit_change(0, 3, top, bot),
-#                            2: lambda top, bot: _mutator_digit_change(2, 0, top, bot)};
-#     bot_to_top_mutators = {7: lambda bot, top: _mutator_digit_copy(7, bot, top),
-#                            2: lambda bot, top: _mutator_digit_copy(2, bot, top),
-#                            4: lambda bot, top: _mutator_digit_change(4, 3, bot, top),
-#                            1: lambda bot, top: _mutator_digit_change(1, 7, bot, top),
-#                            0: lambda bot, top: _mutator_digit_change(0, 4, bot, top)};
-#     min_length = 8;
-#     max_length = 15;
-#     verbose = False;
-#     bothways = True;
-
-    folder = 'seq2ndmarkov_nostructure';
+    folder = 'seq2ndmarkov_both';
     n = 1000000;
-    max_digits = 10;
-    max_ops = 3;
-    top_to_bot_mutators = {6: [lambda top, bot: _mutator_digit_copy(6, top, bot)],
-                           1: [lambda top, bot: _mutator_digit_copy(1, top, bot)],
-                           3: [lambda top, bot: _mutator_digit_change(3, 5, top, bot)],
-                           0: [lambda top, bot: _mutator_digit_change(0, 3, top, bot)],
-                           12: [lambda top, bot: _mutator_digit_change(12, 4, top, bot)],
-                           13: [lambda top, bot: _mutator_digit_change(13, 0, top, bot)],
-                           2: [lambda top, bot: _mutator_digit_change_2ndorder(10, 2, 3, top, bot),
-                               lambda top, bot: _mutator_digit_change_2ndorder(11, 2, 1, top, bot)],
-                           4: [lambda top, bot: _mutator_digit_change_2ndorder(10, 4, 5, top, bot),
-                               lambda top, bot: _mutator_digit_change_2ndorder(11, 4, 3, top, bot)]};
-    bot_to_top_mutators = {7: [lambda bot, top: _mutator_digit_copy(7, bot, top)],
-                           2: [lambda bot, top: _mutator_digit_copy(2, bot, top)],
-                           1: [lambda bot, top: _mutator_digit_change(1, 7, bot, top)],
-                           0: [lambda bot, top: _mutator_digit_change(0, 4, bot, top)],
-                           10: [lambda top, bot: _mutator_digit_change(10, 4, top, bot)],
-                           11: [lambda top, bot: _mutator_digit_change(11, 0, top, bot)],
-                           5: [lambda bot, top: _mutator_digit_change_2ndorder(12, 5, 7, bot, top),
-                               lambda bot, top: _mutator_digit_change_2ndorder(11, 5, 4, bot, top)],
-                           6: [lambda bot, top: _mutator_digit_change_2ndorder(12, 6, 8, bot, top),
-                               lambda bot, top: _mutator_digit_change_2ndorder(11, 6, 5, bot, top)]};
-    min_length = 8;
-    max_length = 15;
+    max_digits = 8;
+    max_ops = 2;
+    top_to_bot_mutators = {6: lambda top, bot: _mutator_digit_copy(6, top, bot),
+                           1: lambda top, bot: _mutator_digit_copy(1, top, bot),
+                           3: lambda top, bot: _mutator_digit_change(3, 5, top, bot),
+                           0: lambda top, bot: _mutator_digit_change(0, 3, top, bot),
+                           2: lambda top, bot: _mutator_digit_change(2, 0, top, bot)};
+    bot_to_top_mutators = {7: lambda bot, top: _mutator_digit_copy(7, bot, top),
+                           2: lambda bot, top: _mutator_digit_copy(2, bot, top),
+                           4: lambda bot, top: _mutator_digit_change(4, 3, bot, top),
+                           1: lambda bot, top: _mutator_digit_change(1, 7, bot, top),
+                           0: lambda bot, top: _mutator_digit_change(0, 4, bot, top)};
+    length = 15;
     verbose = False;
-    bothways = False;
+    bothways = True;
 
     # Generate other variables
     trainFilePath = folder + '/train.txt';
@@ -259,5 +224,5 @@ if __name__ == '__main__':
     if (not stop):
         generateSequences(folder, n, test_size,
                           top_to_bot_mutators, bot_to_top_mutators,
-                          min_length=min_length, max_length=max_length,
+                          length=length, 
                           verbose=verbose, bothways=bothways);

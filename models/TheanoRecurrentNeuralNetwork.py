@@ -138,10 +138,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         init_values = (None, {'initial': hidden[-1], 'taps': [-1]});
         [right_hand_1, right_hand_hiddens], _ = theano.scan(fn=decode_function,
-                                            sequences=(label[:intervention_location+1]),
-                                            outputs_info=init_values,
-                                            non_sequences=decode_parameters,
-                                            name='decode_scan_1')
+                                     sequences=(label[:intervention_location+1]),
+                                     outputs_info=init_values,
+                                     non_sequences=decode_parameters,
+                                     name='decode_scan_1')
         init_values_2 = ({'initial': right_hand_1[-1], 'taps': [-1]},
                          {'initial': right_hand_hiddens[-1], 'taps': [-1]});
         [right_hand_2, _], _ = theano.scan(fn=decode_function,
@@ -149,7 +149,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                            non_sequences=decode_parameters,
                                            n_steps=self.n_max_digits-(intervention_location+1),
                                            name='decode_scan_2')
-        right_hand_with_zeros = T.join(0, right_hand_1, right_hand_2);
+        right_hand_with_zeros = T.join(0, label[:intervention_location+1], right_hand_2);
         right_hand_near_zeros = T.ones_like(right_hand_with_zeros) * 1e-15;
         right_hand = T.maximum(right_hand_with_zeros, right_hand_near_zeros);
         
