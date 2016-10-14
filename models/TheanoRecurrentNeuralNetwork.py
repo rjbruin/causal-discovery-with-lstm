@@ -472,11 +472,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             
             profiler.start("fl string prediction compilation");
             # Find the string representation of the prediction
-            string_prediction = "";
-            for index in prediction:
-                if (index >= dataset.EOS_symbol_index):
-                    break;
-                string_prediction += dataset.findSymbol[index];
+            string_prediction = dataset.indicesToStr(prediction);
             profiler.stop("fl string prediction compilation");
             
             # Get all valid predictions for this data sample including intervention
@@ -505,10 +501,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 other_string_prediction = "";
                 if (not self.only_cause_expression):
                     profiler.start("fl other prediction checking");
-                    for index in effectExpressionPredictions[i]:
-                        if (index >= dataset.EOS_symbol_index):
-                            break;
-                        other_string_prediction += dataset.findSymbol[index];
+                    other_string_prediction = dataset.indicesToStr(effectExpressionPredictions[i]);
                     prediction_index = valid_predictions.index(string_prediction);
                     if (other_string_prediction == validPredictionEffectExpressions[prediction_index]):
                         # If the effect expression predicted matches the 

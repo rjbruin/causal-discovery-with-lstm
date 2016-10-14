@@ -12,6 +12,7 @@ import copy;
 import tools.model;
 from tools.file import load_from_pickle_with_filename
 from tools.model import set_up_statistics;
+from models.GeneratedExpressionDataset import GeneratedExpressionDataset
 
 app = Flask(__name__)
 
@@ -96,7 +97,10 @@ def predictInterventionSample():
         interventionLocation = int(request.form['interventionLocation']);
         intervention = request.form['intervention'];
         
-        datasample, _, _, _, _ = data['dataset'].processor(";".join([sample1,sample2]),[],[],[],[]);
+        if (data['dataset'].dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV):
+            datasample, _, _, _, _ = data['dataset'].processor(";".join([sample1,sample2,"1"]),[],[],[],[]);
+        else:
+            datasample, _, _, _, _ = data['dataset'].processor(";".join([sample1,sample2]),[],[],[],[]);
         response['data'] = datasample[0].tolist();
         
         datasample = data['dataset'].fill_ndarray(datasample,1).reshape((1,datasample[0].shape[0],datasample[0].shape[1]));
@@ -110,8 +114,11 @@ def predictInterventionSample():
             label = np.concatenate((label,np.zeros((missing_datapoints, datasample.shape[1], datasample.shape[2]), dtype='float32')), axis=0);
         prediction, _ = data['rnn'].predict(datasample, label=label, interventionLocation=interventionLocation);
         
-        response['prediction1'] = prediction[0][0].tolist();
-        response['prediction2'] = prediction[1][0].tolist();
+        if (not data['rnn'].only_cause_expression):
+            response['prediction1'] = prediction[0][0].tolist();
+            response['prediction2'] = prediction[1][0].tolist();
+        else:
+            response['prediction1'] = prediction[0].tolist();
         
         response['prediction1Pretty'] = "";
         for index in response['prediction1']:
@@ -120,12 +127,16 @@ def predictInterventionSample():
             else:
                 response['prediction1Pretty'] += data['dataset'].findSymbol[index];
         
-        response['prediction2Pretty'] = "";
-        for index in response['prediction2']:
-            if (index == data['dataset'].EOS_symbol_index):
-                response['prediction2Pretty'] += "_";
-            else:
-                response['prediction2Pretty'] += data['dataset'].findSymbol[index];
+        if (not data['rnn'].only_cause_expression):
+            response['prediction2Pretty'] = "";
+            for index in response['prediction2']:
+                if (index == data['dataset'].EOS_symbol_index):
+                    response['prediction2Pretty'] += "_";
+                else:
+                    response['prediction2Pretty'] += data['dataset'].findSymbol[index];
+        
+        if (data['rnn'].only_cause_expression is not False):
+            prediction = [prediction];
         
         response['success'] = True;
         
@@ -135,6 +146,7 @@ def predictInterventionSample():
                                              {}, test_n, data['dataset'])
         response['stats'] = {};
         response['stats']['correct'] = stats['correct'];
+        response['stats']['valid'] = stats['valid'];
         
     return flask.jsonify(response);
 

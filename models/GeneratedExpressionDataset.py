@@ -912,6 +912,8 @@ class GeneratedExpressionDataset(Dataset):
     def indicesToStr(self, prediction):
         expression = "";
         for index in prediction:
+            if (index >= self.EOS_symbol_index):
+                break;
             expression += self.findSymbol[index];
         return expression;
     
