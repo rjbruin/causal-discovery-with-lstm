@@ -18,35 +18,39 @@ import theano;
 import copy;
 from profiler import profiler
 
-def print_stats(stats, prefix=''):
+def print_stats(stats, parameters, prefix=''):
     # Print statistics
     output = "\n";
 
     # Print statistics
     output += prefix + "Score: %.2f percent\n" % (stats['score']*100);
-    output += prefix + "Structure score cause: %.2f percent\n" % (stats['structureScoreCause']*100);
-    output += prefix + "Structure score effect: %.2f percent\n" % (stats['structureScoreEffect']*100);
-    output += prefix + "Structure score top: %.2f percent\n" % (stats['structureScoreTop']*100);
-    output += prefix + "Structure score bot: %.2f percent\n" % (stats['structureScoreBot']*100);
-    output += prefix + "Structure score: %.2f percent\n" % (stats['structureScore']*100);
-    output += prefix + "Effect score: %.2f percent\n" % (stats['effectScore']*100);
-    output += prefix + "Effect score including no effect: %.2f percent\n" % (stats['allEffectScore']*100);
+    
+    if (not parameters['only_cause_expression']):
+        output += prefix + "Structure score cause: %.2f percent\n" % (stats['structureScoreCause']*100);
+        output += prefix + "Structure score effect: %.2f percent\n" % (stats['structureScoreEffect']*100);
+        output += prefix + "Structure score top: %.2f percent\n" % (stats['structureScoreTop']*100);
+        output += prefix + "Structure score bot: %.2f percent\n" % (stats['structureScoreBot']*100);
+        output += prefix + "Structure score: %.2f percent\n" % (stats['structureScore']*100);
+        output += prefix + "Effect score: %.2f percent\n" % (stats['effectScore']*100);
+        output += prefix + "Effect score including no effect: %.2f percent\n" % (stats['allEffectScore']*100);
     
     output += prefix + "Valid: %.2f percent\n" % (stats['validScore']*100);
-    output += prefix + "Structure valid cause: %.2f percent\n" % (stats['structureValidScoreCause']*100);
-    output += prefix + "Structure valid effect: %.2f percent\n" % (stats['structureValidScoreEffect']*100);
-    output += prefix + "Structure valid top: %.2f percent\n" % (stats['structureValidScoreTop']*100);
-    output += prefix + "Structure valid bot: %.2f percent\n" % (stats['structureValidScoreBot']*100);
+    if (not parameters['only_cause_expression']):
+        output += prefix + "Structure valid cause: %.2f percent\n" % (stats['structureValidScoreCause']*100);
+        output += prefix + "Structure valid effect: %.2f percent\n" % (stats['structureValidScoreEffect']*100);
+        output += prefix + "Structure valid top: %.2f percent\n" % (stats['structureValidScoreTop']*100);
+        output += prefix + "Structure valid bot: %.2f percent\n" % (stats['structureValidScoreBot']*100);
     
     output += prefix + "Intervention locations:   %s\n" % (str(stats['intervention_locations']));
 
-    output += prefix + "Digit-based (1) score: %.2f percent\n" % (stats['digit_1_score']*100);
-    output += prefix + "Prediction size (1) histogram:   %s\n" % (str(stats['prediction_1_size_histogram']));
-    output += prefix + "Digit (1) histogram:   %s\n" % (str(stats['prediction_1_histogram']));
-    
-    output += prefix + "Digit-based (2) score: %.2f percent\n" % (stats['digit_2_score']*100);
-    output += prefix + "Prediction size (2) histogram:   %s\n" % (str(stats['prediction_2_size_histogram']));
-    output += prefix + "Digit (2) histogram:   %s\n" % (str(stats['prediction_2_histogram']));
+    if (not parameters['only_cause_expression']):
+        output += prefix + "Digit-based (1) score: %.2f percent\n" % (stats['digit_1_score']*100);
+        output += prefix + "Prediction size (1) histogram:   %s\n" % (str(stats['prediction_1_size_histogram']));
+        output += prefix + "Digit (1) histogram:   %s\n" % (str(stats['prediction_1_histogram']));
+        
+        output += prefix + "Digit-based (2) score: %.2f percent\n" % (stats['digit_2_score']*100);
+        output += prefix + "Prediction size (2) histogram:   %s\n" % (str(stats['prediction_2_size_histogram']));
+        output += prefix + "Digit (2) histogram:   %s\n" % (str(stats['prediction_2_histogram']));
         
     output += prefix + "Digit-based score: %.2f percent\n" % (stats['digit_score']*100);
     output += prefix + "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
@@ -288,7 +292,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
     
     stats = model.total_statistics(stats);
     
-    print_stats(stats);
+    print_stats(stats, parameters);
     
     return stats;
 
@@ -453,7 +457,7 @@ if __name__ == '__main__':
         print("Intervention locations: %s" % (str(intervention_locations_train)));
         
         if (parameters['train_statistics']):
-            print_stats(stats, prefix='TRAIN ');
+            print_stats(stats, parameters, prefix='TRAIN ');
         
         # Intermediate testing if this was not the last iteration of training
         # and we have passed the testing threshold

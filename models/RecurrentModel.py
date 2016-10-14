@@ -5,6 +5,7 @@ Created on 25 jul. 2016
 '''
 from abc import ABCMeta, abstractmethod
 import numpy as np;
+import copy;
 
 class RecurrentModel(object):
     '''
@@ -91,8 +92,8 @@ class RecurrentModel(object):
         """
         Adds general statistics to the statistics generated per batch.
         """
-        stats['prediction_histogram'] = dict(stats['prediction_1_histogram'], **stats['prediction_2_histogram']);
-        stats['prediction_size_histogram'] = dict(stats['prediction_1_size_histogram'], **stats['prediction_2_size_histogram']);
+        stats['prediction_histogram'] = RecurrentModel.addDicts(stats['prediction_1_histogram'], stats['prediction_2_histogram']);
+        stats['prediction_size_histogram'] = RecurrentModel.addDicts(stats['prediction_1_size_histogram'], stats['prediction_2_size_histogram']);
         
         stats['digit_correct'] = stats['digit_1_correct'] + stats['digit_2_correct'];
         stats['digit_prediction_size'] = stats['digit_1_prediction_size'] + stats['digit_2_prediction_size'];
@@ -151,3 +152,13 @@ class RecurrentModel(object):
                                       stats['error_histogram'][2] + stats['error_histogram'][3]) / float(stats['prediction_size']); 
         
         return stats;
+    
+    @staticmethod
+    def addDicts(dict1, dict2):
+        newDict = copy.deepcopy(dict1);
+        for key in dict2:
+            if (key not in newDict):
+                newDict[key] = 0;
+            newDict[key] += dict2[key];
+        return newDict;
+        
