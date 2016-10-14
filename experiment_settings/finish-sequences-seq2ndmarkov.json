@@ -4,6 +4,8 @@
         "script": "subsystems_finish.py",
         "dataset": "./data/seq2ndmarkov",
         "dataset_type": "1",
+        "operators": "3",
+        "digits": "10",
         "repetitions": "500",
         "sample_testing_size": "10000",
         "finish_subsystems": "True",
