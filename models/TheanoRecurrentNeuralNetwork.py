@@ -585,26 +585,18 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 continue;
             
             # Find the string representation of the prediction
-            top_string_prediction = "";
-            for index in prediction:
-                if (index >= dataset.EOS_symbol_index):
-                    break;
-                top_string_prediction += dataset.findSymbol[index];
+            top_string_prediction = dataset.indicesToStr(prediction);
             if (not self.only_cause_expression):
-                bot_string_prediction = "";
-                for index in botExpressionPredictions[i]:
-                    if (index >= dataset.EOS_symbol_index):
-                        break;
-                    bot_string_prediction += dataset.findSymbol[index];
+                bot_string_prediction = dataset.indicesToStr(botExpressionPredictions[i]);
             
             # Get all valid predictions for this data sample including intervention
             # Note: the prediction might deviate from the label even before the intervention
             # We still use the label expressions provided (even though we know that our
             # prediction will not be in valid_prediction) because we do want to use a label 
             # that does the intervention right so the model can learn from this mistake
-            _, _, validTopPredictions, validTopPredictionBotSamples = storage.get(topExpressions[i][:intervention_location+1]);
+            _, _, validTopPredictions, validTopPredictionBotSamples, branch = storage.get(topExpressions[i][:intervention_location+1], alsoGetStructure=True);
             if (not self.only_cause_expression):
-                _, _, validBotPredictions, validBotPredictionTopSamples = storage_bot.get(botExpressions[i][:intervention_location+1]);
+                _, _, validBotPredictions, validBotPredictionTopSamples, branch_bot = storage_bot.get(botExpressions[i][:intervention_location+1], alsoGetStructure=True);
             
             if (not self.only_cause_expression):
                 validTops = validTopPredictions + validBotPredictionTopSamples;
@@ -653,11 +645,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             label_expressions.append((top_string_prediction,""));
                 else:
                     if (len(predictionPool) == 0):
-                        for j in range(len(validTops)):
-                            if (not self.only_cause_expression):
-                                predictionPool.append((validTops[j],validBots[j],-1));
-                            else:
-                                predictionPool.append(validTops[j]);
+                        # Get closest for both and add both to prediction pool
+                        closest_expression, closest_expression_prime, _, _ = branch.get_closest(top_string_prediction[intervention_location+1:]);
+                        predictionPool.append((closest_expression, closest_expression_prime, -1));
+                        if (not self.only_cause_expression):
+                            closest_expression, closest_expression_prime, _, _ = branch_bot.get_closest(bot_string_prediction[intervention_location+1:]);
+                            predictionPool.append((closest_expression, closest_expression_prime, -1));
                     
                     # Find the nearest expression to our prediction
                     nearest = -1;
