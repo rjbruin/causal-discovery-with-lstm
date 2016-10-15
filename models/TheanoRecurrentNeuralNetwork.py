@@ -129,13 +129,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # Set up inputs to prediction and SGD
         # X is 3-dimensional: 1) index in sentence, 2) datapoint, 3) dimensionality of data
         X = T.ftensor3('X');
-        if (self.single_digit):
-            # targets is 2-dimensional: 1) datapoint, 2) label for each answer
-            label = T.fmatrix('label');
-        else:
-            # targets is 3-dimensional: 1) index in sentence, 2) datapoint, 3) encodings
-            label = T.ftensor3('label');
-        intervention_location = T.iscalar('intervention_location');
+        # targets is 2-dimensional: 1) datapoint, 2) label for each answer
+        label = T.fmatrix('label');
+        intervention_locations = T.ivector();
         
         # Set the RNN cell to use for encoding and decoding
         encode_function = self.lstm_predict_single_no_output;
@@ -169,36 +165,21 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     
         if (self.GO_symbol_index is None):
             raise ValueError("GO symbol index not set!");
-
-        init_values = (None, {'initial': hidden[-1], 'taps': [-1]});
+        
+        init_values = ({'initial': T.zeros_like(label[-1]), 'taps': [-1]}, {'initial': hidden[-1], 'taps': [-1]});
         if (self.doubleLayer):
-            init_values = (None, {'initial': hidden[-1], 'taps': [-1]}, {'initial': hidden_2[-1], 'taps': [-1]});
+            init_values = ({'initial': T.zeros_like(label[-1]), 'taps': [-1]}, {'initial': hidden[-1], 'taps': [-1]}, {'initial': hidden_2[-1], 'taps': [-1]});
         outputs, _ = theano.scan(fn=decode_function,
-                                 sequences=(label[:intervention_location+1]),
+                                 sequences=(label),
                                  outputs_info=init_values,
-                                 non_sequences=decode_parameters,
+                                 non_sequences=(intervention_locations,decode_parameters),
                                  name='decode_scan_1')
         if (self.doubleLayer):
-            right_hand_1, right_hand_hiddens, right_hand_hiddens_2 = outputs;
+            right_hand, _, _ = outputs;
         else:
-            right_hand_1, right_hand_hiddens = outputs;
-        
-        init_values_2 = ({'initial': right_hand_1[-1], 'taps': [-1]},
-                         {'initial': right_hand_hiddens[-1], 'taps': [-1]});
-        if (self.doubleLayer):
-            init_values_2 = ({'initial': right_hand_1[-1], 'taps': [-1]},
-                             {'initial': right_hand_hiddens[-1], 'taps': [-1]},
-                             {'initial': right_hand_hiddens_2[-1], 'taps': [-1]});
-        outputs_postintervention, _ = theano.scan(fn=decode_function,
-                                                  outputs_info=init_values_2,
-                                                  non_sequences=decode_parameters,
-                                                  n_steps=self.n_max_digits-(intervention_location+1),
-                                                  name='decode_scan_2')
-        right_hand_2 = outputs_postintervention[0];
-        
-        right_hand_with_zeros = T.join(0, label[:intervention_location+1], right_hand_2);
-        right_hand_near_zeros = T.ones_like(right_hand_with_zeros) * 1e-15;
-        right_hand = T.maximum(right_hand_with_zeros, right_hand_near_zeros);
+            right_hand, _ = outputs;
+        right_hand_near_zeros = T.ones_like(right_hand) * 1e-15;
+        right_hand = T.maximum(right_hand, right_hand_near_zeros);
         
         # We predict the final n symbols (all symbols predicted as output from input '=')
         prediction_1 = T.argmax(right_hand[:,:,:self.data_dim], axis=2);
@@ -211,11 +192,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         # Defining prediction
         if (not self.only_cause_expression):
-            self._predict = theano.function([X, label, intervention_location], [prediction_1,
+            self._predict = theano.function([X, label, intervention_locations], [prediction_1,
                                                                                 prediction_2,
                                                                                 right_hand]);
         else:
-            self._predict = theano.function([X, label, intervention_location], [prediction_1,
+            self._predict = theano.function([X, label, intervention_locations], [prediction_1,
                                                                                 right_hand]);
         
         # Defining stochastic gradient descent
@@ -230,7 +211,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             #updates, derivatives = self.adam(error, map(lambda var: self.vars[var], variables), learning_rate);
             derivatives = T.grad(error, var_list);
             updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
-        self._sgd = theano.function([X, label, intervention_location],
+        self._sgd = theano.function([X, label, intervention_locations],
                                         [error],
 #                                          cat_cross, 
 #                                          right_hand,
@@ -271,7 +252,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     
     # PREDICTION FUNCTIONS
     
-    def lstm_predict_single(self, current_X, previous_hidden, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY):
+    def lstm_predict_single(self, given_X, previous_output, previous_hidden, intervention_locations, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY):
+        # Use given intervention locations to determine whether to use label
+        # or previous prediction. This should allow for flexible minibatching
+        current_X = T.switch(T.eq(intervention_locations,T.constant(1.)), given_X, previous_output);
+        
         forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + current_X.dot(XWf));
         input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + current_X.dot(XWi));
         candidate_cell = T.tanh(previous_hidden.dot(hWc) + current_X.dot(XWc));
@@ -279,12 +264,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + current_X.dot(XWo));
         hidden = output_gate * cell;
         Y_output = T.nnet.softmax(hidden.dot(hWY));
-        
-        # Clipping
-        if (self.clipping):
-            data_summation = T.sum(current_X, 1);
-            zero_check = T.eq(data_summation,0.).nonzero();
-            hidden = T.set_subtensor(hidden[zero_check], previous_hidden[zero_check]);
         
         return Y_output, hidden;
     

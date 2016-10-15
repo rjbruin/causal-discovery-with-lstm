@@ -68,7 +68,7 @@ def print_stats(stats, parameters, prefix=''):
 def get_batch(isTrain, dataset, model, intervention_range, max_length, 
               debug=False, base_offset=12, applyIntervention=True, 
               seq2ndmarkov=False, bothcause=False):
-    limit = 100;
+    limit = 1;
     
     # Reseed the random generator to prevent generating identical batches
     np.random.seed();
@@ -84,10 +84,11 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
     
     batch = [];
     fails = 0;
+    interventionLocations = [];
     while (len(batch) < model.minibatch_size):
         fail = False;
         tries = 0;
-        batch = [];
+#         batch = [];
         
         interventionLocation = np.random.randint(max_length-intervention_range-base_offset, 
                                                  max_length-base_offset);
@@ -142,6 +143,7 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
                         batch.append((branch.prefixedExpressions[randomPrefix].fullExpressions[randomCandidate],
                                       branch.prefixedExpressions[randomPrefix].primedExpressions[randomCandidate],
                                       validPrefixes.keys()));
+                    interventionLocations.append(interventionLocation);
                 else:
                     tries += 1;
                     if (tries >= limit):
@@ -198,7 +200,7 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
         if (not passed):
             raise ValueError("Illegal intervention symbols! => %s" % str(interventionSymbols));
     
-    return data, targets, labels, expressions, interventionSymbols, interventionLocation, topcause;
+    return data, targets, labels, expressions, interventionSymbols, interventionLocations, topcause;
 
 def test(model, dataset, parameters, max_length, base_offset, intervention_range, print_samples=False, sample_size=False):
     # Test
@@ -221,7 +223,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
     for _ in batch_range:
         # Get data from batch
         test_data, test_targets, _, test_expressions, \
-            possibleInterventions, interventionLocation, topcause = get_batch(False, dataset, model, 
+            possibleInterventions, interventionLocations, topcause = get_batch(False, dataset, model, 
                                                                               intervention_range, 
                                                                               max_length, debug=parameters['debug'],
                                                                               base_offset=base_offset,
@@ -229,20 +231,21 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                                                                               seq2ndmarkov=parameters['dataset_type'] == 1,
                                                                               bothcause=parameters['bothcause']);
         test_n = model.minibatch_size;
-        stats['intervention_locations'][interventionLocation] += 1;
+        for l in interventionLocations:
+            stats['intervention_locations'][l] += 1;
         
         # Interventions are not optional in testing
         if (parameters['test_interventions']):
-            test_targets, test_expressions, interventionLocation = \
+            test_targets, test_expressions, _ = \
                 dataset.insertInterventions(test_targets, test_expressions, 
                                             topcause,
-                                            interventionLocation, 
+                                            interventionLocations, 
                                             possibleInterventions);
             # Overwrite interventionLocation for model and batch stats purpose
-            interventionLocation = 0;
+#             interventionLocation = 0;
         
         predictions, other = model.predict(test_data, label=test_targets, 
-                                           interventionLocation=interventionLocation,
+                                           interventionLocations=interventionLocations,
                                            intervention=parameters['test_interventions'],
                                            fixedDecoderInputs=parameters['fixed_decoder_inputs']);
         
@@ -276,7 +279,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
             # If we don't use label searching we need to provide labels_to_use
             labels_to_use = test_expressions;
         stats = model.batch_statistics(stats, predictions, 
-                                       test_expressions, interventionLocation, 
+                                       test_expressions, interventionLocations, 
                                        other, test_n, dataset, 
                                        eos_symbol_index=dataset.EOS_symbol_index,
                                        topcause=topcause or parameters['bothcause'], # If bothcause then topcause = 1
@@ -355,21 +358,22 @@ if __name__ == '__main__':
     # Determine the minimum max_length needed to get batches quickly
     min_samples_required = dataset.lengths[dataset.TRAIN] * 0.10;
     max_length = model.n_max_digits;
-    samples_available = dataset.expressionLengths[max_length];
-    trimmed_from_max_length = 0;
-    while (samples_available < min_samples_required):
-        max_length -= 1;
-        trimmed_from_max_length += 1;
-        samples_available += dataset.expressionLengths[max_length];
+#     samples_available = dataset.expressionLengths[max_length];
+#     trimmed_from_max_length = 0;
+#     while (samples_available < min_samples_required):
+#         max_length -= 1;
+#         trimmed_from_max_length += 1;
+#         samples_available += dataset.expressionLengths[max_length];
     
     # Make the base_offset absorb the max length difference
-    base_offset = parameters['intervention_base_offset'] - trimmed_from_max_length;
+#     base_offset = parameters['intervention_base_offset'] - trimmed_from_max_length;
+    base_offset = parameters['intervention_base_offset'];
     intervention_range = parameters['intervention_range'];
-    if (parameters['intervention_base_offset'] - trimmed_from_max_length < 0):
-        # If base_offset is below zero make the intervention range absorb the
-        # difference 
-        base_offset = 0;
-        intervention_range += parameters['intervention_base_offset'] - trimmed_from_max_length;
+#     if (parameters['intervention_base_offset'] - trimmed_from_max_length < 0):
+#         # If base_offset is below zero make the intervention range absorb the
+#         # difference 
+#         base_offset = 0;
+#         intervention_range += parameters['intervention_base_offset'] - trimmed_from_max_length;
     
     intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
     for r in range(reps):
@@ -386,7 +390,7 @@ if __name__ == '__main__':
         for k in batch_range:
             profiler.start('train batch');
             profiler.start('get train batch');
-            data, target, _, expressions, possibleInterventions, interventionLocation, topcause = \
+            data, target, _, expressions, possibleInterventions, interventionLocations, topcause = \
                 get_batch(True, dataset, model, 
                           intervention_range, max_length, 
                           debug=parameters['debug'],
@@ -396,15 +400,18 @@ if __name__ == '__main__':
                           bothcause=parameters['bothcause']);
             profiler.stop('get train batch');
             
+            print(interventionLocations);
+            
             profiler.start('train interventions');
             # Perform interventions
             if (parameters['train_interventions']):
                 target, target_expressions, interventionLocation = \
                     dataset.insertInterventions(target, copy.deepcopy(expressions), 
                                                 topcause,
-                                                interventionLocation, 
+                                                interventionLocations, 
                                                 possibleInterventions);
-                intervention_locations_train[interventionLocation] += 1;
+                for l in interventionLocations:
+                    intervention_locations_train[l] += 1;
                 #differences = map(lambda (d,t): d == t, zip(np.argmax(data, axis=2), np.argmax(target, axis=2)));
             profiler.stop('train interventions');
             
@@ -415,7 +422,7 @@ if __name__ == '__main__':
                     model.sgd(dataset, data, target, parameters['learning_rate'],
                               emptySamples=[], expressions=expressions,
                               intervention_expressions=target_expressions, 
-                              interventionLocation=interventionLocation,
+                              interventionLocations=interventionLocations,
                               intervention=parameters['train_interventions'],
                               fixedDecoderInputs=parameters['fixed_decoder_inputs'],
                               topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
@@ -434,7 +441,7 @@ if __name__ == '__main__':
             profiler.start('train stats');
             if (parameters['train_statistics'] and parameters['train_interventions']):
                 stats = model.batch_statistics(stats, predictions, 
-                                               expressions, interventionLocation, 
+                                               expressions, interventionLocations, 
                                                {}, len(expressions), dataset, 
                                                eos_symbol_index=dataset.EOS_symbol_index,
                                                labels_to_use=labels_to_use,
