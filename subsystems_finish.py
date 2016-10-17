@@ -241,8 +241,6 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                                             topcause,
                                             interventionLocations, 
                                             possibleInterventions);
-            # Overwrite interventionLocation for model and batch stats purpose
-#             interventionLocation = 0;
         
         predictions, other = model.predict(test_data, label=test_targets, 
                                            interventionLocations=interventionLocations,
@@ -399,8 +397,6 @@ if __name__ == '__main__':
                           seq2ndmarkov=parameters['dataset_type'] == 1,
                           bothcause=parameters['bothcause']);
             profiler.stop('get train batch');
-            
-            print(interventionLocations);
             
             profiler.start('train interventions');
             # Perform interventions

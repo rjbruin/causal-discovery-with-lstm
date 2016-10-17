@@ -707,13 +707,13 @@ class GeneratedExpressionDataset(Dataset):
         
         return data, targets, labels, expressions, 1;
     
-    def insertInterventions(self, targets, target_expressions, topcause, interventionLocation, possibleInterventions):
+    def insertInterventions(self, targets, target_expressions, topcause, interventionLocations, possibleInterventions):
         # Apply interventions to targets samples in this batch
         for i in range(targets.shape[0]):
             if (topcause):
-                currentSymbol = np.argmax(targets[i,interventionLocation,:self.data_dim]);
+                currentSymbol = np.argmax(targets[i,interventionLocations[i],:self.data_dim]);
             else:
-                currentSymbol = np.argmax(targets[i,interventionLocation,self.data_dim:]);
+                currentSymbol = np.argmax(targets[i,interventionLocations[i],self.data_dim:]);
             
             # Pick a new symbol
             newSymbol = possibleInterventions[i][np.random.randint(0,len(possibleInterventions[i]))];
@@ -726,17 +726,17 @@ class GeneratedExpressionDataset(Dataset):
                 offset += self.data_dim;
                 expression_index = 1;
             
-            targets[i,interventionLocation,offset+currentSymbol] = 0.0;
-            targets[i,interventionLocation,offset+newSymbol] = 1.0;
-            new_target_cause_expression = target_expressions[i][expression_index][:interventionLocation] + \
+            targets[i,interventionLocations[i],offset+currentSymbol] = 0.0;
+            targets[i,interventionLocations[i],offset+newSymbol] = 1.0;
+            new_target_cause_expression = target_expressions[i][expression_index][:interventionLocations[i]] + \
                                         self.findSymbol[newSymbol] + \
-                                        target_expressions[i][expression_index][interventionLocation+1:];
+                                        target_expressions[i][expression_index][interventionLocations[i]+1:];
             if (topcause):
                 target_expressions[i] = (new_target_cause_expression,target_expressions[i][1]);
             else:
                 target_expressions[i] = (target_expressions[i][0],new_target_cause_expression);
         
-        return targets, target_expressions, interventionLocation;
+        return targets, target_expressions, interventionLocations;
     
     def effect_matcher_expressions_simple(self, cause_expression_encoded, predicted_effect_expression_encoded, nr_digits, nr_operators, topcause):
         new_expression_encoded = [];
