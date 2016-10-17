@@ -67,9 +67,7 @@ def print_stats(stats, parameters, prefix=''):
 
 def get_batch(isTrain, dataset, model, intervention_range, max_length, 
               debug=False, base_offset=12, applyIntervention=True, 
-              seq2ndmarkov=False, bothcause=False):
-    limit = 1;
-    
+              seq2ndmarkov=False, bothcause=False):    
     # Reseed the random generator to prevent generating identical batches
     np.random.seed();
     
@@ -83,13 +81,8 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
             storage_bot = dataset.testExpressionsByPrefixBot;
     
     batch = [];
-    fails = 0;
     interventionLocations = [];
     while (len(batch) < model.minibatch_size):
-        fail = False;
-        tries = 0;
-#         batch = [];
-        
         interventionLocation = np.random.randint(max_length-intervention_range-base_offset, 
                                                  max_length-base_offset);
         if (seq2ndmarkov):
@@ -106,68 +99,51 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
         else:
             topcause = np.random.randint(2) == 1;
         
-        while (not fail and len(batch) < model.minibatch_size):
-            if (seq2ndmarkov and not topcause):
-                branch = storage_bot.get_random_by_length(interventionLocation, getStructure=True);
-            else:
-                branch = storage.get_random_by_length(interventionLocation, getStructure=True);
-            validPrefixes = {};
-            
-            if (not seq2ndmarkov or not applyIntervention):
-                if (len(branch.prefixedExpressions) >= 2):
-                    for prefix in branch.prefixedExpressions:
-                        symbolIndex = dataset.oneHot[prefix];
-                        if (symbolIndex < dataset.EOS_symbol_index-4 and len(branch.prefixedExpressions[prefix].fullExpressions) >= 1):
-                            # Check for valid intervention symbol: has to be the right
-                            # symbol and has to have expressions
-                            validPrefixes[prefix] = branch.prefixedExpressions[prefix];
-            else:
-                # We use all prefixes for seq2ndmarkov because we can only have valid intervention locations
-                # We know this because the samples all have the same repeating symtax of 
-                # <left><op><right><answer/left><op>...
-                validPrefixes = {p: branch.prefixedExpressions[p] for p in branch.prefixedExpressions};
-            
-            if (applyIntervention):
-                if (len(validPrefixes.keys()) >= 2):
-                    # If there are at least two valid prefixes we will always be
-                    # able to find an intervention sample for a random sample from
-                    # this branch 
-                    randomPrefix = validPrefixes.keys()[np.random.randint(0,len(validPrefixes.keys()))];
-                    randomCandidate = np.random.randint(0,len(branch.prefixedExpressions[randomPrefix].fullExpressions));
-                    # Keep the order of top and bottom
-                    if (seq2ndmarkov and not topcause):
-                        batch.append((branch.prefixedExpressions[randomPrefix].primedExpressions[randomCandidate],
-                                      branch.prefixedExpressions[randomPrefix].fullExpressions[randomCandidate],
-                                      validPrefixes.keys()));
-                    else:
-                        batch.append((branch.prefixedExpressions[randomPrefix].fullExpressions[randomCandidate],
-                                      branch.prefixedExpressions[randomPrefix].primedExpressions[randomCandidate],
-                                      validPrefixes.keys()));
-                    interventionLocations.append(interventionLocation);
+        if (seq2ndmarkov and not topcause):
+            branch = storage_bot.get_random_by_length(interventionLocation, getStructure=True);
+        else:
+            branch = storage.get_random_by_length(interventionLocation, getStructure=True);
+        validPrefixes = {};
+        
+        if (not seq2ndmarkov or not applyIntervention):
+            if (len(branch.prefixedExpressions) >= 2):
+                for prefix in branch.prefixedExpressions:
+                    symbolIndex = dataset.oneHot[prefix];
+                    if (symbolIndex < dataset.EOS_symbol_index-4 and len(branch.prefixedExpressions[prefix].fullExpressions) >= 1):
+                        # Check for valid intervention symbol: has to be the right
+                        # symbol and has to have expressions
+                        validPrefixes[prefix] = branch.prefixedExpressions[prefix];
+        else:
+            # We use all prefixes for seq2ndmarkov because we can only have valid intervention locations
+            # We know this because the samples all have the same repeating symtax of 
+            # <left><op><right><answer/left><op>...
+            validPrefixes = {p: branch.prefixedExpressions[p] for p in branch.prefixedExpressions};
+        
+        if (applyIntervention):
+            if (len(validPrefixes.keys()) >= 2):
+                # If there are at least two valid prefixes we will always be
+                # able to find an intervention sample for a random sample from
+                # this branch 
+                randomPrefix = validPrefixes.keys()[np.random.randint(0,len(validPrefixes.keys()))];
+                randomCandidate = np.random.randint(0,len(branch.prefixedExpressions[randomPrefix].fullExpressions));
+                # Keep the order of top and bottom
+                if (seq2ndmarkov and not topcause):
+                    batch.append((branch.prefixedExpressions[randomPrefix].primedExpressions[randomCandidate],
+                                  branch.prefixedExpressions[randomPrefix].fullExpressions[randomCandidate],
+                                  validPrefixes.keys()));
                 else:
-                    tries += 1;
-                    if (tries >= limit):
-                        # Catch where we are stuck with an impossible intervention location
-                        fail = True;
-                        if (debug):
-                            fails += 1;
-#                             print("#\tBatching failed at iteration %d with intervention location %d" % (fails, interventionLocation));
-            else:
-                # No intervention, just the sample, but we still need to select a random sample
-                if (len(validPrefixes.keys()) >= 1):
-                    randomPrefix = validPrefixes.keys()[np.random.randint(0,len(validPrefixes.keys()))];
-                    randomCandidate = np.random.randint(0,len(branch.prefixedExpressions[randomPrefix].fullExpressions));
                     batch.append((branch.prefixedExpressions[randomPrefix].fullExpressions[randomCandidate],
                                   branch.prefixedExpressions[randomPrefix].primedExpressions[randomCandidate],
                                   validPrefixes.keys()));
-                else:
-                    tries += 1;
-                    if (tries >= limit):
-                        # Catch where we are stuck with an impossible intervention location
-                        fail = True;
-                        if (debug):
-                            fails += 1;
-                            print("#\tBatching failed at iteration %d" % (fails));
+                interventionLocations.append(interventionLocation);
+        else:
+            # No intervention, just the sample, but we still need to select a random sample
+            if (len(validPrefixes.keys()) >= 1):
+                randomPrefix = validPrefixes.keys()[np.random.randint(0,len(validPrefixes.keys()))];
+                randomCandidate = np.random.randint(0,len(branch.prefixedExpressions[randomPrefix].fullExpressions));
+                batch.append((branch.prefixedExpressions[randomPrefix].fullExpressions[randomCandidate],
+                              branch.prefixedExpressions[randomPrefix].primedExpressions[randomCandidate],
+                              validPrefixes.keys()));
     
     data = [];
     targets = [];
@@ -241,9 +217,6 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                                             topcause,
                                             interventionLocations, 
                                             possibleInterventions);
-        else:
-            # Overwrite interventionLocation for model and batch stats purpose
-            interventionLocation = 0;
         
         predictions, other = model.predict(test_data, label=test_targets, 
                                            interventionLocations=interventionLocations,
@@ -259,8 +232,8 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
         
         # Print samples
         if (print_samples and not printed_samples):
-            print("# Intervention location: %d" % interventionLocation);
             for i in range(prediction_1.shape[0]):
+                print("# Intervention location: %d" % interventionLocations[i]);
                 print("# Input 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                      np.argmax(test_data[i,:,:model.data_dim],len(test_data.shape)-2)))));
                 print("# Label 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
