@@ -238,6 +238,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                                             topcause,
                                             interventionLocation, 
                                             possibleInterventions);
+        else:
             # Overwrite interventionLocation for model and batch stats purpose
             interventionLocation = 0;
         
@@ -255,19 +256,20 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
         
         # Print samples
         if (print_samples and not printed_samples):
+            print("# Intervention location: %d" % interventionLocation);
             for i in range(prediction_1.shape[0]):
                 print("# Input 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                      np.argmax(test_data[i,:,:model.data_dim],len(test_data.shape)-2)))));
                 print("# Label 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                    np.argmax(test_targets[i,:,:model.data_dim],len(test_data.shape)-2)))));
-                print("# Output 1: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_1[i])));
+                print("# Outpt 1: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_1[i])));
                 
                 if (not parameters['only_cause_expression']):
                     print("# Input 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                          np.argmax(test_data[i,:,model.data_dim:],len(test_data.shape)-2)))));
                     print("# Label 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                        np.argmax(test_targets[i,:,model.data_dim:],len(test_data.shape)-2)))));
-                    print("# Output 2: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_2[i])));
+                    print("# Outpt 2: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_2[i])));
             printed_samples = True;
         
         profiler.start("test batch stats");
@@ -371,6 +373,9 @@ if __name__ == '__main__':
         base_offset = 0;
         intervention_range += parameters['intervention_base_offset'] - trimmed_from_max_length;
     
+    print("Adapted intervention range: %d" % intervention_range);
+    print("Adapted base offset: %d" % base_offset);
+    
     intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
     for r in range(reps):
         stats = set_up_statistics(dataset.output_dim, model.n_max_digits);
@@ -450,13 +455,12 @@ if __name__ == '__main__':
             
         # Update stats
         total_datapoints_processed += repetition_size;
-        stats = model.total_statistics(stats);
         
         # Report on error
         print("Total error: %.2f" % total_error);
-        print("Intervention locations: %s" % (str(intervention_locations_train)));
         
         if (parameters['train_statistics']):
+            stats = model.total_statistics(stats);
             print_stats(stats, parameters, prefix='TRAIN ');
         
         # Intermediate testing if this was not the last iteration of training
