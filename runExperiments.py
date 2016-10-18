@@ -20,6 +20,8 @@ if __name__ == '__main__':
     score_types = {'Precision': 'Score',
                    'Training loss': 'Total error',
                    'Digit precision': 'Digit-based score',
+                   'Train Precision': 'TRAIN Score',
+                   'Train Digit precision': 'TRAIN Digit-based score',
                    'Structure precision': 'Structure score',
                    'Structure pr. (c)': 'Structure score cause',
                    'Structure pr. (e)': 'Structure score effect',
