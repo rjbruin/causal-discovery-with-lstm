@@ -12,6 +12,14 @@ from models.RecurrentModel import RecurrentModel
 import lasagne;
 
 from profiler import profiler;
+from lasagne.layers.input import InputLayer
+
+class AdapterLayer(lasagne.layers.Layer):
+    def __init__(self, incoming, **kwargs):
+        super(AdapterLayer, self).__init__(incoming, **kwargs);
+    
+    def get_output_for(self, input, **kwargs):
+        return input;
 
 class TheanoRecurrentNeuralNetwork(RecurrentModel):
     '''
@@ -28,7 +36,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  decoder=False, verboseOutputter=None, finishExpressions=False,
                  optimizer=0, learning_rate=0.01,
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
-                 clipping=False, doubleLayer=False):
+                 clipping=False, doubleLayer=False, dropoutProb=0.):
         '''
         Initialize all Theano models.
         '''
@@ -49,6 +57,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.finishExpressions = finishExpressions;
         self.clipping = clipping;
         self.doubleLayer = doubleLayer;
+        self.dropoutProb = dropoutProb;
         
         if (not self.lstm):
             raise ValueError("Feature LSTM = False is no longer supported!");
@@ -139,6 +148,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (self.doubleLayer):
             encode_function = self.lstm_predict_double_no_output;
             decode_function = self.lstm_predict_double;
+        
+        if (self.dropoutProb > 0.):
+            self.random_stream = T.shared_randomstreams.RandomStreams(seed=np.random.randint(10000));
         
         # Set the prediction parameters to be either the prediction 
         # weights or the decoding weights depending on the setting 
@@ -260,10 +272,21 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + previous_output.dot(XWo));
         hidden = output_gate * cell;
         
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            hidden = lasagne.layers.dropout((self.minibatch_size, self.hidden_dim), self.dropoutProb).get_output_for(hidden);
+        
         # Use given intervention locations to determine whether to use label
         # or previous prediction. This should allow for flexible minibatching
         comparison = T.le(sentence_index,intervention_locations).reshape((T.constant(self.minibatch_size), T.constant(1)), ndim=2);
-        Y_output = T.switch(comparison,given_X,T.nnet.softmax(hidden.dot(hWY)));
+        Y_output = T.nnet.softmax(hidden.dot(hWY));
+        
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            Y_output = lasagne.layers.dropout((self.minibatch_size, self.decoding_output_dim), self.dropoutProb).get_output_for(Y_output);
+        
+        # Filter for intervention location
+        Y_output = T.switch(comparison,given_X,Y_output);
         
         new_sentence_index = sentence_index + 1.;
         
@@ -290,6 +313,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + given_X.dot(XWo));
         hidden_1 = output_gate * cell;
         
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            hidden_1 = lasagne.layers.dropout((self.minibatch_size, self.hidden_dim), self.dropoutProb).get_output_for(hidden_1);
+        
         forget_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWf2) + hidden_1.dot(XWf2));
         input_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWi2) + hidden_1.dot(XWi2));
         candidate_cell_2 = T.tanh(previous_hidden_2.dot(hWc2) + hidden_1.dot(XWc2));
@@ -297,10 +324,21 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         output_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWo2) + hidden_1.dot(XWo2));
         hidden_2 = output_gate_2 * cell_2;
         
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            hidden_2 = lasagne.layers.dropout((self.minibatch_size, self.hidden_dim), self.dropoutProb).get_output_for(hidden_2);
+        
         # Use given intervention locations to determine whether to use label
         # or previous prediction. This should allow for flexible minibatching
         comparison = T.le(sentence_index,intervention_locations).reshape((T.constant(self.minibatch_size), T.constant(1)), ndim=2);
-        Y_output = T.switch(comparison,given_X,T.nnet.softmax(hidden_2.dot(hWY)));
+        Y_output = T.nnet.softmax(hidden_2.dot(hWY));
+        
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            Y_output = lasagne.layers.dropout((self.minibatch_size, self.decoding_output_dim), self.dropoutProb).get_output_for(Y_output);
+        
+        # Filter for intervention location
+        Y_output = T.switch(comparison,given_X,Y_output);
         
         new_sentence_index = sentence_index + 1.;
         

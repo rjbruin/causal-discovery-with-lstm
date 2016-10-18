@@ -92,7 +92,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                          only_cause_expression=parameters['only_cause_expression'],
                                          seq2ndmarkov=parameters['dataset_type'] == 1,
                                          clipping=parameters['clipping'],
-                                         doubleLayer=parameters['double_layer']);
+                                         doubleLayer=parameters['double_layer'],
+                                         dropoutProb=parameters['dropout_prob']);
     
     return datasets, rnn;
 

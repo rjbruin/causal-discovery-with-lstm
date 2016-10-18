@@ -178,8 +178,8 @@ class GeneratedExpressionDataset(Dataset):
             
             # Debug code that can make the model load the entire dataset 
             # instead of just the 1000 samples usually used in debugging
-            if (self.debug):
-                self.lengths = [900000,100000];
+#             if (self.debug):
+#                 self.lengths = [900000,100000];
             
             # Check for n is to make the code work with max_training_size
             while (line != "" and n < self.lengths[self.TRAIN]):
