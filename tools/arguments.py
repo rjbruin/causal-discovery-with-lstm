@@ -94,7 +94,8 @@ argumentProcessors = {'name': processString,
                       'no_label_search': processBool,
                       'clipping': processBool,
                       'double_layer': processBool,
-                      'dropout_prob': processFloat
+                      'dropout_prob': processFloat,
+                      'use_encoder': processBool
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -158,7 +159,8 @@ defaults = {'report_to_tracker': True,
             'no_label_search': False,
             'clipping': False,
             'double_layer': False,
-            'dropout_prob': 0.
+            'dropout_prob': 0.,
+            'use_encoder': True
             }
 
 def processKeyValue(key,value):

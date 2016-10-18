@@ -12,14 +12,6 @@ from models.RecurrentModel import RecurrentModel
 import lasagne;
 
 from profiler import profiler;
-from lasagne.layers.input import InputLayer
-
-class AdapterLayer(lasagne.layers.Layer):
-    def __init__(self, incoming, **kwargs):
-        super(AdapterLayer, self).__init__(incoming, **kwargs);
-    
-    def get_output_for(self, input, **kwargs):
-        return input;
 
 class TheanoRecurrentNeuralNetwork(RecurrentModel):
     '''
@@ -36,7 +28,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  decoder=False, verboseOutputter=None, finishExpressions=False,
                  optimizer=0, learning_rate=0.01,
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
-                 clipping=False, doubleLayer=False, dropoutProb=0.):
+                 clipping=False, doubleLayer=False, dropoutProb=0., useEncoder=True):
         '''
         Initialize all Theano models.
         '''
@@ -58,6 +50,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.clipping = clipping;
         self.doubleLayer = doubleLayer;
         self.dropoutProb = dropoutProb;
+        self.useEncoder = useEncoder;
         
         if (not self.lstm):
             raise ValueError("Feature LSTM = False is no longer supported!");
@@ -161,19 +154,25 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             decode_parameters = [intervention_locations] + encode_parameters + [self.vars['hWY']];
         
         first_hidden = T.zeros((self.minibatch_size,self.hidden_dim));
-        initial_encode = ({'initial': first_hidden, 'taps': [-1]});
-        if (self.doubleLayer):
-            initial_encode = ({'initial': first_hidden, 'taps': [-1]},{'initial': first_hidden, 'taps': [-1]});  
-        hiddens, _ = theano.scan(fn=encode_function,
-                                sequences=X,
-                                # Input a zero hidden layer
-                                outputs_info=initial_encode,
-                                non_sequences=encode_parameters,
-                                name='encode_scan');
-        hidden = hiddens;
-        if (self.doubleLayer):
-            hidden = hiddens[0];
-            hidden_2 = hiddens[1];
+        
+        if (self.useEncoder):
+            initial_encode = ({'initial': first_hidden, 'taps': [-1]});
+            if (self.doubleLayer):
+                initial_encode = ({'initial': first_hidden, 'taps': [-1]},{'initial': first_hidden, 'taps': [-1]});  
+            hiddens, _ = theano.scan(fn=encode_function,
+                                    sequences=X,
+                                    # Input a zero hidden layer
+                                    outputs_info=initial_encode,
+                                    non_sequences=encode_parameters,
+                                    name='encode_scan');
+            hidden = hiddens;
+            if (self.doubleLayer):
+                hidden = hiddens[0];
+                hidden_2 = hiddens[1];
+        else:
+            hidden = [first_hidden];
+            if (self.doubleLayer):
+                hidden_2 = [first_hidden];
     
         if (self.GO_symbol_index is None):
             raise ValueError("GO symbol index not set!");
