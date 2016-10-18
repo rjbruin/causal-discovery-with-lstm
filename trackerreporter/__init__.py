@@ -33,29 +33,30 @@ def _create(name, totalProgress, totalDatasets, scoreTypes, scoreIdentifiers=Non
     if (scoreIdentifiers is not None):
         experiment['scoreIdentifiers'] = scoreIdentifiers;
     
-#     try:
-    r = requests.post(data['url'], data, headers=REQUEST_HEADERS);
-    response = r.json();
-    if (response != False):
-        experiment['trackerID'] = response['id'];
-        experiment['scoreTypes'] = response['score_types'];
-        experiment['scoreIdentifiers'] = {};
-        for typeId,name in experiment['scoreTypes'].items():
-            if (name in scoreIdentifiers):
-                experiment['scoreIdentifiers'][typeId] = scoreIdentifiers[name];
-        return experiment;
-    else:
-        print("WARNING! Experiment could not be posted to tracker!");
-        return False;
-#     except Exception as e:
-#         print(e);
-#         raise ValueError("Posting experiment to tracker failed!");
+    try:
+        r = requests.post(data['url'], data, headers=REQUEST_HEADERS);
+        response = r.json();
+        if (response != False):
+            experiment['trackerID'] = response['id'];
+            experiment['scoreTypes'] = response['score_types'];
+            experiment['scoreIdentifiers'] = {};
+            for typeId,name in experiment['scoreTypes'].items():
+                if (name in scoreIdentifiers):
+                    experiment['scoreIdentifiers'][typeId] = scoreIdentifiers[name];
+            return experiment;
+        else:
+            print("WARNING! Experiment could not be posted to tracker!");
+            return False;
+    except Exception as e:
+        print(e);
+        raise ValueError("Posting experiment to tracker failed!");
 
 def _post(experiment_id, url, data):
     """
     Returns True if all calls in the stack + this call are posted successfully.
     """
     global stack;
+    stackLimit = 20;
     
     data['exp'] = experiments[experiment_id]['trackerID'];
     data['key'] = API_KEY;
@@ -64,19 +65,19 @@ def _post(experiment_id, url, data):
     
     newStack = [];
     success = True;
-    for data in stack:
-#         try:
-        r = requests.post(data['url'], data, headers=REQUEST_HEADERS);
-        if (r.status_code != 200):
-            newStack.append(data);
-        if (r.json() != False):
-            continue;
-        else:
-            print("WARNING! Error in POST %s for experiment %d!" % (url, experiment_id));
-            success = False;
-#         except Exception as e:
-#             print(e);
-#             raise ValueError("Error in call %s" % str(data));
+    for data in stack[:stackLimit]:
+        try:
+            r = requests.post(data['url'], data, headers=REQUEST_HEADERS);
+            if (r.status_code != 200):
+                newStack.append(data);
+            if (r.json() != False):
+                continue;
+            else:
+                print("WARNING! Error in POST %s for experiment %d!" % (url, experiment_id));
+                success = False;
+        except Exception as e:
+            print(e);
+            raise ValueError("Error in call %s" % str(data));
     
     stack = newStack;
     return success;
