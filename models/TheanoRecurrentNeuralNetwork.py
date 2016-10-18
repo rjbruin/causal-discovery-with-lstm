@@ -1016,21 +1016,21 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             
             # Digit precision and prediction size computation
             i = 0;
-            for i in range(min(len(causeExpressionPrediction),len(labels_to_use[j][causeIndex]))):
+            for i in range(intervention_locations[j]+1,min(len(causeExpressionPrediction),len(labels_to_use[j][causeIndex]))):
                 if (causeExpressionPrediction[i] == labels_to_use[j][causeIndex][i]):
                     stats['digit_1_correct'] += 1.0;
             stats['digit_1_prediction_size'] += len(causeExpressionPrediction);
             
             if (not self.only_cause_expression):
                 i = 0;
-                for i in range(min(len(effectExpressionPrediction),len(labels_to_use[j][effectIndex]))):
+                for i in range(intervention_locations[j]+1,min(len(effectExpressionPrediction),len(labels_to_use[j][effectIndex]))):
                     if (effectExpressionPrediction[i] == labels_to_use[j][effectIndex][i]):
                         stats['digit_2_correct'] += 1.0;
                 stats['digit_2_prediction_size'] += len(effectExpressionPrediction);      
 
        
             stats['prediction_1_size_histogram'][int(eos_location)] += 1;
-            for digit_prediction in prediction[causeIndex][j][:len(causeExpressionPrediction)]:
+            for digit_prediction in prediction[causeIndex][j][intervention_locations[j]+1:len(causeExpressionPrediction)]:
                 stats['prediction_1_histogram'][int(digit_prediction)] += 1;
             
             if (not self.only_cause_expression):
@@ -1040,7 +1040,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             
             stats['prediction_size'] += 1;
         
-        return stats;
+        return stats, labels_to_use;
     
     @staticmethod
     def operator_scores(expression, correct, operators, 

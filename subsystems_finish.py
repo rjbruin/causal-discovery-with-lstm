@@ -167,15 +167,6 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
     data = dataset.fill_ndarray(data, 1);
     targets = dataset.fill_ndarray(copy.deepcopy(targets), 1, fixed_length=model.n_max_digits);
     
-    if (debug and applyIntervention):
-        # Sanity check: interventionSymbols must match each other
-        passed = True;
-        for indices in interventionSymbols:
-            passed = passed and (all(map(lambda i: i < 10, indices)) or all(map(lambda i: i >= 10 and i < 14, indices)));
-        
-        if (not passed):
-            raise ValueError("Illegal intervention symbols! => %s" % str(interventionSymbols));
-    
     return data, targets, labels, expressions, interventionSymbols, interventionLocations, topcause;
 
 def test(model, dataset, parameters, max_length, base_offset, intervention_range, print_samples=False, sample_size=False):
@@ -230,30 +221,12 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
             prediction_1 = predictions[0];
             prediction_2 = predictions[1];
         
-        # Print samples
-        if (print_samples and not printed_samples):
-            for i in range(prediction_1.shape[0]):
-                print("# Intervention location: %d" % interventionLocations[i]);
-                print("# Input 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-                                                     np.argmax(test_data[i,:,:model.data_dim],len(test_data.shape)-2)))));
-                print("# Label 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-                                                   np.argmax(test_targets[i,:,:model.data_dim],len(test_data.shape)-2)))));
-                print("# Outpt 1: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_1[i])));
-                
-                if (not parameters['only_cause_expression']):
-                    print("# Input 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-                                                         np.argmax(test_data[i,:,model.data_dim:],len(test_data.shape)-2)))));
-                    print("# Label 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-                                                       np.argmax(test_targets[i,:,model.data_dim:],len(test_data.shape)-2)))));
-                    print("# Outpt 2: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_2[i])));
-            printed_samples = True;
-        
         profiler.start("test batch stats");
         labels_to_use = False;
         if (parameters['no_label_search']):
             # If we don't use label searching we need to provide labels_to_use
             labels_to_use = test_expressions;
-        stats = model.batch_statistics(stats, predictions, 
+        stats, labels_used = model.batch_statistics(stats, predictions, 
                                        test_expressions, interventionLocations, 
                                        other, test_n, dataset, 
                                        eos_symbol_index=dataset.EOS_symbol_index,
@@ -261,7 +234,27 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                                        testExtraValidity=parameters['test_extra_validity'],
                                        bothcause=parameters['bothcause'],
                                        labels_to_use=labels_to_use);
-    
+        # Print samples
+        if (print_samples and not printed_samples):
+            for i in range(10):
+                prefix = "# ";
+                print(prefix + "Intervention location: %d" % interventionLocations[i]);
+                print(prefix + "Original data 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+                                                     np.argmax(test_data[i,:,:model.data_dim],len(test_data.shape)-2)))));
+                print(prefix + "Interve. data 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+                                                   np.argmax(test_targets[i,:,:model.data_dim],len(test_data.shape)-2)))));
+                print(prefix + "Prediction    1: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_1[i])));
+                print(prefix + "Used label    1: %s" % labels_used[i][0]);
+                
+                if (not parameters['only_cause_expression']):
+                    print(prefix + "Original data 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+                                                         np.argmax(test_data[i,:,model.data_dim:],len(test_data.shape)-2)))));
+                    print(prefix + "Interve. data 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+                                                       np.argmax(test_targets[i,:,model.data_dim:],len(test_data.shape)-2)))));
+                    print(prefix + "Prediction    2: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_2[i])));
+                    print(prefix + "Used label    2: %s" % labels_used[i][1]);
+            printed_samples = True;
+
         if (stats['prediction_size'] % printing_interval == 0):
             print("# %d / %d" % (stats['prediction_size'], total));
         profiler.stop("test batch stats");
@@ -333,22 +326,10 @@ if __name__ == '__main__':
     # Determine the minimum max_length needed to get batches quickly
     min_samples_required = dataset.lengths[dataset.TRAIN] * 0.10;
     max_length = model.n_max_digits;
-#     samples_available = dataset.expressionLengths[max_length];
-#     trimmed_from_max_length = 0;
-#     while (samples_available < min_samples_required):
-#         max_length -= 1;
-#         trimmed_from_max_length += 1;
-#         samples_available += dataset.expressionLengths[max_length];
     
     # Make the base_offset absorb the max length difference
-#     base_offset = parameters['intervention_base_offset'] - trimmed_from_max_length;
     base_offset = parameters['intervention_base_offset'];
     intervention_range = parameters['intervention_range'];
-#     if (parameters['intervention_base_offset'] - trimmed_from_max_length < 0):
-#         # If base_offset is below zero make the intervention range absorb the
-#         # difference 
-#         base_offset = 0;
-#         intervention_range += parameters['intervention_base_offset'] - trimmed_from_max_length;
     
     print("Adapted intervention range: %d" % intervention_range);
     print("Adapted base offset: %d" % base_offset);
@@ -416,7 +397,7 @@ if __name__ == '__main__':
             # Training prediction
             profiler.start('train stats');
             if (parameters['train_statistics'] and parameters['train_interventions']):
-                stats = model.batch_statistics(stats, predictions, 
+                stats, _ = model.batch_statistics(stats, predictions, 
                                                expressions, interventionLocations, 
                                                {}, len(expressions), dataset, 
                                                eos_symbol_index=dataset.EOS_symbol_index,
