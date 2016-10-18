@@ -237,7 +237,8 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
         # Print samples
         if (print_samples and not printed_samples):
             for i in range(10):
-                prefix = "# ";
+#                 prefix = "# ";
+                prefix = "";
                 print(prefix + "Intervention location: %d" % interventionLocations[i]);
                 print(prefix + "Original data 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                      np.argmax(test_data[i,:,:model.data_dim],len(test_data.shape)-2)))));
