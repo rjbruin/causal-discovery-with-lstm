@@ -376,7 +376,7 @@ if __name__ == '__main__':
             # Run training
             profiler.start('train sgd');
             if (parameters['train_interventions']):
-                outputs, predictions, labels_to_use = \
+                outputs, predictions, new_targets, labels_to_use = \
                     model.sgd(dataset, data, target, parameters['learning_rate'],
                               emptySamples=[], expressions=expressions,
                               intervention_expressions=target_expressions, 
@@ -385,7 +385,7 @@ if __name__ == '__main__':
                               fixedDecoderInputs=parameters['fixed_decoder_inputs'],
                               topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
             else:
-                outputs, predictions, labels_to_use = \
+                outputs, predictions, new_targets, labels_to_use = \
                     model.sgd(dataset, data, target, parameters['learning_rate'],
                               emptySamples=[], expressions=expressions,
                               intervention_expressions=expressions, 
@@ -412,6 +412,20 @@ if __name__ == '__main__':
             
             profiler.stop('train stats');
             profiler.stop('train batch');
+        
+        # Print sample of last training batch
+#         if (parameters['debug'] and parameters['only_cause_expression'] == 1):
+#             for i in range(10):
+#                 prefix = "";
+#                 print(prefix + "Intervention location: %d" % interventionLocations[i]);
+#                 print(prefix + "Original data        : %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+#                                                      np.argmax(data[i,:,:model.data_dim],len(data.shape)-2)))));
+#                 print(prefix + "Intervened data      : %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+#                                                    np.argmax(target[i,:,:model.data_dim],len(target.shape)-2)))));
+#                 print(prefix + "Pre-int prediction   : %s" % "".join(map(lambda x: dataset.findSymbol[x], predictions[i])));
+#                 print(prefix + "Used target          : %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+#                                                    np.argmax(new_targets[i],1)))));
+#                 print(prefix + "Used label           : %s" % labels_to_use[i][0]);
             
         # Update stats
         total_datapoints_processed += repetition_size;

@@ -224,9 +224,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
         self._sgd = theano.function([X, label, intervention_locations],
                                         [error],
-#                                          cat_cross, 
-#                                          right_hand,
-#                                          label] + decode_parameters + derivatives, 
                                     updates=updates,
                                     allow_input_downcast=True)
         
@@ -512,10 +509,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         profiler.start('train sgd actual sgd');
         if (not self.only_cause_expression):
             result = self._sgd(encoded_expressions, encoded_expressions_with_intervention, 
-                             intervention_locations), [predictions_1, predictions_2], labels_to_use;
+                             intervention_locations), [predictions_1, predictions_2], np.swapaxes(encoded_expressions_with_intervention, 0, 1), labels_to_use;
         else:
             result = self._sgd(encoded_expressions, encoded_expressions_with_intervention, 
-                             intervention_locations), predictions_1, labels_to_use;
+                             intervention_locations), predictions_1, np.swapaxes(encoded_expressions_with_intervention, 0, 1), labels_to_use;
         profiler.stop('train sgd actual sgd');
         return result;
     
@@ -960,15 +957,16 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     stats['error_histogram'][difference1 + difference2] += 1;
 #                 profiler.stop('sample stats');
             else:
+                if (not training and dataset.testExpressionsByPrefix.exists(causeExpressionPrediction)):
+                    if (self.only_cause_expression is not False):
+                        stats['valid'] += 1.0;
                 if (causeExpressionPrediction == labels_to_use[j][causeIndex]):
                     stats['structureCorrect'] += 1.0;
                     stats['structureValidCause'] += 1.0;
                     if (self.only_cause_expression is not False):
                         stats['correct'] += 1.0;
-                        stats['valid'] += 1.0;
                     elif (effectExpressionPrediction == labels_to_use[j][effectIndex]):
                         stats['correct'] += 1.0;
-                        stats['valid'] += 1.0;
                         stats['effectCorrect'] += 1.0;
                         stats['structureValidEffect'] += 1.0;
                 else:
