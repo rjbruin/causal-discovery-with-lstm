@@ -28,7 +28,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  decoder=False, verboseOutputter=None, finishExpressions=False,
                  optimizer=0, learning_rate=0.01,
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
-                 clipping=False, doubleLayer=False, dropoutProb=0., useEncoder=True):
+                 clipping=False, doubleLayer=False, dropoutProb=0., useEncoder=True, 
+                 oldNearestFinding=False, adjustErrorToPredictionSize=False):
         '''
         Initialize all Theano models.
         '''
@@ -51,6 +52,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.doubleLayer = doubleLayer;
         self.dropoutProb = dropoutProb;
         self.useEncoder = useEncoder;
+        self.oldNearestFinding = oldNearestFinding;
+        self.adjustErrorToPredictionSize = adjustErrorToPredictionSize;
         
         if (not self.lstm):
             raise ValueError("Feature LSTM = False is no longer supported!");
@@ -198,8 +201,14 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             prediction_2 = T.argmax(right_hand[:,:,self.data_dim:], axis=2);
         #padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim*2), dtype=theano.config.floatX));
         
-        cat_cross = T.nnet.categorical_crossentropy(right_hand[:label.shape[0]],label);
-        error = T.mean(cat_cross);
+        if (self.adjustErrorToPredictionSize):
+            coding_dist = right_hand[:label.shape[0]]
+            cat_cross = -T.sum(label * T.log(coding_dist), axis=coding_dist.ndim-1);
+            mean_cross_per_sample = T.sum(cat_cross, axis=0) / (self.n_max_digits - (intervention_locations + 1.));
+            error = T.mean(mean_cross_per_sample);
+        else:
+            cat_cross = T.nnet.categorical_crossentropy(right_hand[:label.shape[0]],label);
+            error = T.mean(cat_cross);
         
         # Defining prediction
         if (not self.only_cause_expression):
@@ -629,7 +638,19 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             else:
                 # Find the nearest expression to our prediction
                 profiler.start("fl nearest finding");
-                closest_expression, closest_expression_prime, _, _ = branch.get_closest(string_prediction[intervention_locations[i]+1:]);
+                
+                if (self.oldNearestFinding):
+                    nearest = -1;
+                    nearest_score = 100000;
+                    for j, nexpr in enumerate(valid_predictions):
+                        score = TheanoRecurrentNeuralNetwork.string_difference(string_prediction[intervention_locations[i]+1:], nexpr[intervention_locations[i]+1:]);
+                        if (score < nearest_score):
+                            nearest = j;
+                            nearest_score = score;
+                    closest_expression = valid_predictions[nearest];
+                    closest_expression_prime = validPredictionEffectExpressions[nearest];
+                else:
+                    closest_expression, closest_expression_prime, _, _ = branch.get_closest(string_prediction[intervention_locations[i]+1:]);
                 
                 # Use as targets the found cause expression and its 
                 # accompanying effect expression

@@ -112,7 +112,7 @@ class GeneratedExpressionDataset(Dataset):
             symbols.append('x');
         if (not single_digit):
             # EOS and <GO> symbol to start off prediction
-            symbols.extend(['_']);
+            symbols.extend(['_','G']);
         i = max(self.oneHot.values())+1;
         for sym in symbols:
             self.oneHot[sym] = i;

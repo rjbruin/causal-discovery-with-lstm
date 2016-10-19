@@ -93,7 +93,9 @@ def constructModels(parameters, seed, verboseOutputter):
                                          seq2ndmarkov=parameters['dataset_type'] == 1,
                                          clipping=parameters['clipping'],
                                          doubleLayer=parameters['double_layer'],
-                                         dropoutProb=parameters['dropout_prob']);
+                                         dropoutProb=parameters['dropout_prob'],
+                                         oldNearestFinding=parameters['old_nearest_finding'],
+                                         adjustErrorToPredictionSize=parameters['adjust_error_to_prediction_size']);
     
     return datasets, rnn;
 
