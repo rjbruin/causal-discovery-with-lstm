@@ -29,7 +29,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  optimizer=0, learning_rate=0.01,
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
                  clipping=False, doubleLayer=False, dropoutProb=0., useEncoder=True, 
-                 oldNearestFinding=False, adjustErrorToPredictionSize=False):
+                 oldNearestFinding=False, adjustErrorToPredictionSize=False, outputBias=False):
         '''
         Initialize all Theano models.
         '''
@@ -54,6 +54,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.useEncoder = useEncoder;
         self.oldNearestFinding = oldNearestFinding;
         self.adjustErrorToPredictionSize = adjustErrorToPredictionSize;
+        self.outputBias = outputBias;
         
         if (not self.lstm):
             raise ValueError("Feature LSTM = False is no longer supported!");
@@ -119,14 +120,19 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 varSettings.append(('DhWo2',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('DXWo2',self.hidden_dim,self.hidden_dim));
             varSettings.append(('DhWY',self.hidden_dim,actual_decoding_output_dim));
+            varSettings.append(('DhbY',False,actual_decoding_output_dim));
         else:
             varSettings.append(('hWY',self.hidden_dim,actual_prediction_output_dim));
+            varSettings.append(('hbY',False,actual_prediction_output_dim));
         
         # Contruct variables
         self.vars = {};
         for (varName,dim1,dim2) in varSettings:
             # Get value for shared variable from constructor if present
-            value = np.random.uniform(-np.sqrt(1.0/dim1),np.sqrt(1.0/dim1),(dim1,dim2)).astype('float32');
+            if (dim1 is not False):
+                value = np.random.uniform(-np.sqrt(1.0/dim1),np.sqrt(1.0/dim1),(dim1,dim2)).astype('float32');
+            else:
+                value = np.random.uniform(-np.sqrt(1.0/dim2),-np.sqrt(1.0/dim2),(dim2)).astype('float32');
             if (varName in weight_values):
                 value = weight_values[varName];
             self.vars[varName] = theano.shared(value, varName);
@@ -150,11 +156,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         # Set the prediction parameters to be either the prediction 
         # weights or the decoding weights depending on the setting 
-        encode_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] != 'D' and name[0] != 'hWY', varSettings)];
+        encode_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] != 'D' and name[0] != 'hWY' and name[0] != 'hbY', varSettings)];
         if (self.decoder):
             decode_parameters = [intervention_locations] + [self.vars[k[0]] for k in filter(lambda name: name[0][0] == 'D', varSettings)];
         else:
-            decode_parameters = [intervention_locations] + encode_parameters + [self.vars['hWY']];
+            decode_parameters = [intervention_locations] + encode_parameters + [self.vars['hWY'], self.vars['hbY']];
         
         first_hidden = T.zeros((self.minibatch_size,self.hidden_dim));
         
@@ -220,7 +226,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                                                                 right_hand]);
         
         # Defining stochastic gradient descent
-        variables = self.vars.keys();
+        variables = filter(lambda name: name != 'hbY' and name != 'DhbY', self.vars.keys());
+        if (self.outputBias):
+            if (self.decoder):
+                variables.append('DhbY');
+            else:
+                variables.append('hbY');
         var_list = map(lambda var: self.vars[var], variables)
         if (self.optimizer == self.SGD_OPTIMIZER):
             # Automatic backward pass for all models: gradients
@@ -269,7 +280,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     
     # PREDICTION FUNCTIONS
     
-    def lstm_predict_single(self, given_X, previous_output, previous_hidden, sentence_index, intervention_locations, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY):
+    def lstm_predict_single(self, given_X, previous_output, previous_hidden, sentence_index, intervention_locations, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY, hbY):
         forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + previous_output.dot(XWf));
         input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + previous_output.dot(XWi));
         candidate_cell = T.tanh(previous_hidden.dot(hWc) + previous_output.dot(XWc));
@@ -284,7 +295,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # Use given intervention locations to determine whether to use label
         # or previous prediction. This should allow for flexible minibatching
         comparison = T.le(sentence_index,intervention_locations).reshape((T.constant(self.minibatch_size), T.constant(1)), ndim=2);
-        Y_output = T.nnet.softmax(hidden.dot(hWY));
+        if (self.outputBias):
+            Y_output = T.nnet.softmax(hidden.dot(hWY) + hbY);
+        else:
+            Y_output = T.nnet.softmax(hidden.dot(hWY));
         
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
         if (self.dropoutProb > 0.):
@@ -310,7 +324,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     def lstm_predict_double(self, given_X, previous_output, previous_hidden_1, 
                             previous_hidden_2, sentence_index, intervention_locations,
                             hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo,
-                            hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, hWY):
+                            hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, hWY, hbY):
         forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + given_X.dot(XWf));
         input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + given_X.dot(XWi));
         candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + given_X.dot(XWc));
@@ -336,8 +350,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # Use given intervention locations to determine whether to use label
         # or previous prediction. This should allow for flexible minibatching
         comparison = T.le(sentence_index,intervention_locations).reshape((T.constant(self.minibatch_size), T.constant(1)), ndim=2);
-        Y_output = T.nnet.softmax(hidden_2.dot(hWY));
-        
+        if (self.outputBias):
+            Y_output = T.nnet.softmax(hidden_2.dot(hWY) + hbY);
+        else:
+            Y_output = T.nnet.softmax(hidden_2.dot(hWY));
+
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
         if (self.dropoutProb > 0.):
             Y_output = lasagne.layers.dropout((self.minibatch_size, self.decoding_output_dim), self.dropoutProb).get_output_for(Y_output);

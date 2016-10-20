@@ -95,7 +95,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                          doubleLayer=parameters['double_layer'],
                                          dropoutProb=parameters['dropout_prob'],
                                          oldNearestFinding=parameters['old_nearest_finding'],
-                                         adjustErrorToPredictionSize=parameters['adjust_error_to_prediction_size']);
+                                         adjustErrorToPredictionSize=parameters['adjust_error_to_prediction_size'],
+                                         outputBias=parameters['output_bias']);
     
     return datasets, rnn;
 
