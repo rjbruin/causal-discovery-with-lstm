@@ -730,8 +730,8 @@ class GeneratedExpressionDataset(Dataset):
             targets[i,interventionLocations[i],offset+currentSymbol] = 0.0;
             targets[i,interventionLocations[i],offset+newSymbol] = 1.0;
             new_target_cause_expression = target_expressions[i][expression_index][:interventionLocations[i]] + \
-                                        self.findSymbol[newSymbol] + \
-                                        target_expressions[i][expression_index][interventionLocations[i]+1:];
+                                          self.findSymbol[newSymbol] + \
+                                          target_expressions[i][expression_index][interventionLocations[i]+1:];
             if (topcause):
                 target_expressions[i] = (new_target_cause_expression,target_expressions[i][1]);
             else:

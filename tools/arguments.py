@@ -98,7 +98,8 @@ argumentProcessors = {'name': processString,
                       'use_encoder': processBool,
                       'old_nearest_finding': processBool,
                       'adjust_error_to_prediction_size': processBool,
-                      'output_bias': processBool
+                      'output_bias': processBool,
+                      'subbatch_size': processInt
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -166,7 +167,8 @@ defaults = {'report_to_tracker': True,
             'use_encoder': True,
             'old_nearest_finding': False,
             'adjust_error_to_prediction_size': False,
-            'output_bias': False
+            'output_bias': False,
+            'subbatch_size': 1
             }
 
 def processKeyValue(key,value):
