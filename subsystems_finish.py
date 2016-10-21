@@ -200,6 +200,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
     # Predict
     printed_samples = False;
     batch_range = range(0,total,model.minibatch_size);
+    totalError = 0.0;
     for _ in batch_range:
         # Get data from batch
         test_data, test_targets, _, test_expressions, \
@@ -226,6 +227,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                                            interventionLocations=interventionLocations,
                                            intervention=parameters['test_interventions'],
                                            fixedDecoderInputs=parameters['fixed_decoder_inputs']);
+        totalError += other['error'];
         
         if (parameters['only_cause_expression']):
             prediction_1 = predictions;
@@ -274,6 +276,8 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
         profiler.stop("test batch stats");
     
     profiler.profile();
+    
+    print("Total testing error: %.2f" % totalError);
     
     stats = model.total_statistics(stats);
     

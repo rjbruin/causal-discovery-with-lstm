@@ -220,10 +220,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (not self.only_cause_expression):
             self._predict = theano.function([X, label, intervention_locations], [prediction_1,
                                                                                 prediction_2,
-                                                                                right_hand]);
+                                                                                right_hand,
+                                                                                error]);
         else:
             self._predict = theano.function([X, label, intervention_locations], [prediction_1,
-                                                                                right_hand]);
+                                                                                right_hand,
+                                                                                error]);
         
         # Defining stochastic gradient descent
         variables = filter(lambda name: name != 'hbY' and name != 'DhbY', self.vars.keys());
@@ -433,10 +435,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             interventionLocations = np.zeros((data.shape[1]));
         
         if (not self.only_cause_expression):
-            prediction_1, prediction_2, right_hand = \
+            prediction_1, prediction_2, right_hand, error = \
                     self._predict(data, label, interventionLocations);
         else:
-            prediction_1, right_hand = \
+            prediction_1, right_hand, error = \
                     self._predict(data, label, interventionLocations);
         
         # Swap sentence index and datapoints back
@@ -446,9 +448,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         right_hand = np.swapaxes(right_hand, 0, 1);
         
         if (not self.only_cause_expression):
-            return [prediction_1, prediction_2], {'right_hand': right_hand};
+            return [prediction_1, prediction_2], {'right_hand': right_hand, 'error': error};
         else:
-            return prediction_1, {'right_hand': right_hand};
+            return prediction_1, {'right_hand': right_hand, 'error': error};
     
     def sgd_finish_expression(self, dataset, encoded_expressions, 
                               encoded_expressions_with_intervention, expressions_with_intervention,
