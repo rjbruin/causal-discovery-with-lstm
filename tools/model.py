@@ -97,7 +97,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                          oldNearestFinding=parameters['old_nearest_finding'],
                                          adjustErrorToPredictionSize=parameters['adjust_error_to_prediction_size'],
                                          outputBias=parameters['output_bias'],
-                                         useEncoder=parameters['use_encoder']);
+                                         useEncoder=parameters['use_encoder'],
+                                         limit_right_hand=parameters['limit_right_hand']);
     
     return datasets, rnn;
 

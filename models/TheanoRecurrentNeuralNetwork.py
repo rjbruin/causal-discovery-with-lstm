@@ -29,7 +29,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  optimizer=0, learning_rate=0.01,
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
                  clipping=False, doubleLayer=False, dropoutProb=0., useEncoder=True, 
-                 oldNearestFinding=False, adjustErrorToPredictionSize=False, outputBias=False):
+                 oldNearestFinding=False, adjustErrorToPredictionSize=False, outputBias=False,
+                 limit_right_hand=False):
         '''
         Initialize all Theano models.
         '''
@@ -55,6 +56,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.oldNearestFinding = oldNearestFinding;
         self.adjustErrorToPredictionSize = adjustErrorToPredictionSize;
         self.outputBias = outputBias;
+        self.limit_right_hand = limit_right_hand;
         
         if (not self.lstm):
             raise ValueError("Feature LSTM = False is no longer supported!");
@@ -198,8 +200,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             right_hand, _, _, _ = outputs;
         else:
             right_hand, _, _ = outputs;
-        right_hand_near_zeros = T.ones_like(right_hand) * 1e-15;
-        right_hand = T.maximum(right_hand, right_hand_near_zeros);
+        
+        if (self.limit_right_hand):
+            right_hand_near_zeros = T.ones_like(right_hand) * 1e-15;
+            right_hand = T.maximum(right_hand, right_hand_near_zeros);
         
         # We predict the final n symbols (all symbols predicted as output from input '=')
         prediction_1 = T.argmax(right_hand[:,:,:self.data_dim], axis=2);
