@@ -221,11 +221,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             self._predict = theano.function([X, label, intervention_locations], [prediction_1,
                                                                                 prediction_2,
                                                                                 right_hand,
-                                                                                error]);
+                                                                                error], on_unused_input='warn');
         else:
             self._predict = theano.function([X, label, intervention_locations], [prediction_1,
                                                                                 right_hand,
-                                                                                error]);
+                                                                                error], on_unused_input='warn');
         
         # Defining stochastic gradient descent
         variables = filter(lambda name: name != 'hbY' and name != 'DhbY', self.vars.keys());
@@ -247,7 +247,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self._sgd = theano.function([X, label, intervention_locations],
                                         [error],
                                     updates=updates,
-                                    allow_input_downcast=True)
+                                    allow_input_downcast=True,
+                                    on_unused_input='warn')
         
         super(TheanoRecurrentNeuralNetwork, self).__init__();
     

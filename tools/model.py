@@ -81,7 +81,7 @@ def constructModels(parameters, seed, verboseOutputter):
                                          lstm=parameters['lstm'], single_digit=parameters['single_digit'] or parameters['find_x'],
                                          minibatch_size=parameters['minibatch_size'],
                                          n_max_digits=parameters['n_max_digits'],
-                                         decoder=parameters['decoder'],
+                                         decoder=parameters['decoder'] and parameters['use_encoder'],
                                          verboseOutputter=verboseOutputter,
                                          GO_symbol_index=dataset.GO_symbol_index,
                                          finishExpressions=(parameters['finish_expressions'] or parameters['finish_subsystems']) and not parameters['no_label_search'],
@@ -96,7 +96,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                          dropoutProb=parameters['dropout_prob'],
                                          oldNearestFinding=parameters['old_nearest_finding'],
                                          adjustErrorToPredictionSize=parameters['adjust_error_to_prediction_size'],
-                                         outputBias=parameters['output_bias']);
+                                         outputBias=parameters['output_bias'],
+                                         useEncoder=parameters['use_encoder']);
     
     return datasets, rnn;
 
