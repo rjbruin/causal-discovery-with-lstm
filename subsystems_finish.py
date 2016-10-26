@@ -62,6 +62,8 @@ def print_stats(stats, parameters, prefix=''):
     
     output += prefix + "All error margins: %s\n" % str(stats['error_histogram']);
     
+    output += prefix + "Unique labels predicted: %d\n" % stats['unique_labels_predicted'];
+    
     output += "\n";
     print(output);
 
@@ -196,6 +198,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
     
     # Set up statistics
     stats = set_up_statistics(dataset.output_dim, model.n_max_digits);
+    total_labels_used = {k: 0 for k in range(30)};
     
     # Predict
     printed_samples = False;
@@ -249,6 +252,13 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                                        testExtraValidity=parameters['test_extra_validity'],
                                        bothcause=parameters['bothcause'],
                                        labels_to_use=labels_to_use);
+        
+        for j in range(model.minibatch_size):
+            if (parameters['only_cause_expression'] is not False):
+                total_labels_used[labels_used[j][0]] = True;
+            else:
+                total_labels_used[labels_used[j][0]+";"+labels_used[j][1]];
+        
         # Print samples
         if (print_samples and not printed_samples):
             for i in range(10):
@@ -279,7 +289,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
     
     print("Total testing error: %.2f" % totalError);
     
-    stats = model.total_statistics(stats);
+    stats = model.total_statistics(stats, total_labels_used=total_labels_used);
     
     print_stats(stats, parameters);
     

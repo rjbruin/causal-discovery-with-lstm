@@ -32,7 +32,8 @@ if __name__ == '__main__':
                    'Mistake (3) precision': 'Error margin 3 score',
                    'Validity': 'Valid',
                    'Validity (c)': 'Structure valid cause',
-                   'Validity (e)': 'Structure valid effect'};
+                   'Validity (e)': 'Structure valid effect',
+                   'Unique predictions': 'Unique labels predicted'};
     trackerreporter.init('http://rjbruin.nl/experimenttracker/api/',api_key);
     
     experiments_file = 'choose';

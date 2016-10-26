@@ -88,7 +88,7 @@ class RecurrentModel(object):
         
         return stats;
         
-    def total_statistics(self, stats):
+    def total_statistics(self, stats, total_labels_used={}):
         """
         Adds general statistics to the statistics generated per batch.
         """
@@ -150,6 +150,8 @@ class RecurrentModel(object):
                                       stats['error_histogram'][2]) / float(stats['prediction_size']);
             stats['error_3_score'] = (stats['correct'] + stats['error_histogram'][1] + \
                                       stats['error_histogram'][2] + stats['error_histogram'][3]) / float(stats['prediction_size']); 
+        
+        stats['unique_labels_predicted'] = len(total_labels_used.keys());
         
         return stats;
     
