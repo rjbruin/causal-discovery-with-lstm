@@ -39,27 +39,46 @@ class SequencesByPrefix(object):
             prefix = expression[0];
             self.prefixedExpressions[prefix]._add(expression[1:], fullExpression, expression_prime);
     
-    def get(self, prefix, getStructure=False, safe=False, alsoGetStructure=False):
+    def get(self, prefix, getStructure=False, safe=False, alsoGetStructure=False, filterExpressionPrime=None):
         if (len(prefix) == 0):
             if (getStructure):
                 return self;
             else:
+                candidates = self.expressions;
+                fullCandidates = self.fullExpressions;
+                primedCandidates = self.primedExpressions;
+                # Filter for expression prime if given
+                if (filterExpressionPrime is not None):
+                    fullCandidates = [];
+                    primedCandidates = [];
+                    for i in range(len(self.fullExpressions)):
+                        if (self.primedExpressions[i][:len(filterExpressionPrime)] == filterExpressionPrime):
+                            candidates.append(self.expressions[i]);
+                            fullCandidates.append(self.fullExpressions[i]);
+                            primedCandidates.append(self.primedExpressions[i]);
+                
                 try:
-                    index = self.expressions.index("");
+                    index = candidates.index("");
                 except ValueError:
                     if (not alsoGetStructure):
-                        return (False, False, self.fullExpressions, self.primedExpressions);
+                        return (False, False, fullCandidates, primedCandidates);
                     else:
-                        return (False, False, self.fullExpressions, self.primedExpressions, self);
+                        return (False, False, fullCandidates, primedCandidates, self);
+                
                 if (not alsoGetStructure):
-                    return (self.fullExpressions[index], self.primedExpressions[index], 
-                            self.fullExpressions, self.primedExpressions);
+                    return (fullCandidates[index], primedCandidates[index], 
+                            fullCandidates, primedCandidates);
                 else:
-                    return (self.fullExpressions[index], self.primedExpressions[index], 
-                            self.fullExpressions, self.primedExpressions, self);
+                    return (fullCandidates[index], primedCandidates[index], 
+                            fullCandidates, primedCandidates, self);
         if (safe and prefix[0] not in self.prefixedExpressions):
-            return False; 
-        return self.prefixedExpressions[prefix[0]].get(prefix[1:], getStructure=getStructure, safe=safe, alsoGetStructure=alsoGetStructure);
+            return False;
+        
+        return self.prefixedExpressions[prefix[0]].get(\
+                prefix[1:], 
+                getStructure=getStructure, 
+                safe=safe, alsoGetStructure=alsoGetStructure,
+                filterExpressionPrime=filterExpressionPrime);
     
     def get_closest(self, target):
         # Go down as far as possible into the given target

@@ -608,6 +608,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             profiler.start("fl string prediction compilation");
             # Find the string representation of the prediction
             string_prediction = dataset.indicesToStr(prediction);
+            other_string_prediction = "";
+            filterExpressionPrime = None;
+            if (not self.only_cause_expression):
+                other_string_prediction = dataset.indicesToStr(effectExpressionPredictions[i]);
+                filterExpressionPrime = other_string_prediction[:intervention_locations[i]+1];
             profiler.stop("fl string prediction compilation");
             
             # Get all valid predictions for this data sample including intervention
@@ -616,7 +621,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             # prediction will not be in valid_prediction) because we do want to use a label 
             # that does the intervention right so the model can learn from this mistake
             profiler.start("fl storage querying");
-            _, _, valid_predictions, validPredictionEffectExpressions, branch = storage.get(causeExpressions[i][:intervention_locations[i]+1], alsoGetStructure=True);
+            _, _, valid_predictions, validPredictionEffectExpressions, branch = \
+                storage.get(causeExpressions[i][:intervention_locations[i]+1], 
+                            alsoGetStructure=True, 
+                            filterExpressionPrime=filterExpressionPrime);
             profiler.stop("fl storage querying");
             if (len(valid_predictions) == 0):
                 # Invalid example because the intervention has no corrected examples
@@ -633,10 +641,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 
                 # If our prediction is valid we check if the other expression matches 
                 # the predicted expression
-                other_string_prediction = "";
                 if (not self.only_cause_expression):
                     profiler.start("fl other prediction checking");
-                    other_string_prediction = dataset.indicesToStr(effectExpressionPredictions[i]);
                     prediction_index = valid_predictions.index(string_prediction);
                     if (other_string_prediction == validPredictionEffectExpressions[prediction_index]):
                         # If the effect expression predicted matches the 
@@ -741,9 +747,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             # We still use the label expressions provided (even though we know that our
             # prediction will not be in valid_prediction) because we do want to use a label 
             # that does the intervention right so the model can learn from this mistake
-            _, _, validTopPredictions, validTopPredictionBotSamples, branch = storage.get(topExpressions[i][:intervention_locations[i]+1], alsoGetStructure=True);
+            _, _, validTopPredictions, validTopPredictionBotSamples, branch = storage.get(top_string_prediction[:intervention_locations[i]+1],
+                                                                                          alsoGetStructure=True,
+                                                                                          filterExpressionPrime=bot_string_prediction[:intervention_locations[i]+1]);
             if (not self.only_cause_expression):
-                _, _, validBotPredictions, validBotPredictionTopSamples, branch_bot = storage_bot.get(botExpressions[i][:intervention_locations[i]+1], alsoGetStructure=True);
+                _, _, validBotPredictions, validBotPredictionTopSamples, branch_bot = storage_bot.get(bot_string_prediction[:intervention_locations[i]+1],
+                                                                                                      alsoGetStructure=True,
+                                                                                                      filterExpressionPrime=top_string_prediction[:intervention_locations[i]+1]);
             
             if (not self.only_cause_expression):
                 validTops = validTopPredictions + validBotPredictionTopSamples;

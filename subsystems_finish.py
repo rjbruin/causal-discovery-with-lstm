@@ -257,7 +257,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
             if (parameters['only_cause_expression'] is not False):
                 total_labels_used[labels_used[j][0]] = True;
             else:
-                total_labels_used[labels_used[j][0]+";"+labels_used[j][1]];
+                total_labels_used[labels_used[j][0]+";"+labels_used[j][1]] = True;
         
         # Print samples
         if (print_samples and not printed_samples):
