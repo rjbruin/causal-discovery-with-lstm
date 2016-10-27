@@ -64,6 +64,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             raise ValueError("Feature LSTM = False is no longer supported!");
         if (self.clipping and self.doubleLayer):
             raise ValueError("Clipping and double layer not supported together!");
+        if (not self.limit_right_hand):
+            raise ValueError("Limiting right hand is mandatory to prevent NaN errors!");
                 
         self.EOS_symbol_index = EOS_symbol_index;
         self.GO_symbol_index = GO_symbol_index;
@@ -203,9 +205,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         else:
             right_hand, _, _ = outputs;
         
-        if (self.limit_right_hand):
-            right_hand_near_zeros = T.ones_like(right_hand) * 1e-15;
-            right_hand = T.maximum(right_hand, right_hand_near_zeros);
+        right_hand_near_zeros = T.ones_like(right_hand) * 1e-15;
+        right_hand = T.maximum(right_hand, right_hand_near_zeros);
         
         # We predict the final n symbols (all symbols predicted as output from input '=')
         prediction_1 = T.argmax(right_hand[:,:,:self.data_dim], axis=2);
@@ -322,7 +323,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (not self.only_cause_expression):
             Y_output = T.concatenate([T.switch(comparison[0],given_X[:,:self.data_dim],Y_output[:,:self.data_dim]), T.switch(comparison[1],given_X[:,self.data_dim:],Y_output[:,self.data_dim:])], axis=1);
         else:
-            Y_output = T.switch(comparison,given_X,Y_output);
+            Y_output = T.switch(comparison[0],given_X,Y_output);
         
         new_sentence_index = sentence_index + 1.;
         

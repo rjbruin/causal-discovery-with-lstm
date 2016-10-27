@@ -170,7 +170,7 @@ defaults = {'report_to_tracker': True,
             'adjust_error_to_prediction_size': False,
             'output_bias': False,
             'subbatch_size': 1,
-            'limit_right_hand': False
+            'limit_right_hand': True
             }
 
 def processKeyValue(key,value):
