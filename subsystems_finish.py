@@ -18,6 +18,17 @@ import theano;
 import copy;
 from profiler import profiler
 
+def addOtherInterventionLocations(intervention_locations, topcause):
+    # Transform intervention locations to matrix where the 'other' locations
+    # are location-1 because we don't want to use the label at the 
+    # intervention location for the other expression
+    matrix_intervention_locations = np.zeros((2, len(intervention_locations)), dtype='int32');
+    matrix_intervention_locations[0 if topcause else 1,:] = np.array(intervention_locations, dtype='int32');
+    # Negative intervention locations are allowed
+    matrix_intervention_locations[1 if topcause else 0,:] = np.array(intervention_locations, dtype='int32') - 1;
+    
+    return matrix_intervention_locations;
+
 def print_stats(stats, parameters, prefix=''):
     # Print statistics
     output = "\n";
@@ -225,6 +236,9 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                                             topcause,
                                             interventionLocations, 
                                             possibleInterventions);
+            
+            # Make intervention locations into matrix
+            interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
         
         predictions, other = model.predict(test_data, label=test_targets, 
                                            interventionLocations=interventionLocations,
@@ -264,7 +278,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
             for i in range(10):
                 prefix = "# ";
 #                 prefix = "";
-                print(prefix + "Intervention location: %d" % interventionLocations[i]);
+                print(prefix + "Intervention location: %d" % interventionLocations[0,i]);
                 print(prefix + "Original data 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                      np.argmax(test_data[i,:,:model.data_dim],len(test_data.shape)-2)))));
                 print(prefix + "Interve. data 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
@@ -395,13 +409,17 @@ if __name__ == '__main__':
             profiler.start('train interventions');
             # Perform interventions
             if (parameters['train_interventions']):
-                target, target_expressions, interventionLocation = \
+                target, target_expressions, interventionLocations = \
                     dataset.insertInterventions(target, copy.deepcopy(expressions), 
                                                 topcause,
                                                 interventionLocations, 
                                                 possibleInterventions);
                 for l in interventionLocations:
                     intervention_locations_train[l] += 1;
+                
+                # Make intervention locations into matrix
+                interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
+                
                 #differences = map(lambda (d,t): d == t, zip(np.argmax(data, axis=2), np.argmax(target, axis=2)));
             profiler.stop('train interventions');
             

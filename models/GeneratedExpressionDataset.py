@@ -577,9 +577,9 @@ class GeneratedExpressionDataset(Dataset):
         # We concatenate the expressions on the data_dim axis
         # Both expressions are of the same length, so no checks needed here
         if (not self.only_cause_expression):
-            expression_embeddings = np.zeros((len(expression)+1,self.data_dim*2), dtype='float32');
+            expression_embeddings = np.zeros((max(len(expression),len(expression_prime))+1,self.data_dim*2), dtype='float32');
         else:
-            expression_embeddings = np.zeros((len(expression)+1,self.data_dim), dtype='float32');
+            expression_embeddings = np.zeros((max(len(expression),len(expression_prime))+1,self.data_dim), dtype='float32');
             
         for i, literal in enumerate(expression):
             expression_embeddings[i,self.oneHot[literal]] = 1.0;

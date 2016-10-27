@@ -6,6 +6,8 @@ Created on 22 feb. 2016
 
 import theano;
 import theano.tensor as T;
+from theano.compile.nanguardmode import NanGuardMode
+
 import numpy as np;
 from models.RecurrentModel import RecurrentModel
 #from theano.compile.nanguardmode import NanGuardMode
@@ -144,7 +146,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         X = T.ftensor3('X');
         # label is 3-dimensional: 1) index in sentence, 2) datapoint, 3) dimensionality of data
         label = T.ftensor3('label');
-        intervention_locations = T.ivector();
+        intervention_locations = T.imatrix();
         
         # Set the RNN cell to use for encoding and decoding
         encode_function = self.lstm_predict_single_no_output;
@@ -188,9 +190,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (self.GO_symbol_index is None):
             raise ValueError("GO symbol index not set!");
         
-        init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]}, {'initial': hidden[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
+        init_values = ({'initial': T.zeros((self.minibatch_size,actual_data_dim)), 'taps': [-1]}, {'initial': hidden[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
         if (self.doubleLayer):
-            init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]}, {'initial': hidden[-1], 'taps': [-1]}, {'initial': hidden_2[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
+            init_values = ({'initial': T.zeros((self.minibatch_size,actual_data_dim)), 'taps': [-1]}, {'initial': hidden[-1], 'taps': [-1]}, {'initial': hidden_2[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
         outputs, _ = theano.scan(fn=decode_function,
                                  sequences=label,
                                  outputs_info=init_values,
@@ -253,6 +255,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                     updates=updates,
                                     allow_input_downcast=True,
                                     on_unused_input='warn')
+#                                     mode=NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=True))
         
         super(TheanoRecurrentNeuralNetwork, self).__init__();
     
@@ -301,7 +304,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         # Use given intervention locations to determine whether to use label
         # or previous prediction. This should allow for flexible minibatching
-        comparison = T.le(sentence_index,intervention_locations).reshape((T.constant(self.minibatch_size), T.constant(1)), ndim=2);
+        comparison = T.le(sentence_index,intervention_locations).reshape((T.constant(2), T.constant(self.minibatch_size), T.constant(1)), ndim=3);
+#         comparison = T.le(sentence_index,intervention_locations).reshape((T.constant(self.minibatch_size), T.constant(1)), ndim=2);
+#         if (not self.only_cause_expression):
+#             comparison_bot = T.le(sentence_index,intervention_locations[1]).reshape((T.constant(self.minibatch_size), T.constant(1)), ndim=2);
+        
         if (self.outputBias):
             Y_output = T.nnet.softmax(hidden.dot(hWY) + hbY);
         else:
@@ -312,7 +319,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             Y_output = lasagne.layers.dropout((self.minibatch_size, self.decoding_output_dim), self.dropoutProb).get_output_for(Y_output);
         
         # Filter for intervention location
-        Y_output = T.switch(comparison,given_X,Y_output);
+        if (not self.only_cause_expression):
+            Y_output = T.concatenate([T.switch(comparison[0],given_X[:,:self.data_dim],Y_output[:,:self.data_dim]), T.switch(comparison[1],given_X[:,self.data_dim:],Y_output[:,self.data_dim:])], axis=1);
+        else:
+            Y_output = T.switch(comparison,given_X,Y_output);
         
         new_sentence_index = sentence_index + 1.;
         
@@ -356,7 +366,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         # Use given intervention locations to determine whether to use label
         # or previous prediction. This should allow for flexible minibatching
-        comparison = T.le(sentence_index,intervention_locations).reshape((T.constant(self.minibatch_size), T.constant(1)), ndim=2);
+        # Use given intervention locations to determine whether to use label
+        # or previous prediction. This should allow for flexible minibatching
+        comparison_top = T.le(sentence_index,intervention_locations[0]).reshape((T.constant(self.minibatch_size), T.constant(1)), ndim=2);
+        if (not self.only_cause_expression):
+            comparison_bot = T.le(sentence_index,intervention_locations[1]).reshape((T.constant(self.minibatch_size), T.constant(1)), ndim=2);
+        
         if (self.outputBias):
             Y_output = T.nnet.softmax(hidden_2.dot(hWY) + hbY);
         else:
@@ -367,7 +382,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             Y_output = lasagne.layers.dropout((self.minibatch_size, self.decoding_output_dim), self.dropoutProb).get_output_for(Y_output);
         
         # Filter for intervention location
-        Y_output = T.switch(comparison,given_X,Y_output);
+        if (not self.only_cause_expression):
+            Y_output = T.concatenate([T.switch(comparison_top,given_X[:,:self.data_dim],Y_output[:,:self.data_dim]), T.switch(comparison_bot,given_X[:,self.data_dim:],Y_output[:,self.data_dim:])], axis=1);
+        else:
+            Y_output = T.switch(comparison_top,given_X,Y_output);
         
         new_sentence_index = sentence_index + 1.;
         
@@ -423,7 +441,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             return self._sgd(data, label, learning_rate), [], expressions;
         
     def predict(self, data, label=None, interventionLocations=None, alreadySwapped=False, 
-                intervention=True, fixedDecoderInputs=True):
+                intervention=True, fixedDecoderInputs=True, topcause=True):
         """
         Perform necessary models-specific transformations and call the actual 
         prediction function of the model.
@@ -437,7 +455,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 label = np.swapaxes(label, 0, 1);
         
         if (not intervention or interventionLocations is None):
-            interventionLocations = np.zeros((data.shape[1]));
+            interventionLocations = np.zeros((2,data.shape[1]));
         
         if (not self.only_cause_expression):
             prediction_1, prediction_2, right_hand, error = \
@@ -527,10 +545,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                                        updateTargets=True, updateLabels=True,
                                                        encoded_topExpression=causeExpressionRightHand,
                                                        encoded_botExpression=effectExpressionRightHand,
-                                                       emptySamples=emptySamples);
+                                                       emptySamples=emptySamples, topcause=topcause);
         else:
             if (fixedDecoderInputs):
-                intervention_locations = np.zeros((encoded_expressions.shape[0]));
+                intervention_locations = np.zeros((2,encoded_expressions.shape[0]));
             else:
                 raise ValueError("fixedDecoderInputs = false not implemented yet!");
         profiler.stop('train sgd find labels');
@@ -612,7 +630,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             filterExpressionPrime = None;
             if (not self.only_cause_expression):
                 other_string_prediction = dataset.indicesToStr(effectExpressionPredictions[i]);
-                filterExpressionPrime = other_string_prediction[:intervention_locations[i]+1];
+                filterExpressionPrime = other_string_prediction[:intervention_locations[1,i]+1];
             profiler.stop("fl string prediction compilation");
             
             # Get all valid predictions for this data sample including intervention
@@ -622,7 +640,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             # that does the intervention right so the model can learn from this mistake
             profiler.start("fl storage querying");
             _, _, valid_predictions, validPredictionEffectExpressions, branch = \
-                storage.get(causeExpressions[i][:intervention_locations[i]+1], 
+                storage.get(causeExpressions[i][:intervention_locations[0,i]+1], 
                             alsoGetStructure=True, 
                             filterExpressionPrime=filterExpressionPrime);
             profiler.stop("fl storage querying");
@@ -673,14 +691,14 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     nearest = -1;
                     nearest_score = 100000;
                     for j, nexpr in enumerate(valid_predictions):
-                        score = TheanoRecurrentNeuralNetwork.string_difference(string_prediction[intervention_locations[i]+1:], nexpr[intervention_locations[i]+1:]);
+                        score = TheanoRecurrentNeuralNetwork.string_difference(string_prediction[intervention_locations[0,i]+1:], nexpr[intervention_locations[0,i]+1:]);
                         if (score < nearest_score):
                             nearest = j;
                             nearest_score = score;
                     closest_expression = valid_predictions[nearest];
                     closest_expression_prime = validPredictionEffectExpressions[nearest];
                 else:
-                    closest_expression, closest_expression_prime, _, _ = branch.get_closest(string_prediction[intervention_locations[i]+1:]);
+                    closest_expression, closest_expression_prime, _, _ = branch.get_closest(string_prediction[intervention_locations[0,i]+1:]);
                 
                 # Use as targets the found cause expression and its 
                 # accompanying effect expression
@@ -701,7 +719,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                                  intervention_locations,
                                                  updateTargets=False, updateLabels=False,
                                                  encoded_topExpression=False, encoded_botExpression=False,
-                                                 emptySamples=False, test_n=False, useTestStorage=False):
+                                                 emptySamples=False, test_n=False, useTestStorage=False,
+                                                 topcause=True):
         if (not self.only_cause_expression):
             target = np.zeros((self.minibatch_size,self.n_max_digits,self.decoding_output_dim*2));
         else:
@@ -711,6 +730,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             emptySamples = [];
         if (test_n is False):
             test_n = len(topExpressionPredictions);
+        
+        # Intervention indices
+        top_ii = 0 if topcause else 1;
+        bot_ii = 1 if topcause else 0;
         
         # Set the storage and helper methods
         storage = dataset.expressionsByPrefix;
@@ -747,17 +770,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             # We still use the label expressions provided (even though we know that our
             # prediction will not be in valid_prediction) because we do want to use a label 
             # that does the intervention right so the model can learn from this mistake
-            _, _, validTopPredictions, validTopPredictionBotSamples, branch = storage.get(top_string_prediction[:intervention_locations[i]+1],
-                                                                                          alsoGetStructure=True,
-                                                                                          filterExpressionPrime=bot_string_prediction[:intervention_locations[i]+1]);
-            if (not self.only_cause_expression):
-                _, _, validBotPredictions, validBotPredictionTopSamples, branch_bot = storage_bot.get(bot_string_prediction[:intervention_locations[i]+1],
-                                                                                                      alsoGetStructure=True,
-                                                                                                      filterExpressionPrime=top_string_prediction[:intervention_locations[i]+1]);
+            _, _, validTopPredictions, validTopPredictionBotSamples, branch = storage.get(top_string_prediction[:intervention_locations[top_ii,i]+1],
+                                                                                          alsoGetStructure=True)
+#                                                                                           filterExpressionPrime=bot_string_prediction[:intervention_locations[bot_ii,i]+1]);
+#             if (not self.only_cause_expression):
+#                 _, _, validBotPredictions, validBotPredictionTopSamples, branch_bot = storage_bot.get(bot_string_prediction[:intervention_locations[bot_ii,i]+1],
+#                                                                                                       alsoGetStructure=True,
+#                                                                                                       filterExpressionPrime=top_string_prediction[:intervention_locations[top_ii,i]+1]);
             
             if (not self.only_cause_expression):
-                validTops = validTopPredictions + validBotPredictionTopSamples;
-                validBots = validTopPredictionBotSamples + validBotPredictions;
+                validTops = validTopPredictions;
+                validBots = validTopPredictionBotSamples;
             else:
                 validTops = validTopPredictions
             
@@ -803,11 +826,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 else:
                     if (len(predictionPool) == 0):
                         # Get closest for both and add both to prediction pool
-                        closest_expression, closest_expression_prime, _, _ = branch.get_closest(top_string_prediction[intervention_locations[i]+1:]);
+                        closest_expression, closest_expression_prime, _, _ = branch.get_closest(top_string_prediction[intervention_locations[top_ii,i]+1:]);
                         predictionPool.append((closest_expression, closest_expression_prime, -1));
-                        if (not self.only_cause_expression):
-                            closest_expression, closest_expression_prime, _, _ = branch_bot.get_closest(bot_string_prediction[intervention_locations[i]+1:]);
-                            predictionPool.append((closest_expression, closest_expression_prime, -1));
+#                         if (not self.only_cause_expression):
+#                             closest_expression, closest_expression_prime, _, _ = branch_bot.get_closest(bot_string_prediction[intervention_locations[i]+1:]);
+#                             predictionPool.append((closest_expression, closest_expression_prime, -1));
                     
                     # Find the nearest expression to our prediction
                     nearest = -1;
@@ -821,9 +844,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         # Compute string difference
                         score = 0;
                         if (checkWhich == -1 or checkWhich == 0):
-                            score += TheanoRecurrentNeuralNetwork.string_difference(top_string_prediction[intervention_locations[i]+1:], topLabel[intervention_locations[i]+1:]);
+                            score += TheanoRecurrentNeuralNetwork.string_difference(top_string_prediction[intervention_locations[top_ii,i]+1:], topLabel[intervention_locations[top_ii,i]+1:]);
                         if (checkWhich == -1 or checkWhich == 1):
-                            score += TheanoRecurrentNeuralNetwork.string_difference(bot_string_prediction[intervention_locations[i]+1:], botLabel[intervention_locations[i]+1:]);
+                            score += TheanoRecurrentNeuralNetwork.string_difference(bot_string_prediction[intervention_locations[bot_ii,i]+1:], botLabel[intervention_locations[bot_ii,i]+1:]);
                         if (score < nearestScore):
                             nearest = i_near;
                             nearestScore = score;
@@ -1069,26 +1092,26 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             
             # Digit precision and prediction size computation
             i = 0;
-            for i in range(intervention_locations[j]+1,min(len(causeExpressionPrediction),len(labels_to_use[j][causeIndex]))):
+            for i in range(intervention_locations[causeIndex,j]+1,min(len(causeExpressionPrediction),len(labels_to_use[j][causeIndex]))):
                 if (causeExpressionPrediction[i] == labels_to_use[j][causeIndex][i]):
                     stats['digit_1_correct'] += 1.0;
             stats['digit_1_prediction_size'] += len(causeExpressionPrediction);
             
             if (not self.only_cause_expression):
                 i = 0;
-                for i in range(intervention_locations[j]+1,min(len(effectExpressionPrediction),len(labels_to_use[j][effectIndex]))):
+                for i in range(intervention_locations[effectIndex,j]+1,min(len(effectExpressionPrediction),len(labels_to_use[j][effectIndex]))):
                     if (effectExpressionPrediction[i] == labels_to_use[j][effectIndex][i]):
                         stats['digit_2_correct'] += 1.0;
                 stats['digit_2_prediction_size'] += len(effectExpressionPrediction);      
 
        
             stats['prediction_1_size_histogram'][int(eos_location)] += 1;
-            for digit_prediction in prediction[causeIndex][j][intervention_locations[j]+1:len(causeExpressionPrediction)]:
+            for digit_prediction in prediction[causeIndex][j][intervention_locations[causeIndex,j]+1:len(causeExpressionPrediction)]:
                 stats['prediction_1_histogram'][int(digit_prediction)] += 1;
             
             if (not self.only_cause_expression):
                 stats['prediction_2_size_histogram'][int(eos_location)] += 1;
-                for digit_prediction in prediction[effectIndex][j][:len(effectExpressionPrediction)]:
+                for digit_prediction in prediction[effectIndex][j][intervention_locations[effectIndex,j]+1:len(effectExpressionPrediction)]:
                     stats['prediction_2_histogram'][int(digit_prediction)] += 1;
             
             stats['prediction_size'] += 1;
