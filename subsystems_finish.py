@@ -234,9 +234,9 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
     
     # Predict
     printed_samples = False;
-    batch_range = range(0,total,model.minibatch_size);
     totalError = 0.0;
-    for _ in batch_range:
+    k = 0;
+    while k < total:
         # Get data from batch
         test_data, test_targets, _, test_expressions, \
             possibleInterventions, interventionLocations, topcause, nrSamples = get_batch(False, dataset, model, 
@@ -320,6 +320,8 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
         if (stats['prediction_size'] % printing_interval == 0):
             print("# %d / %d" % (stats['prediction_size'], total));
         profiler.stop("test batch stats");
+        
+        k += nrSamples;
     
     profiler.profile();
     
@@ -414,8 +416,9 @@ if __name__ == '__main__':
         print(progress);
         
         # Train model per minibatch
-        batch_range = range(0,repetition_size,model.minibatch_size);
-        for k in batch_range:
+        k = 0;
+        printedProgress = -1;
+        while k < repetition_size:
             profiler.start('train batch');
             profiler.start('get train batch');
             data, target, _, target_expressions, possibleInterventions, interventionLocations, topcause, nrSamples = \
@@ -481,11 +484,15 @@ if __name__ == '__main__':
                                                testExtraValidity=parameters['test_extra_validity'],
                                                bothcause=parameters['bothcause']);
             
-            if ((k+model.minibatch_size) % (model.minibatch_size*4) == 0):
+            if ((k+model.minibatch_size) % (model.minibatch_size*4) < model.minibatch_size and \
+                (k+model.minibatch_size) / (model.minibatch_size*4) > printedProgress):
+                printedProgress = (k+model.minibatch_size) / (model.minibatch_size*4);
                 print("# %d / %d (error = %.2f)" % (k+model.minibatch_size, repetition_size, total_error));
             
             profiler.stop('train stats');
             profiler.stop('train batch');
+            
+            k += nrSamples;
         
         # Print sample of last training batch
 #         if (parameters['debug'] and parameters['only_cause_expression'] == 1):
