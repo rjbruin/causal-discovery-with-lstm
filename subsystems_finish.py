@@ -80,7 +80,7 @@ def print_stats(stats, parameters, prefix=''):
 
 def get_batch(isTrain, dataset, model, intervention_range, max_length, 
               debug=False, base_offset=12, applyIntervention=True, 
-              seq2ndmarkov=False, bothcause=False):    
+              seq2ndmarkov=False, bothcause=False, homogeneous=False):    
     # Reseed the random generator to prevent generating identical batches
     np.random.seed();
     
@@ -96,6 +96,7 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
     batch = [];
     interventionLocations = [];
     subbatch_size = parameters['subbatch_size'];
+    nrSamples = 0;
     while (len(batch) < model.minibatch_size):
         interventionLocation = np.random.randint(max_length-intervention_range-base_offset, 
                                                  max_length-base_offset);
@@ -121,51 +122,70 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
                 branch = storage_bot.get_random_by_length(interventionLocation, getStructure=True);
             else:
                 branch = storage.get_random_by_length(interventionLocation, getStructure=True);
+            
             validPrefixes = {};
-            
-            if (not seq2ndmarkov or not applyIntervention):
-                if (len(branch.prefixedExpressions) >= 2):
-                    for prefix in branch.prefixedExpressions:
-                        symbolIndex = dataset.oneHot[prefix];
-                        if (symbolIndex < dataset.EOS_symbol_index-4 and len(branch.prefixedExpressions[prefix].fullExpressions) >= 1):
-                            # Check for valid intervention symbol: has to be the right
-                            # symbol and has to have expressions
-                            validPrefixes[prefix] = branch.prefixedExpressions[prefix];
+            if (homogeneous):
+                candidates = branch.fullExpressions;
+                prime_candidates = branch.primedExpressions;
+                if (len(candidates) <= subbatch_size):
+                    # Use all available to fill subbatch
+                    subbatch = zip(candidates,prime_candidates, [[] for _ in range(len(candidates))]);
+                    n_missing = subbatch_size - len(candidates);
+                    nrSamples += len(candidates);
+                    if (n_missing > 0):
+                        subbatch.extend([('','',[]) for _ in range(n_missing)]);
+                else:
+                    # Sample from available to fill subbatch
+                    candidate_indices = range(len(candidates));
+                    np.random.shuffle(candidate_indices);
+                    nrSamples += subbatch_size;
+                    for i in range(subbatch_size):
+                        subbatch.append((candidates[candidate_indices[i]],prime_candidates[candidate_indices[i]],[]))
             else:
-                # We use all prefixes for seq2ndmarkov because we can only have valid intervention locations
-                # We know this because the samples all have the same repeating symtax of 
-                # <left><op><right><answer/left><op>...
-                validPrefixes = {p: branch.prefixedExpressions[p] for p in branch.prefixedExpressions};
+                nrSamples = model.minibatch_size;
+                if (not seq2ndmarkov or not applyIntervention):
+                    if (len(branch.prefixedExpressions) >= 2):
+                        for prefix in branch.prefixedExpressions:
+                            symbolIndex = dataset.oneHot[prefix];
+                            if (symbolIndex < dataset.EOS_symbol_index-4 and len(branch.prefixedExpressions[prefix].fullExpressions) >= 1):
+                                # Check for valid intervention symbol: has to be the right
+                                # symbol and has to have expressions
+                                validPrefixes[prefix] = branch.prefixedExpressions[prefix];
+                else:
+                    # We use all prefixes for seq2ndmarkov because we can only have valid intervention locations
+                    # We know this because the samples all have the same repeating symtax of 
+                    # <left><op><right><answer/left><op>...
+                    validPrefixes = {p: branch.prefixedExpressions[p] for p in branch.prefixedExpressions};
             
-            if (applyIntervention):
-                if (len(validPrefixes.keys()) >= 2):
-                    # If there are at least two valid prefixes we will always be
-                    # able to find an intervention sample for a random sample from
-                    # this branch 
-                    randomPrefix = validPrefixes.keys()[np.random.randint(0,len(validPrefixes.keys()))];
-                    randomCandidate = np.random.randint(0,len(branch.prefixedExpressions[randomPrefix].fullExpressions));
-                    # Keep the order of top and bottom
-                    if (seq2ndmarkov and not topcause):
-                        subbatch.append((branch.prefixedExpressions[randomPrefix].primedExpressions[randomCandidate],
-                                         branch.prefixedExpressions[randomPrefix].fullExpressions[randomCandidate],
-                                         validPrefixes.keys()));
+                if (applyIntervention):
+                    if (len(validPrefixes.keys()) >= 2):
+                        # If there are at least two valid prefixes we will always be
+                        # able to find an intervention sample for a random sample from
+                        # this branch 
+                        randomPrefix = validPrefixes.keys()[np.random.randint(0,len(validPrefixes.keys()))];
+                        randomCandidate = np.random.randint(0,len(branch.prefixedExpressions[randomPrefix].fullExpressions));
+                        # Keep the order of top and bottom
+                        if (seq2ndmarkov and not topcause):
+                            subbatch.append((branch.prefixedExpressions[randomPrefix].primedExpressions[randomCandidate],
+                                             branch.prefixedExpressions[randomPrefix].fullExpressions[randomCandidate],
+                                             validPrefixes.keys()));
+                        else:
+                            subbatch.append((branch.prefixedExpressions[randomPrefix].fullExpressions[randomCandidate],
+                                             branch.prefixedExpressions[randomPrefix].primedExpressions[randomCandidate],
+                                             validPrefixes.keys()));
                     else:
+                        fails += 1;
+                        if (fails >= limit):
+                            subbatch = [];
+                            break;
+                else:
+                    # No intervention, just the sample, but we still need to select a random sample
+                    if (len(validPrefixes.keys()) >= 1):
+                        randomPrefix = validPrefixes.keys()[np.random.randint(0,len(validPrefixes.keys()))];
+                        randomCandidate = np.random.randint(0,len(branch.prefixedExpressions[randomPrefix].fullExpressions));
                         subbatch.append((branch.prefixedExpressions[randomPrefix].fullExpressions[randomCandidate],
                                          branch.prefixedExpressions[randomPrefix].primedExpressions[randomCandidate],
                                          validPrefixes.keys()));
-                else:
-                    fails += 1;
-                    if (fails >= limit):
-                        subbatch = [];
-                        break;
-            else:
-                # No intervention, just the sample, but we still need to select a random sample
-                if (len(validPrefixes.keys()) >= 1):
-                    randomPrefix = validPrefixes.keys()[np.random.randint(0,len(validPrefixes.keys()))];
-                    randomCandidate = np.random.randint(0,len(branch.prefixedExpressions[randomPrefix].fullExpressions));
-                    subbatch.append((branch.prefixedExpressions[randomPrefix].fullExpressions[randomCandidate],
-                                     branch.prefixedExpressions[randomPrefix].primedExpressions[randomCandidate],
-                                     validPrefixes.keys()));
         
         # Add subbatch to batch
         batch.extend(subbatch);
@@ -193,9 +213,10 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
     data = dataset.fill_ndarray(data, 1);
     targets = dataset.fill_ndarray(copy.deepcopy(targets), 1, fixed_length=model.n_max_digits);
     
-    return data, targets, labels, expressions, interventionSymbols, interventionLocations, topcause;
+    return data, targets, labels, expressions, interventionSymbols, interventionLocations, topcause, nrSamples;
 
-def test(model, dataset, parameters, max_length, base_offset, intervention_range, print_samples=False, sample_size=False):
+def test(model, dataset, parameters, max_length, base_offset, intervention_range, print_samples=False, 
+         sample_size=False, homogeneous=False):
     # Test
     print("Testing...");
         
@@ -218,32 +239,34 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
     for _ in batch_range:
         # Get data from batch
         test_data, test_targets, _, test_expressions, \
-            possibleInterventions, interventionLocations, topcause = get_batch(False, dataset, model, 
+            possibleInterventions, interventionLocations, topcause, nrSamples = get_batch(False, dataset, model, 
                                                                               intervention_range, 
                                                                               max_length, debug=parameters['debug'],
                                                                               base_offset=base_offset,
                                                                               applyIntervention=parameters['test_interventions'],
                                                                               seq2ndmarkov=parameters['dataset_type'] == 1,
-                                                                              bothcause=parameters['bothcause']);
-        test_n = model.minibatch_size;
+                                                                              bothcause=parameters['bothcause'],
+                                                                              homogeneous=parameters['homogeneous']);
+        test_n = nrSamples;
         for l in interventionLocations:
             stats['intervention_locations'][l] += 1;
         
         # Interventions are not optional in testing
-        if (parameters['test_interventions']):
+        if (parameters['test_interventions'] and not parameters['homogeneous']):
             test_targets, test_expressions, _ = \
                 dataset.insertInterventions(test_targets, test_expressions, 
                                             topcause,
                                             interventionLocations, 
                                             possibleInterventions);
             
-            # Make intervention locations into matrix
-            interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
+        # Make intervention locations into matrix
+        interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
         
         predictions, other = model.predict(test_data, label=test_targets, 
                                            interventionLocations=interventionLocations,
                                            intervention=parameters['test_interventions'],
-                                           fixedDecoderInputs=parameters['fixed_decoder_inputs']);
+                                           fixedDecoderInputs=parameters['fixed_decoder_inputs'],
+                                           nrSamples=nrSamples);
         totalError += other['error'];
         
         if (parameters['only_cause_expression']):
@@ -267,7 +290,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                                        bothcause=parameters['bothcause'],
                                        labels_to_use=labels_to_use);
         
-        for j in range(model.minibatch_size):
+        for j in range(test_n):
             if (parameters['only_cause_expression'] is not False):
                 total_labels_used[labels_used[j][0]] = True;
             else:
@@ -275,9 +298,8 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
         
         # Print samples
         if (print_samples and not printed_samples):
-            for i in range(10):
+            for i in range(test_n):
                 prefix = "# ";
-#                 prefix = "";
                 print(prefix + "Intervention location: %d" % interventionLocations[0,i]);
                 print(prefix + "Original data 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                      np.argmax(test_data[i,:,:model.data_dim],len(test_data.shape)-2)))));
@@ -396,31 +418,33 @@ if __name__ == '__main__':
         for k in batch_range:
             profiler.start('train batch');
             profiler.start('get train batch');
-            data, target, _, expressions, possibleInterventions, interventionLocations, topcause = \
+            data, target, _, target_expressions, possibleInterventions, interventionLocations, topcause, nrSamples = \
                 get_batch(True, dataset, model, 
                           intervention_range, max_length, 
                           debug=parameters['debug'],
                           base_offset=base_offset,
                           applyIntervention=parameters['train_interventions'],
                           seq2ndmarkov=parameters['dataset_type'] == 1,
-                          bothcause=parameters['bothcause']);
+                          bothcause=parameters['bothcause'],
+                          homogeneous=parameters['homogeneous']);
             profiler.stop('get train batch');
             
             profiler.start('train interventions');
             # Perform interventions
-            if (parameters['train_interventions']):
-                target, target_expressions, interventionLocations = \
-                    dataset.insertInterventions(target, copy.deepcopy(expressions), 
+            if (parameters['train_interventions'] and not parameters['homogeneous']):
+                target, target_expressions_intervened, interventionLocations = \
+                    dataset.insertInterventions(target, copy.deepcopy(target_expressions), 
                                                 topcause,
                                                 interventionLocations, 
                                                 possibleInterventions);
                 for l in interventionLocations:
                     intervention_locations_train[l] += 1;
+            else:
+                target_expressions_intervened = target_expressions;
+            
+            # Make intervention locations into matrix
+            interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
                 
-                # Make intervention locations into matrix
-                interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
-                
-                #differences = map(lambda (d,t): d == t, zip(np.argmax(data, axis=2), np.argmax(target, axis=2)));
             profiler.stop('train interventions');
             
             # Run training
@@ -428,8 +452,8 @@ if __name__ == '__main__':
             if (parameters['train_interventions']):
                 outputs, predictions, new_targets, labels_to_use = \
                     model.sgd(dataset, data, target, parameters['learning_rate'],
-                              emptySamples=[], expressions=expressions,
-                              intervention_expressions=target_expressions, 
+                              emptySamples=[], expressions=target_expressions,
+                              intervention_expressions=target_expressions_intervened, 
                               interventionLocations=interventionLocations,
                               intervention=parameters['train_interventions'],
                               fixedDecoderInputs=parameters['fixed_decoder_inputs'],
@@ -437,8 +461,8 @@ if __name__ == '__main__':
             else:
                 outputs, predictions, new_targets, labels_to_use = \
                     model.sgd(dataset, data, target, parameters['learning_rate'],
-                              emptySamples=[], expressions=expressions,
-                              intervention_expressions=expressions, 
+                              emptySamples=[], expressions=target_expressions,
+                              intervention_expressions=target_expressions_intervened, 
                               intervention=parameters['train_interventions'],
                               fixedDecoderInputs=parameters['fixed_decoder_inputs'],
                               topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
@@ -449,8 +473,8 @@ if __name__ == '__main__':
             profiler.start('train stats');
             if (parameters['train_statistics'] and parameters['train_interventions']):
                 stats, _ = model.batch_statistics(stats, predictions, 
-                                               expressions, interventionLocations, 
-                                               {}, len(expressions), dataset, 
+                                               target_expressions_intervened, interventionLocations, 
+                                               {}, len(target_expressions_intervened), dataset, 
                                                eos_symbol_index=dataset.EOS_symbol_index,
                                                labels_to_use=labels_to_use,
                                                training=True, topcause=topcause or parameters['bothcause'],
@@ -491,7 +515,7 @@ if __name__ == '__main__':
         # and we have passed the testing threshold
         #if (r != repetition_size-1):
         test(model, dataset, parameters, max_length, base_offset, intervention_range, print_samples=parameters['debug'], 
-             sample_size=parameters['sample_testing_size']);
+             sample_size=parameters['sample_testing_size'], homogeneous=parameters['homogeneous']);
         # Save weights to pickles
         if (saveModels):
             saveVars = model.getVars();

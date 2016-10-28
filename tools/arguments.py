@@ -100,7 +100,8 @@ argumentProcessors = {'name': processString,
                       'adjust_error_to_prediction_size': processBool,
                       'output_bias': processBool,
                       'subbatch_size': processInt,
-                      'limit_right_hand': processBool
+                      'limit_right_hand': processBool,
+                      'homogeneous': processBool
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -170,7 +171,8 @@ defaults = {'report_to_tracker': True,
             'adjust_error_to_prediction_size': False,
             'output_bias': False,
             'subbatch_size': 1,
-            'limit_right_hand': True
+            'limit_right_hand': True,
+            'homogeneous': False
             }
 
 def processKeyValue(key,value):

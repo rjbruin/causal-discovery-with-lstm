@@ -6,7 +6,7 @@ Created on 22 feb. 2016
 
 import theano;
 import theano.tensor as T;
-from theano.compile.nanguardmode import NanGuardMode
+# from theano.compile.nanguardmode import NanGuardMode
 
 import numpy as np;
 from models.RecurrentModel import RecurrentModel
@@ -149,6 +149,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # label is 3-dimensional: 1) index in sentence, 2) datapoint, 3) dimensionality of data
         label = T.ftensor3('label');
         intervention_locations = T.imatrix();
+        nrSamples = T.iscalar();
         
         # Set the RNN cell to use for encoding and decoding
         encode_function = self.lstm_predict_single_no_output;
@@ -218,19 +219,19 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             coding_dist = right_hand[:label.shape[0]]
             cat_cross = -T.sum(label * T.log(coding_dist), axis=coding_dist.ndim-1);
             mean_cross_per_sample = T.sum(cat_cross, axis=0) / (self.n_max_digits - (intervention_locations + 1.));
-            error = T.mean(mean_cross_per_sample);
+            error = T.mean(mean_cross_per_sample[:nrSamples]);
         else:
-            cat_cross = T.nnet.categorical_crossentropy(right_hand[:label.shape[0]],label);
+            cat_cross = T.nnet.categorical_crossentropy(right_hand[:label.shape[0],:nrSamples],label[:,:nrSamples]);
             error = T.mean(cat_cross);
         
         # Defining prediction
         if (not self.only_cause_expression):
-            self._predict = theano.function([X, label, intervention_locations], [prediction_1,
+            self._predict = theano.function([X, label, intervention_locations, nrSamples], [prediction_1,
                                                                                 prediction_2,
                                                                                 right_hand,
                                                                                 error], on_unused_input='warn');
         else:
-            self._predict = theano.function([X, label, intervention_locations], [prediction_1,
+            self._predict = theano.function([X, label, intervention_locations, nrSamples], [prediction_1,
                                                                                 right_hand,
                                                                                 error], on_unused_input='warn');
         
@@ -245,13 +246,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (self.optimizer == self.SGD_OPTIMIZER):
             # Automatic backward pass for all models: gradients
             derivatives = T.grad(error, var_list);
-            learning_rate = T.fscalar('learning_rate');
             updates = [(var,var-self.learning_rate*der) for (var,der) in zip(var_list,derivatives)];
         else:
             #updates, derivatives = self.adam(error, map(lambda var: self.vars[var], variables), learning_rate);
             derivatives = T.grad(error, var_list);
             updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
-        self._sgd = theano.function([X, label, intervention_locations],
+        self._sgd = theano.function([X, label, intervention_locations, nrSamples],
                                         [error],
                                     updates=updates,
                                     allow_input_downcast=True,
@@ -424,11 +424,14 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     def sgd(self, dataset, data, label, learning_rate, emptySamples=None, 
             expressions=None, intervention=False, intervention_expressions=None, 
             interventionLocations=0, fixedDecoderInputs=False, topcause=True,
-            bothcause=False):
+            bothcause=False, nrSamples=None):
         """
         The intervention location for finish expressions must be the same for 
         all samples in this batch.
         """
+        if (nrSamples is None):
+            nrSamples = self.minibatch_size;
+        
         if (self.finishExpressions):
             return self.sgd_finish_expression(dataset, data, label, 
                                               intervention_expressions, interventionLocations, 
@@ -439,16 +442,19 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         else:
             data = np.swapaxes(data, 0, 1);
             label = np.swapaxes(label, 0, 1);
-            return self._sgd(data, label, learning_rate), [], expressions;
+            return self._sgd(data, label, interventionLocations, nrSamples), [], expressions, intervention_expressions;
         
     def predict(self, data, label=None, interventionLocations=None, alreadySwapped=False, 
-                intervention=True, fixedDecoderInputs=True, topcause=True):
+                intervention=True, fixedDecoderInputs=True, topcause=True, nrSamples=None):
         """
         Perform necessary models-specific transformations and call the actual 
         prediction function of the model.
         The intervention location for finish expressions must be the same for 
         all samples in this batch.
         """
+        if (nrSamples is None):
+            nrSamples = self.minibatch_size;
+        
         # Swap axes of index in sentence and datapoint for Theano purposes
         if (not alreadySwapped):
             data = np.swapaxes(data, 0, 1);
@@ -460,10 +466,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         if (not self.only_cause_expression):
             prediction_1, prediction_2, right_hand, error = \
-                    self._predict(data, label, interventionLocations);
+                    self._predict(data, label, interventionLocations, nrSamples);
         else:
             prediction_1, right_hand, error = \
-                    self._predict(data, label, interventionLocations);
+                    self._predict(data, label, interventionLocations, nrSamples);
         
         # Swap sentence index and datapoints back
         prediction_1 = np.swapaxes(prediction_1, 0, 1);
@@ -561,10 +567,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         profiler.start('train sgd actual sgd');
         if (not self.only_cause_expression):
             result = self._sgd(encoded_expressions, encoded_expressions_with_intervention, 
-                             intervention_locations), [predictions_1, predictions_2], np.swapaxes(encoded_expressions_with_intervention, 0, 1), labels_to_use;
+                             intervention_locations, self.minibatch_size), [predictions_1, predictions_2], np.swapaxes(encoded_expressions_with_intervention, 0, 1), labels_to_use;
         else:
             result = self._sgd(encoded_expressions, encoded_expressions_with_intervention, 
-                             intervention_locations), predictions_1, np.swapaxes(encoded_expressions_with_intervention, 0, 1), labels_to_use;
+                             intervention_locations, self.minibatch_size), predictions_1, np.swapaxes(encoded_expressions_with_intervention, 0, 1), labels_to_use;
         profiler.stop('train sgd actual sgd');
         return result;
     
