@@ -422,7 +422,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             raise ValueError("n_max_digits too small! Increase to %d" % training_labels.shape[1]);
     
     def sgd(self, dataset, data, label, learning_rate, emptySamples=None, 
-            expressions=None, intervention=False, intervention_expressions=None, 
+            expressions=None, intervention=False, 
             interventionLocations=0, fixedDecoderInputs=False, topcause=True,
             bothcause=False, nrSamples=None):
         """
@@ -432,17 +432,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (nrSamples is None):
             nrSamples = self.minibatch_size;
         
-        if (self.finishExpressions):
-            return self.sgd_finish_expression(dataset, data, label, 
-                                              intervention_expressions, interventionLocations, 
-                                              learning_rate, emptySamples, 
-                                              intervention=intervention, 
-                                              fixedDecoderInputs=fixedDecoderInputs,
-                                              topcause=topcause, bothcause=bothcause);
-        else:
-            data = np.swapaxes(data, 0, 1);
-            label = np.swapaxes(label, 0, 1);
-            return self._sgd(data, label, interventionLocations, nrSamples), [], expressions, intervention_expressions;
+        data = np.swapaxes(data, 0, 1);
+        label = np.swapaxes(label, 0, 1);
+        return self._sgd(data, label, interventionLocations, nrSamples), [], expressions, expressions;
         
     def predict(self, data, label=None, interventionLocations=None, alreadySwapped=False, 
                 intervention=True, fixedDecoderInputs=True, topcause=True, nrSamples=None):
@@ -460,9 +452,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             data = np.swapaxes(data, 0, 1);
             if (label is not None):
                 label = np.swapaxes(label, 0, 1);
-        
-        if (not intervention or interventionLocations is None):
-            interventionLocations = np.zeros((2,data.shape[1]));
         
         if (not self.only_cause_expression):
             prediction_1, prediction_2, right_hand, error = \
@@ -877,7 +866,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         return self.vars.items();
     
     def batch_statistics(self, stats, prediction, 
-                         expressions_with_interventions, intervention_locations,
+                         expressions, intervention_locations,
                          other, test_n, dataset,
                          excludeStats=None, no_print_progress=False,
                          eos_symbol_index=None, print_sample=False,
@@ -890,9 +879,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         strings) that should be used to lookup the candidate labels for SGD (in 
         finish_expression_find_labels)
         """
-        causeExpressions, effectExpressions = zip(*expressions_with_interventions);
+        causeExpressions, effectExpressions = zip(*expressions);
         if (not topcause and not bothcause):
-            _, causeExpressions = zip(*expressions_with_interventions);
+            effectExpressions, causeExpressions = zip(*expressions);
         
         dont_switch = False;
         if (len(prediction) <= 1):
