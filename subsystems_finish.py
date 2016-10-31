@@ -318,6 +318,10 @@ if __name__ == '__main__':
         raise ValueError("Subbatch size is not compatible with minibatch size: m.size = %d, s.size = %d" % 
                             (parameters['minibatch_size'], parameters['subbatch_size']));
     
+    # Check for valid intervention ranges
+    if (parameters['intervention_base_offset'] <= 0):
+        raise ValueError("Invalid intervention base offset: is %d, must be at least 1." % parameters['intervention_base_offset']);
+    
     # Construct models
     datasets, model = constructModels(parameters, 0, {});
     
