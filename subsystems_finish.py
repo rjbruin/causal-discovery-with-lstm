@@ -225,8 +225,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
         
         predictions, other = model.predict(test_data, label=test_targets, 
                                            interventionLocations=interventionLocations,
-                                           fixedDecoderInputs=parameters['fixed_decoder_inputs'],
-                                           nrSamples=nrSamples);
+                                           nrSamples=nrSamples); 
         totalError += other['error'];
         
         if (parameters['only_cause_expression']):
@@ -421,14 +420,13 @@ if __name__ == '__main__':
                           emptySamples=[], expressions=target_expressions,
                           interventionLocations=interventionLocations,
                           intervention=parameters['interventions'],
-                          fixedDecoderInputs=parameters['fixed_decoder_inputs'],
                           topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
             total_error += outputs[0];
             profiler.stop('train sgd');
             
             # Training prediction
             profiler.start('train stats');
-            if (parameters['train_statistics'] and parameters['train_interventions']):
+            if (parameters['train_statistics'] and parameters['interventions']):
                 stats, _ = model.batch_statistics(stats, predictions, 
                                                target_expressions, interventionLocations, 
                                                {}, len(target_expressions), dataset, 

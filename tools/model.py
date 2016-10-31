@@ -11,21 +11,9 @@ from models.TheanoRecurrentNeuralNetwork import TheanoRecurrentNeuralNetwork
 
 
 def constructModels(parameters, seed, verboseOutputter):
-    if (parameters['multipart_dataset'] is not False):
-        nr_extensions = parameters['multipart_dataset'];
-        extensions = [];
-        for i in range(nr_extensions):
-            if (parameters['multipart_%d' % (i+1)] == False):
-                extensions.append("");
-            else:
-                extensions.append(parameters['multipart_%d' % (i+1)]);
-        train_paths = map(lambda f: "%s/train%s.txt" % (parameters['dataset'], f), extensions);
-        test_paths = map(lambda f: "%s/test%s.txt" % (parameters['dataset'], f), extensions);
-        config_paths = ["%s/config.json" % (parameters['dataset'])];
-    else:
-        train_paths = ["%s/train.txt" % (parameters['dataset'])];
-        test_paths = ["%s/test.txt" % (parameters['dataset'])];
-        config_paths = ["%s/config.json" % (parameters['dataset'])];
+    train_paths = ["%s/train.txt" % (parameters['dataset'])];
+    test_paths = ["%s/test.txt" % (parameters['dataset'])];
+    config_paths = ["%s/config.json" % (parameters['dataset'])];
     
     datasets = [];
     for i in range(len(train_paths)):

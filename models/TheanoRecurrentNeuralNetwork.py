@@ -30,42 +30,31 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  decoder=False, verboseOutputter=None, finishExpressions=False,
                  optimizer=0, learning_rate=0.01,
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
-                 clipping=False, doubleLayer=False, dropoutProb=0., useEncoder=True, 
-                 oldNearestFinding=False, outputBias=False,
+                 clipping=False, doubleLayer=False, dropoutProb=0., useEncoder=True, outputBias=False,
                  limit_right_hand=False):
         '''
         Initialize all Theano models.
         '''
         # Store settings in self since the initializing functions will need them
-        self.single_digit = single_digit;
         self.minibatch_size = minibatch_size;
         self.n_max_digits = n_max_digits;
         self.operators = operators;
         self.digits = digits;
         self.learning_rate = learning_rate;
         self.lstm = lstm;
-        self.single_digit = single_digit;
         self.decoder = decoder;
         self.only_cause_expression = only_cause_expression;
         self.seq2ndmarkov = seq2ndmarkov;
         self.optimizer = optimizer;
         self.verboseOutputter = verboseOutputter;
         self.finishExpressions = finishExpressions;
-        self.clipping = clipping;
         self.doubleLayer = doubleLayer;
         self.dropoutProb = dropoutProb;
         self.useEncoder = useEncoder;
-        self.oldNearestFinding = oldNearestFinding;
-        self.adjustErrorToPredictionSize = adjustErrorToPredictionSize;
         self.outputBias = outputBias;
-        self.limit_right_hand = limit_right_hand;
         
         if (not self.lstm):
             raise ValueError("Feature LSTM = False is no longer supported!");
-        if (self.clipping and self.doubleLayer):
-            raise ValueError("Clipping and double layer not supported together!");
-        if (not self.limit_right_hand):
-            raise ValueError("Limiting right hand is mandatory to prevent NaN errors!");
                 
         self.EOS_symbol_index = EOS_symbol_index;
         self.GO_symbol_index = GO_symbol_index;
@@ -1087,14 +1076,14 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             for i in range(intervention_locations[causeIndex,j]+1,min(len(causeExpressionPrediction),len(labels_to_use[j][causeIndex]))):
                 if (causeExpressionPrediction[i] == labels_to_use[j][causeIndex][i]):
                     stats['digit_1_correct'] += 1.0;
-            stats['digit_1_prediction_size'] += len(causeExpressionPrediction);
+            stats['digit_1_prediction_size'] += len(causeExpressionPrediction) - (intervention_locations[causeIndex,j]+1);
             
             if (not self.only_cause_expression):
                 i = 0;
                 for i in range(intervention_locations[effectIndex,j]+1,min(len(effectExpressionPrediction),len(labels_to_use[j][effectIndex]))):
                     if (effectExpressionPrediction[i] == labels_to_use[j][effectIndex][i]):
                         stats['digit_2_correct'] += 1.0;
-                stats['digit_2_prediction_size'] += len(effectExpressionPrediction);      
+                stats['digit_2_prediction_size'] += len(effectExpressionPrediction) - (intervention_locations[effectIndex,j]+1);      
 
        
             stats['prediction_1_size_histogram'][int(eos_location)] += 1;
