@@ -31,7 +31,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  optimizer=0, learning_rate=0.01,
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
                  clipping=False, doubleLayer=False, dropoutProb=0., useEncoder=True, 
-                 oldNearestFinding=False, adjustErrorToPredictionSize=False, outputBias=False,
+                 oldNearestFinding=False, outputBias=False,
                  limit_right_hand=False):
         '''
         Initialize all Theano models.
@@ -215,14 +215,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             prediction_2 = T.argmax(right_hand[:,:,self.data_dim:], axis=2);
         #padded_label = T.join(0, label, T.zeros((self.n_max_digits - label.shape[0],self.minibatch_size,self.decoding_output_dim*2), dtype=theano.config.floatX));
         
-        if (self.adjustErrorToPredictionSize):
-            coding_dist = right_hand[:label.shape[0]]
-            cat_cross = -T.sum(label * T.log(coding_dist), axis=coding_dist.ndim-1);
-            mean_cross_per_sample = T.sum(cat_cross, axis=0) / (self.n_max_digits - (intervention_locations + 1.));
-            error = T.mean(mean_cross_per_sample[:nrSamples]);
-        else:
-            cat_cross = T.nnet.categorical_crossentropy(right_hand[:label.shape[0],:nrSamples],label[:,:nrSamples]);
-            error = T.mean(cat_cross);
+        coding_dist = right_hand[:label.shape[0]]
+        cat_cross = -T.sum(label * T.log(coding_dist), axis=coding_dist.ndim-1);
+        mean_cross_per_sample = T.sum(cat_cross, axis=0) / (self.n_max_digits - (intervention_locations + 1.));
+        error = T.mean(mean_cross_per_sample[:nrSamples]);
         
         # Defining prediction
         if (not self.only_cause_expression):
