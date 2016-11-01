@@ -841,16 +841,16 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                          other, test_n, dataset,
                          emptySamples=None, labels_to_use=False,
                          training=False, topcause=True,
-                         testExtraValidity=True, bothcause=False):
+                         testValidity=True, bothcause=False):
         """
         Overriding for finish-target_expressions.
         expressions_with_interventions contains the label-target_expressions (in 
         strings) that should be used to lookup the candidate labels for SGD (in 
         finish_expression_find_labels)
         """
-        causeExpressions, effectExpressions = zip(*target_expressions);
+        targetCauseExpressions, targetEffectExpressions = zip(*target_expressions);
         if (not topcause and not bothcause):
-            effectExpressions, causeExpressions = zip(*target_expressions);
+            targetEffectExpressions, targetCauseExpressions = zip(*target_expressions);
         
         dont_switch = False;
         if (len(prediction) <= 1):
@@ -870,7 +870,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             if (not bothcause):
                 _, labels_to_use = self.finish_expression_find_labels(cause, effect,
                                                                        dataset, 
-                                                                       causeExpressions, 
+                                                                       targetCauseExpressions, 
                                                                        intervention_locations, emptySamples,
                                                                        updateLabels=True, test_n=test_n,
                                                                        useTestStorage=not training,
@@ -878,7 +878,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             else:
                 _, labels_to_use = self.finish_expression_find_labels_both_cause(cause, effect,
                                                                        dataset, 
-                                                                       causeExpressions, effectExpressions,
+                                                                       targetCauseExpressions, targetEffectExpressions,
                                                                        intervention_locations, emptySamples,
                                                                        updateLabels=True, test_n=test_n,
                                                                        useTestStorage=not training);
@@ -906,13 +906,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 eos_location = prediction[causeIndex][j].shape[0];
             
             # Convert prediction to string expression
-            causeExpressionPrediction = dataset.indicesToStr(prediction[causeIndex][j][:eos_location]);
+            causeExpressionPrediction = dataset.indicesToStr(prediction[causeIndex][j]);
             if (not self.only_cause_expression):
-                effectExpressionPrediction = dataset.indicesToStr(prediction[effectIndex][j][:eos_location]);
+                effectExpressionPrediction = dataset.indicesToStr(prediction[effectIndex][j]);
             
             if (self.seq2ndmarkov):
                 # Check if cause sequence prediction is in dataset
-#                 profiler.start('sample stats');
                 causeInDataset = False;
                 if (causeExpressionPrediction == labels_to_use[j][causeIndex]):
                     stats['structureCorrectCause'] += 1.0;
@@ -924,7 +923,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 
                 # Check if cause sequence prediction is valid
                 causeValid = False;
-#                 profiler.start('cause valid');
                 if (dataset.valid_seq2ndmarkov(prediction[causeIndex][j][:eos_location],dataset.digits,dataset.operators)):
                     causeValid = True;
                     stats['structureValidCause'] += 1.0;
@@ -932,7 +930,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         stats['structureValidTop'] += 1.0;
                     else:
                         stats['structureValidBot'] += 1.0;
-#                 profiler.stop('cause valid');
                 
                 effectInDataset = False;
                 effectValid = False;
@@ -947,7 +944,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         effectInDataset = True;
                     
                     # Check if effect sequence prediction is valid
-#                     profiler.start('effect valid');
                     if (dataset.valid_seq2ndmarkov(prediction[effectIndex][j][:eos_location],dataset.digits,dataset.operators)):
                         effectValid = True;
                         stats['structureValidEffect'] += 1.0;
@@ -955,22 +951,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             stats['structureValidBot'] += 1.0;
                         else:
                             stats['structureValidTop'] += 1.0;
-#                     profiler.stop('effect valid');
                 
                 # Check if effect prediction is valid
                 effectMatch = False;
                 if (not self.only_cause_expression):
-#                     profiler.start('effect matcher');
                     effect = dataset.effect_matcher(prediction[causeIndex][j][:eos_location],
                                                     prediction[effectIndex][j][:eos_location],
                                                     self.digits,self.operators,topcause);
-#                     profiler.stop('effect matcher');
                     if (effect == 1 or effect == 2):
                         stats['effectCorrect'] += 1.0;
                         if (effect == 2):
                             stats['noEffect'] += 1.0;
-                        #print("".join(map(lambda x: dataset.findSymbol[x], prediction[causeIndex][j][:eos_location])) + '/'\
-                        #      + "".join(map(lambda x: dataset.findSymbol[x], prediction[effectIndex][j][:eos_location])));
                         effectMatch = True;
                 
                 # Determine validity of sample
@@ -983,13 +974,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if ((causeInDataset and self.only_cause_expression is not False) or (causeInDataset and effectInDataset and effectMatch)):
                     stats['correct'] += 1.0;
                 else:
-#                     profiler.start('differences');
                     difference1 = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][causeIndex]);
                     if (not self.only_cause_expression):
                         difference2 = TheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, labels_to_use[j][effectIndex]);
                     else:
                         difference2 = 0;
-#                     profiler.stop('differences');
                     if (difference1 + difference2 == 0):
                         print("%s vs %s" % (causeExpressionPrediction, labels_to_use[j][causeIndex]));
                         print("%s vs %s" % (effectExpressionPrediction, labels_to_use[j][effectIndex]));
@@ -997,21 +986,25 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                               (str(causeValid), str(effectValid), str(effectMatch), str(self.only_cause_expression)));
                         raise ValueError("Difference is zero!");
                     stats['error_histogram'][difference1 + difference2] += 1;
-#                 profiler.stop('sample stats');
             else:
-                if (not training and dataset.testExpressionsByPrefix.exists(causeExpressionPrediction)):
-                    if (self.only_cause_expression is not False):
-                        stats['valid'] += 1.0;
                 if (causeExpressionPrediction == labels_to_use[j][causeIndex]):
                     stats['structureCorrect'] += 1.0;
                     stats['structureValidCause'] += 1.0;
                     if (self.only_cause_expression is not False):
                         stats['correct'] += 1.0;
+                        stats['valid'] += 1.0;
                     elif (effectExpressionPrediction == labels_to_use[j][effectIndex]):
                         stats['correct'] += 1.0;
+                        stats['valid'] += 1.0;
                         stats['effectCorrect'] += 1.0;
                         stats['structureValidEffect'] += 1.0;
                 else:
+                    if (testValidity and not training and self.only_cause_expression is not False):
+                        if (dataset.testExpressionsByPrefix.exists(causeExpressionPrediction)):
+                            stats['valid'] += 1.0;
+                        elif (dataset.expressionsByPrefix.exists(causeExpressionPrediction)):
+                            stats['valid'] += 1.0;
+                    
                     difference1 = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][causeIndex]);
                     if (not self.only_cause_expression):
                         difference2 = TheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, labels_to_use[j][effectIndex]);
@@ -1021,38 +1014,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     # Defer matching of effect prediction and what it should be to dataset effect matcher (dependent on dataset)
                     if (not self.only_cause_expression and dataset.effect_matcher(prediction[causeIndex][j][:eos_location],prediction[effectIndex][j][:eos_location],self.digits,self.operators,topcause)):
                         stats['effectCorrect'] += 1.0;
-                    
-                    # Check for validity - check the test storage because all 
-                    # target_expressions are contained in the combination of training 
-                    # and test storage
-                    if (testExtraValidity):
-                        testStorageToCheck = dataset.testExpressionsByPrefix;
-                        if (self.only_cause_expression is False):
-                            testStorageToCheckEffect = dataset.testExpressionsByPrefixBot;
-                        if (not topcause):
-                            testStorageToCheck = dataset.testExpressionsByPrefixBot;
-                            if (self.only_cause_expression is False):
-                                testStorageToCheckEffect = dataset.testExpressionsByPrefix;
-                        validPrediction, validEffectPrediction, _, _ = testStorageToCheck.get(causeExpressionPrediction);
-                        causeValid = False;
-                        effectValid = False;
-                        if (validPrediction is not False):
-                            stats['structureValidCause'] += 1.0;
-                            causeValid = True;
-                        if (validEffectPrediction is not False):
-                            # If we found a match in the test storage we can check 
-                            # the corresponding prime expression
-                            if (validEffectPrediction == effectExpressionPrediction):
-                                effectValid = True;
-                        elif (self.only_cause_expression is False):
-                            # Else we can check the effect expression storage if that exists
-                            validEffectPrediction, _, _, _ = testStorageToCheckEffect.get(causeExpressionPrediction);
-                            if (validEffectPrediction is not False):
-                                effectValid = True;
-                        if (effectValid):
-                            stats['structureValidEffect'] += 1.0;
-                            if (causeValid):
-                                stats['valid'] += 1.0;
             
             # Digit precision and prediction size computation
             i = 0;

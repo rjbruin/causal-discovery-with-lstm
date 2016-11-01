@@ -45,12 +45,13 @@ def print_stats(stats, parameters, prefix=''):
         output += prefix + "Effect score: %.2f percent\n" % (stats['effectScore']*100);
         output += prefix + "Effect score including no effect: %.2f percent\n" % (stats['allEffectScore']*100);
     
-    output += prefix + "Valid: %.2f percent\n" % (stats['validScore']*100);
-    if (not parameters['only_cause_expression']):
-        output += prefix + "Structure valid cause: %.2f percent\n" % (stats['structureValidScoreCause']*100);
-        output += prefix + "Structure valid effect: %.2f percent\n" % (stats['structureValidScoreEffect']*100);
-        output += prefix + "Structure valid top: %.2f percent\n" % (stats['structureValidScoreTop']*100);
-        output += prefix + "Structure valid bot: %.2f percent\n" % (stats['structureValidScoreBot']*100);
+    if (parameters['test_validity']):
+        output += prefix + "Valid: %.2f percent\n" % (stats['validScore']*100);
+        if (not parameters['only_cause_expression']):
+            output += prefix + "Structure valid cause: %.2f percent\n" % (stats['structureValidScoreCause']*100);
+            output += prefix + "Structure valid effect: %.2f percent\n" % (stats['structureValidScoreEffect']*100);
+            output += prefix + "Structure valid top: %.2f percent\n" % (stats['structureValidScoreTop']*100);
+            output += prefix + "Structure valid bot: %.2f percent\n" % (stats['structureValidScoreBot']*100);
     
     output += prefix + "Intervention locations:   %s\n" % (str(stats['intervention_locations']));
 
@@ -209,7 +210,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
         # Make intervention locations into matrix
         interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
         
-        predictions, other = model.predict(test_data, label=test_targets, 
+        predictions, other = model.predict(test_data, test_targets, 
                                            interventionLocations=interventionLocations,
                                            nrSamples=nrSamples); 
         totalError += other['error'];
@@ -227,7 +228,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                                        test_expressions, interventionLocations, 
                                        other, nrSamples, dataset,
                                        topcause=topcause or parameters['bothcause'], # If bothcause then topcause = 1
-                                       testExtraValidity=parameters['test_extra_validity'],
+                                       testValidity=parameters['test_validity'],
                                        bothcause=parameters['bothcause'],
                                        labels_to_use=labels_to_use);
         

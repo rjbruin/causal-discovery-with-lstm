@@ -21,8 +21,6 @@ def constructModels(parameters, seed, verboseOutputter):
                                          max_training_size=parameters['max_training_size'],
                                          max_testing_size=parameters['max_testing_size'],
                                          sample_testing_size=parameters['sample_testing_size'],
-                                         predictExpressions=parameters['predict_expressions'],
-                                         copyInput=parameters['copy_input'],
                                          use_GO_symbol=parameters['decoder'],
                                          finishExpressions=parameters['finish_expressions'],
                                          reverse=parameters['reverse'],

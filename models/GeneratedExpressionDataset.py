@@ -18,13 +18,11 @@ class GeneratedExpressionDataset(Dataset):
     DATASET_SEQ2NDMARKOV = 1;
     
     def __init__(self, trainSource, testSource, configSource, 
-                 preload=True, add_x=False, add_multiple_x=False,
-                 single_digit=False, single_class=False, balanced=False,
-                 correction=False, 
+                 preload=True,
                  test_batch_size=10000, train_batch_size=10000,
                  max_training_size=False, max_testing_size=False,
-                 sample_testing_size=False, predictExpressions=False,
-                 copyInput=False, fillX=False, use_GO_symbol=False, finishExpressions=False,
+                 sample_testing_size=False, 
+                 use_GO_symbol=False, finishExpressions=False,
                  reverse=False, copyMultipleExpressions=False,
                  operators=4, digits=10, only_cause_expression=False,
                  dataset_type=0, bothcause=False, debug=False):
@@ -42,37 +40,17 @@ class GeneratedExpressionDataset(Dataset):
         self.operators = operators;
         self.digits = digits;
         
-        self.fill_x = fillX;
-        self.add_x = add_x;
-        self.add_multiple_x = add_multiple_x;
-        self.single_digit = single_digit;
-        self.copyInput = copyInput;
-        self.predictExpressions = predictExpressions;
         self.finishExpressions = finishExpressions;
         self.reverse = reverse;
         self.copyMultipleExpressions = copyMultipleExpressions;
-        if (self.predictExpressions):
-            raise ValueError("Predict expressions is broken in this branch!");
         
         # Set the method that should process the lines of the dataset
         self.processor = self.processSample;
         if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV):
             self.processor = self.processSeq2ndMarkov;
-        elif (add_x):
-            self.processor = self.processSampleWithX;
-        elif (add_multiple_x):
-            self.processor = self.processSampleWithMultipleX;
-        elif (single_class):
-            self.processor = self.processSampleSingleClass;
         elif (self.copyMultipleExpressions):
             self.processor = self.processSampleCopyMultipleInputs;
-        elif (predictExpressions):
-            self.processor = self.processSamplePredictExpression;
-        elif (fillX):
-            self.processor = self.processSampleFillX;
-        elif (correction):
-            self.processor = self.processSampleCorrection;
-        elif (copyInput or finishExpressions):
+        elif (self.finishExpressions):
             self.processor = self.processSampleCopyInput;
         else:
             self.processor = self.processSampleMultiDigit;
@@ -97,22 +75,11 @@ class GeneratedExpressionDataset(Dataset):
                     elif (self.config[key] == 'seq2ndmarkov_both'):
                         self.effect_matcher = self.effect_matcher_seq2ndmarkov_both;
         
-        # Setting one-hot encoding
-        self.digits_range = self.digits;
-        if (single_class is not False):
-            self.digits_range = single_class;
-        
         # Digits are pre-assigned 0-self.digits
         self.oneHot = {};
-        for digit in range(self.digits_range):
+        for digit in range(self.digits):
             self.oneHot[str(digit)] = digit;
-        symbols = ['+','-','*','/'][:self.operators];
-        symbols.extend(['(',')','=']);
-        if (add_x or fillX or add_multiple_x):
-            symbols.append('x');
-        if (not single_digit):
-            # EOS and <GO> symbol to start off prediction
-            symbols.extend(['_','G']);
+        symbols = ['+','-','*','/'][:self.operators] + ['(',')','=','_','G'];
         i = max(self.oneHot.values())+1;
         for sym in symbols:
             self.oneHot[sym] = i;
@@ -122,11 +89,9 @@ class GeneratedExpressionDataset(Dataset):
         self.key_indices = {k: i for (i,k) in enumerate(self.oneHot.keys())};
         
         # Data dimension = number of symbols
-        self.data_dim = self.digits_range + len(symbols);
+        self.data_dim = self.digits + len(symbols);
         self.EOS_symbol_index = self.data_dim-2;
-        self.GO_symbol_index = None;
-        if (not single_digit):
-            self.GO_symbol_index = self.data_dim-1;
+        self.GO_symbol_index = self.data_dim-1;
         # We predict the same symbols as we have as input, so input and data
         # dimension are equal
         self.output_dim = self.data_dim;
@@ -312,10 +277,7 @@ class GeneratedExpressionDataset(Dataset):
         
         # Convert list of ndarrays to a proper ndarray so minibatching will work later
         data = self.fill_ndarray(data, 1);
-        if (self.add_x or self.single_digit):
-            targets = np.array(targets);
-        else:
-            targets = self.fill_ndarray(targets, 1);
+        targets = self.fill_ndarray(targets, 1);
         
         # Return (data, new location)
         return (data, targets, np.array(labels), np.array(expressions)), line_number;
@@ -467,87 +429,6 @@ class GeneratedExpressionDataset(Dataset):
         
         return data, targets, labels, expressions, 1;
     
-    def processSampleSingleClass(self, line, data, targets, labels, expressions):
-        # Get expression from line
-        expression = line.strip();
-        right_hand_start = expression.find('=')+1;
-        left_hand = expression[:right_hand_start];
-        right_hand = int(expression[right_hand_start:]);
-        if (right_hand >= self.digits_range):
-            # If the right hand size has a value that we cannot encode, skip 
-            # the sample
-            return data, targets, labels, expressions, 0;
-        # Generate encodings for data and target
-        X = np.zeros((len(left_hand),self.data_dim));
-        for i, literal in enumerate(left_hand):
-            X[i,self.oneHot[literal]] = 1.0;
-        target = np.zeros(self.data_dim);
-        target[self.oneHot[str(right_hand)]] = 1.0;
-        
-        # Set training variables
-        data.append(X);
-        targets.append(np.array([target]));
-        labels.append(self.oneHot[str(right_hand)]);
-        expressions.append(expression);
-        
-        return data, targets, labels, expressions, 1;
-    
-    def processSampleWithX(self, line, data, targets, labels, expressions):
-        """
-        Processes a sample to include a random 'x' symbol and gives the symbol
-        this 'x' replaces as the single digit label.
-        """
-        # Get expression from line
-        expression = line.strip();
-        # Generate encodings for data and target for each index in expression
-        i = np.random.randint(0,len(expression));
-        X = np.zeros((len(expression),self.data_dim));
-        for j, literal in enumerate(expression):
-            if (i != j):
-                X[j,self.oneHot[literal]] = 1.0;
-        X[i,self.oneHot['x']] = 1.0;
-        target = np.zeros(self.data_dim);
-        target[self.oneHot[expression[i]]] = 1.0;
-        
-        # Set training variables
-        data.append(X);
-        targets.append(target);
-        labels.append(self.oneHot[expression[i]]);
-        expressions.append(expression);
-        
-        return data, targets, labels, expressions, 1;
-    
-    def processSampleWithMultipleX(self, line, data, targets, labels, expressions):
-        """
-        Processes a sample to include a random 'x' symbol and gives the symbol
-        this 'x' replaces as the single digit label.
-        """
-        # Get expression from line
-        expression = line.strip();
-        # Generate encodings for data and target for each index in expression
-        X = np.zeros((len(expression),self.data_dim));
-        xs = [];
-        for _ in range(np.random.randint(1,3)):
-            xs.append(np.random.randint(0,len(expression)));
-        for j, literal in enumerate(expression):
-            if (j not in xs):
-                X[j,self.oneHot[literal]] = 1.0;
-            else:
-                X[j,self.oneHot['x']] = 1.0;
-        
-        target = np.zeros((len(xs)+1,self.data_dim));
-        for i,x in enumerate(sorted(xs)):
-            target[i,self.oneHot[expression[x]]] = 1.0;
-        target[len(xs),self.EOS_symbol_index] = 1.0;
-        
-        # Set training variables
-        data.append(X);
-        targets.append(target);
-        labels.append(np.argmax(target, axis=1));
-        expressions.append(expression);
-        
-        return data, targets, labels, expressions, 1;
-    
     def processSampleCopyInput(self, line, data, targets, labels, expressions, reverse=True):
         expression = line.strip();
         
@@ -625,46 +506,6 @@ class GeneratedExpressionDataset(Dataset):
         labels.append(np.array(right_hand_digits));
         targets.append(target);
         expressions.append(expression);
-        
-        return data, targets, labels, expressions, 1;
-    
-    def processSamplePredictExpression(self, line, data, targets, labels, expressions):
-        line = line.strip();
-        right_hand_start = line.find('=')+1;
-        
-        # Simply swap left and right hand side and use the multi-digit processor
-        line = line[right_hand_start:] + "=" + line[:right_hand_start-1];
-        
-        return self.processSampleMultiDigit(line, data, targets, labels, expressions);
-    
-    def processSampleFillX(self, line, data, targets, labels, expressions):
-        line = line.strip();
-        left, right = line.split(";");
-        return self.processSampleCorrection(right + ";" + left, data, targets, labels, expressions);
-    
-    def processSampleCorrection(self, line, data, targets, labels, expressions):
-        line = line.strip();
-        old_expression, new_expression = line.split(";");
-        
-        # Old expression = data
-        old_expression_embeddings = np.zeros((len(old_expression)+1,self.data_dim));
-        for i, literal in enumerate(old_expression):
-            old_expression_embeddings[i,self.oneHot[literal]] = 1.0;
-        
-        # New expression = label/target
-        new_expression_embeddings = np.zeros((len(new_expression)+1,self.data_dim));
-        for i, literal in enumerate(new_expression):
-            new_expression_embeddings[i,self.oneHot[literal]] = 1.0;
-        
-        # Add EOS's
-        old_expression_embeddings[-1,self.EOS_symbol_index] = 1.0;
-        new_expression_embeddings[-1,self.EOS_symbol_index] = 1.0;
-        
-        # Append data
-        data.append(new_expression_embeddings);
-        labels.append(np.argmax(old_expression_embeddings, axis=1));
-        targets.append(old_expression_embeddings);
-        expressions.append(new_expression);
         
         return data, targets, labels, expressions, 1;
     
