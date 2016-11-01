@@ -487,6 +487,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             if (emptySamples is not None and j in emptySamples):
                 continue;
             
+            if (intervention_locations[0,j] >= len(labels_to_use[j][causeIndex])):
+                stats['skipped_because_intervention_location'] += 1;
+                continue;
+            
             # Taking argmax over symbols for each sentence returns 
             # the location of the highest index, which is the first 
             # EOS symbol

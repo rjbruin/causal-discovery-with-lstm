@@ -75,6 +75,7 @@ def print_stats(stats, parameters, prefix=''):
     output += prefix + "All error margins: %s\n" % str(stats['error_histogram']);
     
     output += prefix + "Unique labels predicted: %d\n" % stats['unique_labels_predicted'];
+    output += prefix + "Skipped because of zero prediction length: %d\n" % stats['skipped_because_intervention_location'];
     
     output += "\n";
     print(output);
