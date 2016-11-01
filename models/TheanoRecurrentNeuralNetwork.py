@@ -718,8 +718,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         # Set the storage and helper methods
         storage = dataset.expressionsByPrefix;
-        if (not self.only_cause_expression):
-            storage_bot = dataset.expressionsByPrefixBot;
         def setTarget(j,top,value):
             if (top):
                 target[j,:,:self.data_dim] = value;
@@ -729,8 +727,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # Set the storage and helper methods for testing
         if (useTestStorage):
             storage = dataset.testExpressionsByPrefix;
-            if (not self.only_cause_expression):
-                storage_bot = dataset.testExpressionsByPrefixBot;
         
         if (self.only_cause_expression is not False):
             def setTarget(j,top,value):
@@ -752,13 +748,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             # prediction will not be in valid_prediction) because we do want to use a label 
             # that does the intervention right so the model can learn from this mistake
             _, _, validTopPredictions, validTopPredictionBotSamples, branch = storage.get(top_string_prediction[:intervention_locations[top_ii,i]+1],
-                                                                                          alsoGetStructure=True)
-#                                                                                           filterExpressionPrime=bot_string_prediction[:intervention_locations[bot_ii,i]+1]);
-#             if (not self.only_cause_expression):
-#                 _, _, validBotPredictions, validBotPredictionTopSamples, branch_bot = storage_bot.get(bot_string_prediction[:intervention_locations[bot_ii,i]+1],
-#                                                                                                       alsoGetStructure=True,
-#                                                                                                       filterExpressionPrime=top_string_prediction[:intervention_locations[top_ii,i]+1]);
-            
+                                                                                          alsoGetStructure=True)           
             if (not self.only_cause_expression):
                 validTops = validTopPredictions;
                 validBots = validTopPredictionBotSamples;
@@ -851,22 +841,20 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         return self.vars.items();
     
     def batch_statistics(self, stats, prediction, 
-                         expressions, intervention_locations,
+                         target_expressions, intervention_locations,
                          other, test_n, dataset,
-                         excludeStats=None, no_print_progress=False,
-                         eos_symbol_index=None, print_sample=False,
                          emptySamples=None, labels_to_use=False,
                          training=False, topcause=True,
                          testExtraValidity=True, bothcause=False):
         """
-        Overriding for finish-expressions.
-        expressions_with_interventions contains the label-expressions (in 
+        Overriding for finish-target_expressions.
+        expressions_with_interventions contains the label-target_expressions (in 
         strings) that should be used to lookup the candidate labels for SGD (in 
         finish_expression_find_labels)
         """
-        causeExpressions, effectExpressions = zip(*expressions);
+        causeExpressions, effectExpressions = zip(*target_expressions);
         if (not topcause and not bothcause):
-            effectExpressions, causeExpressions = zip(*expressions);
+            effectExpressions, causeExpressions = zip(*target_expressions);
         
         dont_switch = False;
         if (len(prediction) <= 1):
@@ -917,8 +905,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             # EOS symbol
             eos_location = np.argmax(prediction[causeIndex][j]);
             # Check for edge case where no EOS was found and zero was returned
-            if (eos_symbol_index is None):
-                eos_symbol_index = dataset.EOS_symbol_index;
+            eos_symbol_index = dataset.EOS_symbol_index;
             if (prediction[causeIndex][j,eos_location] != eos_symbol_index):
                 eos_location = prediction[causeIndex][j].shape[0];
             
@@ -1040,7 +1027,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         stats['effectCorrect'] += 1.0;
                     
                     # Check for validity - check the test storage because all 
-                    # expressions are contained in the combination of training 
+                    # target_expressions are contained in the combination of training 
                     # and test storage
                     if (testExtraValidity):
                         testStorageToCheck = dataset.testExpressionsByPrefix;

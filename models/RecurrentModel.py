@@ -43,7 +43,7 @@ class RecurrentModel(object):
     def getVars(self):
         pass
     
-    def batch_statistics(self, stats, prediction, labels, targets, expressions, 
+    def batch_statistics(self, stats, prediction, labels, targets, target_expressions, 
                          other, test_n, dataset,
                          excludeStats=None, no_print_progress=False,
                          eos_symbol_index=None, print_sample=False,

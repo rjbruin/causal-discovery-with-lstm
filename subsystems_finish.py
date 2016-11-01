@@ -211,14 +211,6 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
         test_n = nrSamples;
         for l in interventionLocations:
             stats['intervention_locations'][l] += 1;
-        
-        # Interventions are not optional in testing
-#         if (parameters['interventions'] and not parameters['homogeneous']):
-#             test_targets, test_expressions, _ = \
-#                 dataset.insertInterventions(test_targets, test_expressions, 
-#                                             topcause,
-#                                             interventionLocations, 
-#                                             possibleInterventions);
             
         # Make intervention locations into matrix
         interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
@@ -260,9 +252,9 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
             for i in range(test_n):
                 prefix = "# ";
                 print(prefix + "Intervention location: %d" % interventionLocations[0,i]);
-                print(prefix + "Original data 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-                                                     np.argmax(test_data[i,:,:model.data_dim],len(test_data.shape)-2)))));
-                print(prefix + "Interve. data 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+#                 print(prefix + "Original data 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+#                                                      np.argmax(test_data[i,:,:model.data_dim],len(test_data.shape)-2)))));
+                print(prefix + "Data          1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                    np.argmax(test_targets[i,:,:model.data_dim],len(test_data.shape)-2)))));
                 print(prefix + "Prediction    1: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_1[i])));
                 print(prefix + "Used label    1: %s" % labels_used[i][0]);
@@ -395,23 +387,8 @@ if __name__ == '__main__':
                           homogeneous=parameters['homogeneous']);
             profiler.stop('get train batch');
             
-            profiler.start('train interventions');
-            # Perform interventions
-#             if (parameters['interventions'] and not parameters['homogeneous']):
-#                 target, target_expressions_intervened, interventionLocations = \
-#                     dataset.insertInterventions(target, copy.deepcopy(target_expressions), 
-#                                                 topcause,
-#                                                 interventionLocations, 
-#                                                 possibleInterventions);
-#                 for l in interventionLocations:
-#                     intervention_locations_train[l] += 1;
-#             else:
-#                 target_expressions_intervened = target_expressions;
-            
             # Make intervention locations into matrix
             interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
-                
-            profiler.stop('train interventions');
             
             # Run training
             profiler.start('train sgd');
@@ -445,20 +422,6 @@ if __name__ == '__main__':
             profiler.stop('train batch');
             
             k += nrSamples;
-        
-        # Print sample of last training batch
-#         if (parameters['debug'] and parameters['only_cause_expression'] == 1):
-#             for i in range(10):
-#                 prefix = "";
-#                 print(prefix + "Intervention location: %d" % interventionLocations[i]);
-#                 print(prefix + "Original data        : %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-#                                                      np.argmax(data[i,:,:model.data_dim],len(data.shape)-2)))));
-#                 print(prefix + "Intervened data      : %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-#                                                    np.argmax(target[i,:,:model.data_dim],len(target.shape)-2)))));
-#                 print(prefix + "Pre-int prediction   : %s" % "".join(map(lambda x: dataset.findSymbol[x], predictions[i])));
-#                 print(prefix + "Used target          : %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-#                                                    np.argmax(new_targets[i],1)))));
-#                 print(prefix + "Used label           : %s" % labels_to_use[i][0]);
             
         # Update stats
         total_datapoints_processed += repetition_size;

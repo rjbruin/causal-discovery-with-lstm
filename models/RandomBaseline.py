@@ -61,7 +61,7 @@ class RandomBaseline(RecurrentModel):
             prediction[i,lengths[i]] = self.dataset.EOS_symbol_index;
         return prediction;
     
-    def batch_statistics(self, stats, prediction, labels, targets, expressions, 
+    def batch_statistics(self, stats, prediction, labels, targets, target_expressions, 
                          other, test_n, dataset,
                          excludeStats=None, no_print_progress=False,
                          eos_symbol_index=None, print_sample=False):
@@ -96,7 +96,7 @@ class RandomBaseline(RecurrentModel):
                     [np.argmax(labels[j]),int(prediction[j])] += 1;
                 if ('operator_scores' not in excludeStats):
                     stats['operator_scores'] = \
-                        self.operator_scores(expressions[j], 
+                        self.operator_scores(target_expressions[j], 
                                              int(prediction[j])==np.argmax(labels[j]),
                                              dataset.operators,
                                              dataset.key_indices,
