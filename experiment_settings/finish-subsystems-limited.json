@@ -4,16 +4,15 @@
         "script": "subsystems_finish.py",
         "dataset": "./data/subsystems_shallow_limited_simple_topcause",
         "repetitions": "500",
-        "minibatch_size": "10",
         "sample_testing_size": "10000",
         "finish_subsystems": "True",
         "n_max_digits": "17",
-        "intervention_base_offset": "0",
-        "intervention_range": "17",
+        "intervention_base_offset": "1",
+        "intervention_range": "16",
         "operators": "3",
         "nesterov_optimizer": "True",
-        "decoder": "True",
         "learning_rate": "0.005",
-        "hidden_dim": "256"
+        "hidden_dim": "128",
+        "minibatch_size": "10"
     }
 ]

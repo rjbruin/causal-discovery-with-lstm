@@ -6,13 +6,14 @@
         "repetitions": "500",
         "sample_testing_size": "10000",
         "finish_subsystems": "True",
-        "n_max_digits": "17",
-        "intervention_base_offset": "0",
+        "n_max_digits": "16",
+        "intervention_base_offset": "1",
         "intervention_range": "17",
         "nesterov_optimizer": "True",
         "decoder": "True",
         "learning_rate": "0.005",
-        "hidden_dim": "256",
-        "only_cause_expression": "1"
+        "hidden_dim": "128",
+        "only_cause_expression": "1",
+      	"minibatch_size": "10"
     }
 ]

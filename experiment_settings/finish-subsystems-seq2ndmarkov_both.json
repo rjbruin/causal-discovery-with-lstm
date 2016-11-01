@@ -7,15 +7,15 @@
         "sample_testing_size": "10000",
         "finish_subsystems": "True",
         "n_max_digits": "17",
-        "intervention_base_offset": "0",
-        "intervention_range": "17",
+        "intervention_base_offset": "1",
+        "intervention_range": "16",
         "nesterov_optimizer": "True",
         "dataset_type": "1",
         "operators": "2",
         "digits": "8",
         "bothcause": "True",
-        "decoder": "True",
         "learning_rate": "0.005",
-        "hidden_dim": "256"
+        "hidden_dim": "128",
+        "minibatch_size": "10"
     }
 ]
