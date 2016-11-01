@@ -223,14 +223,12 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
             prediction_2 = predictions[1];
         
         profiler.start("test batch stats");
-        labels_to_use = test_expressions;
         stats, labels_used = model.batch_statistics(stats, predictions, 
                                        test_expressions, interventionLocations, 
-                                       other, nrSamples, dataset,
+                                       other, nrSamples, dataset, test_expressions,
                                        topcause=topcause or parameters['bothcause'], # If bothcause then topcause = 1
                                        testValidity=parameters['test_validity'],
-                                       bothcause=parameters['bothcause'],
-                                       labels_to_use=labels_to_use);
+                                       bothcause=parameters['bothcause']);
         
         for j in range(nrSamples):
             if (parameters['only_cause_expression'] is not False):
@@ -361,25 +359,12 @@ if __name__ == '__main__':
             
             # Run training
             profiler.start('train sgd');
-            outputs, predictions, new_targets, labels_to_use = \
-                model.sgd(dataset, data, target, parameters['learning_rate'],
-                          emptySamples=[], expressions=target_expressions,
-                          interventionLocations=interventionLocations,
-                          topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
+            outputs = model.sgd(dataset, data, target, parameters['learning_rate'],
+                                  emptySamples=[], expressions=target_expressions,
+                                  interventionLocations=interventionLocations,
+                                  topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
             total_error += outputs[0];
             profiler.stop('train sgd');
-            
-            # Training prediction
-            profiler.start('train stats');
-            if (parameters['train_statistics']):
-                stats, _ = model.batch_statistics(stats, predictions, 
-                                               target_expressions, interventionLocations, 
-                                               {}, len(target_expressions), dataset, 
-                                               eos_symbol_index=dataset.EOS_symbol_index,
-                                               labels_to_use=labels_to_use,
-                                               training=True, topcause=topcause or parameters['bothcause'],
-                                               testExtraValidity=parameters['test_extra_validity'],
-                                               bothcause=parameters['bothcause']);
             
             # Print batch progress
             if ((k+model.minibatch_size) % (model.minibatch_size*4) < model.minibatch_size and \
@@ -387,17 +372,12 @@ if __name__ == '__main__':
                 printedProgress = (k+model.minibatch_size) / (model.minibatch_size*4);
                 print("# %d / %d (error = %.2f)" % (k+model.minibatch_size, repetition_size, total_error));
             
-            profiler.stop('train stats');
             profiler.stop('train batch');
             
             k += nrSamples;
         
         # Report on error
         print("Total error: %.2f" % total_error);
-        
-        if (parameters['train_statistics']):
-            stats = model.total_statistics(stats);
-            print_stats(stats, parameters, prefix='TRAIN ');
         
         # Intermediate testing if this was not the last iteration of training
         # and we have passed the testing threshold
