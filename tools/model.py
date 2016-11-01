@@ -11,31 +11,28 @@ from models.TheanoRecurrentNeuralNetwork import TheanoRecurrentNeuralNetwork
 
 
 def constructModels(parameters, seed, verboseOutputter):
-    train_paths = ["%s/train.txt" % (parameters['dataset'])];
-    test_paths = ["%s/test.txt" % (parameters['dataset'])];
-    config_paths = ["%s/config.json" % (parameters['dataset'])];
+    train_path = "%s/train.txt" % (parameters['dataset']);
+    test_path = "%s/test.txt" % (parameters['dataset']);
+    config_path = "%s/config.json" % (parameters['dataset']);
     
-    datasets = [];
-    for i in range(len(train_paths)):
-        dataset = GeneratedExpressionDataset(train_paths[i], test_paths[i], config_paths[i],
-                                             test_batch_size=parameters['test_batch_size'],
-                                             train_batch_size=parameters['train_batch_size'],
-                                             max_training_size=parameters['max_training_size'],
-                                             max_testing_size=parameters['max_testing_size'],
-                                             sample_testing_size=parameters['sample_testing_size'],
-                                             predictExpressions=parameters['predict_expressions'],
-                                             copyInput=parameters['copy_input'],
-                                             use_GO_symbol=parameters['decoder'],
-                                             finishExpressions=parameters['finish_expressions'],
-                                             reverse=parameters['reverse'],
-                                             copyMultipleExpressions=parameters['finish_subsystems'],
-                                             operators=parameters['operators'],
-                                             digits=parameters['digits'],
-                                             only_cause_expression=parameters['only_cause_expression'],
-                                             dataset_type=parameters['dataset_type'],
-                                             bothcause=parameters['bothcause'],
-                                             debug=parameters['debug']);
-        datasets.append(dataset);
+    dataset = GeneratedExpressionDataset(train_path, test_path, config_path,
+                                         test_batch_size=parameters['test_batch_size'],
+                                         train_batch_size=parameters['train_batch_size'],
+                                         max_training_size=parameters['max_training_size'],
+                                         max_testing_size=parameters['max_testing_size'],
+                                         sample_testing_size=parameters['sample_testing_size'],
+                                         predictExpressions=parameters['predict_expressions'],
+                                         copyInput=parameters['copy_input'],
+                                         use_GO_symbol=parameters['decoder'],
+                                         finishExpressions=parameters['finish_expressions'],
+                                         reverse=parameters['reverse'],
+                                         copyMultipleExpressions=parameters['finish_subsystems'],
+                                         operators=parameters['operators'],
+                                         digits=parameters['digits'],
+                                         only_cause_expression=parameters['only_cause_expression'],
+                                         dataset_type=parameters['dataset_type'],
+                                         bothcause=parameters['bothcause'],
+                                         debug=parameters['debug']);
     
     rnn = TheanoRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
                                      lstm=True,
@@ -46,9 +43,6 @@ def constructModels(parameters, seed, verboseOutputter):
                                              not parameters['no_label_search'],
                                      verboseOutputter=verboseOutputter,
                                      GO_symbol_index=dataset.GO_symbol_index,
-                                     finishExpressions=(parameters['finish_expressions'] or parameters['finish_subsystems']) and \
-                                                        not parameters['no_label_search'] and \
-                                                        not parameters['homogeneous'],
                                      optimizer=1 if parameters['nesterov_optimizer'] else 0,
                                      learning_rate=parameters['learning_rate'],
                                      operators=parameters['operators'],
@@ -60,7 +54,7 @@ def constructModels(parameters, seed, verboseOutputter):
                                      outputBias=parameters['output_bias'],
                                      useEncoder=parameters['use_encoder']);
     
-    return datasets, rnn;
+    return dataset, rnn;
 
 def set_up_statistics(output_dim, n_max_digits):
     return {'correct': 0.0, 'valid': 0.0, 

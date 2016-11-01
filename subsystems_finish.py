@@ -79,7 +79,7 @@ def print_stats(stats, parameters, prefix=''):
     print(output);
 
 def get_batch(isTrain, dataset, model, intervention_range, max_length, 
-              debug=False, base_offset=12, applyIntervention=True, 
+              debug=False, base_offset=12, 
               seq2ndmarkov=False, bothcause=False, homogeneous=False):    
     # Reseed the random generator to prevent generating identical batches
     np.random.seed();
@@ -156,7 +156,6 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
     targets = [];
     labels = [];
     expressions = [];
-    interventionSymbols = [];
     for (expression, expression_prime) in batch:
         if (seq2ndmarkov and not bothcause):
             if (parameters['only_cause_expression'] == 2):
@@ -167,14 +166,11 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
         else:
             data, targets, labels, expressions, _ = dataset.processor(";".join([expression, expression_prime]), 
                                                                       data,targets, labels, expressions);
-        # Convert symbols to indices
-        if (applyIntervention):
-            interventionSymbols.append([]);
     
     data = dataset.fill_ndarray(data, 1);
     targets = dataset.fill_ndarray(copy.deepcopy(targets), 1, fixed_length=model.n_max_digits);
     
-    return data, targets, labels, expressions, interventionSymbols, interventionLocations, topcause, nrSamples;
+    return data, targets, labels, expressions, interventionLocations, topcause, nrSamples;
 
 def test(model, dataset, parameters, max_length, base_offset, intervention_range, print_samples=False, 
          sample_size=False, homogeneous=False):
@@ -200,15 +196,13 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
     while k < total:
         # Get data from batch
         test_data, test_targets, _, test_expressions, \
-            _, interventionLocations, topcause, nrSamples = get_batch(False, dataset, model, 
+            interventionLocations, topcause, nrSamples = get_batch(False, dataset, model, 
                                                                       intervention_range, 
                                                                       max_length, debug=parameters['debug'],
                                                                       base_offset=base_offset,
-                                                                      applyIntervention=parameters['interventions'],
                                                                       seq2ndmarkov=parameters['dataset_type'] == 1,
                                                                       bothcause=parameters['bothcause'],
                                                                       homogeneous=parameters['homogeneous']);
-        test_n = nrSamples;
         for l in interventionLocations:
             stats['intervention_locations'][l] += 1;
             
@@ -228,20 +222,16 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
             prediction_2 = predictions[1];
         
         profiler.start("test batch stats");
-        labels_to_use = False;
-        if (parameters['no_label_search']):
-            # If we don't use label searching we need to provide labels_to_use
-            labels_to_use = test_expressions;
+        labels_to_use = test_expressions;
         stats, labels_used = model.batch_statistics(stats, predictions, 
                                        test_expressions, interventionLocations, 
-                                       other, test_n, dataset, 
-                                       eos_symbol_index=dataset.EOS_symbol_index,
+                                       other, nrSamples, dataset,
                                        topcause=topcause or parameters['bothcause'], # If bothcause then topcause = 1
                                        testExtraValidity=parameters['test_extra_validity'],
                                        bothcause=parameters['bothcause'],
                                        labels_to_use=labels_to_use);
         
-        for j in range(test_n):
+        for j in range(nrSamples):
             if (parameters['only_cause_expression'] is not False):
                 total_labels_used[labels_used[j][0]] = True;
             else:
@@ -249,20 +239,16 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
         
         # Print samples
         if (print_samples and not printed_samples):
-            for i in range(test_n):
+            for i in range(nrSamples):
                 prefix = "# ";
                 print(prefix + "Intervention location: %d" % interventionLocations[0,i]);
-#                 print(prefix + "Original data 1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-#                                                      np.argmax(test_data[i,:,:model.data_dim],len(test_data.shape)-2)))));
                 print(prefix + "Data          1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                    np.argmax(test_targets[i,:,:model.data_dim],len(test_data.shape)-2)))));
                 print(prefix + "Prediction    1: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_1[i])));
                 print(prefix + "Used label    1: %s" % labels_used[i][0]);
                 
                 if (not parameters['only_cause_expression']):
-                    print(prefix + "Original data 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-                                                         np.argmax(test_data[i,:,model.data_dim:],len(test_data.shape)-2)))));
-                    print(prefix + "Interve. data 2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+                    print(prefix + "Data          2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                        np.argmax(test_targets[i,:,model.data_dim:],len(test_data.shape)-2)))));
                     print(prefix + "Prediction    2: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_2[i])));
                     print(prefix + "Used label    2: %s" % labels_used[i][1]);
@@ -279,7 +265,6 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
     print("Total testing error: %.2f" % totalError);
     
     stats = model.total_statistics(stats, total_labels_used=total_labels_used);
-    
     print_stats(stats, parameters);
     
     return stats;
@@ -313,8 +298,10 @@ if __name__ == '__main__':
     if (parameters['intervention_base_offset'] <= 0):
         raise ValueError("Invalid intervention base offset: is %d, must be at least 1." % parameters['intervention_base_offset']);
     
+    
+    
     # Construct models
-    datasets, model = constructModels(parameters, 0, {});
+    dataset, model = constructModels(parameters, 0, {});
     
     # Load pretrained only_cause_expression = 1 model
     if (parameters['load_cause_expression_1'] is not False):
@@ -336,39 +323,21 @@ if __name__ == '__main__':
     # Print settings headers to raw results file
     print("# " + str(parameters));
     
-    dataset = datasets[0];
-    reps = parameters['repetitions'];
-    
     # Compute batching variables
     repetition_size = dataset.lengths[dataset.TRAIN];
     if (parameters['max_training_size'] is not False):
         repetition_size = min(parameters['max_training_size'],repetition_size);
     next_testing_threshold = parameters['test_interval'] * repetition_size;
     
-    total_datapoints_processed = 0;
-    b = 0;
-    terminate = False;
     
-    # Determine the minimum max_length needed to get batches quickly
-    min_samples_required = dataset.lengths[dataset.TRAIN] * 0.10;
-    max_length = model.n_max_digits;
-    
-    # Make the base_offset absorb the max length difference
-    base_offset = parameters['intervention_base_offset'];
-    intervention_range = parameters['intervention_range'];
-    
-    print("Adapted intervention range: %d" % intervention_range);
-    print("Adapted base offset: %d" % base_offset);
     
     intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
-    for r in range(reps):
+    for r in range(parameters['repetitions']):
         stats = set_up_statistics(dataset.output_dim, model.n_max_digits);
-        unused_in_rep = 0;
         total_error = 0.0;
-        # Print progress and save to raw results file
-        progress = "Batch %d (repetition %d of %d, dataset 1 of 1) (samples processed after batch: %d)" % \
-            (r+1,r+1,reps,total_datapoints_processed+repetition_size);
-        print(progress);
+        # Print repetition progress and save to raw results file
+        print("Batch %d (repetition %d of %d, dataset 1 of 1) (samples processed after batch: %d)" % \
+                (r+1,r+1,parameters['repetitions'],(r+1)*repetition_size));
         
         # Train model per minibatch
         k = 0;
@@ -376,12 +345,11 @@ if __name__ == '__main__':
         while k < repetition_size:
             profiler.start('train batch');
             profiler.start('get train batch');
-            data, target, _, target_expressions, possibleInterventions, interventionLocations, topcause, nrSamples = \
+            data, target, _, target_expressions, interventionLocations, topcause, nrSamples = \
                 get_batch(True, dataset, model, 
-                          intervention_range, max_length, 
+                          parameters['intervention_range'], model.n_max_digits, 
                           debug=parameters['debug'],
-                          base_offset=base_offset,
-                          applyIntervention=parameters['interventions'],
+                          base_offset=parameters['intervention_base_offset'],
                           seq2ndmarkov=parameters['dataset_type'] == 1,
                           bothcause=parameters['bothcause'],
                           homogeneous=parameters['homogeneous']);
@@ -396,14 +364,13 @@ if __name__ == '__main__':
                 model.sgd(dataset, data, target, parameters['learning_rate'],
                           emptySamples=[], expressions=target_expressions,
                           interventionLocations=interventionLocations,
-                          intervention=parameters['interventions'],
                           topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
             total_error += outputs[0];
             profiler.stop('train sgd');
             
             # Training prediction
             profiler.start('train stats');
-            if (parameters['train_statistics'] and parameters['interventions']):
+            if (parameters['train_statistics']):
                 stats, _ = model.batch_statistics(stats, predictions, 
                                                target_expressions, interventionLocations, 
                                                {}, len(target_expressions), dataset, 
@@ -413,6 +380,7 @@ if __name__ == '__main__':
                                                testExtraValidity=parameters['test_extra_validity'],
                                                bothcause=parameters['bothcause']);
             
+            # Print batch progress
             if ((k+model.minibatch_size) % (model.minibatch_size*4) < model.minibatch_size and \
                 (k+model.minibatch_size) / (model.minibatch_size*4) > printedProgress):
                 printedProgress = (k+model.minibatch_size) / (model.minibatch_size*4);
@@ -422,9 +390,6 @@ if __name__ == '__main__':
             profiler.stop('train batch');
             
             k += nrSamples;
-            
-        # Update stats
-        total_datapoints_processed += repetition_size;
         
         # Report on error
         print("Total error: %.2f" % total_error);
@@ -436,19 +401,14 @@ if __name__ == '__main__':
         # Intermediate testing if this was not the last iteration of training
         # and we have passed the testing threshold
         #if (r != repetition_size-1):
-        test(model, dataset, parameters, max_length, base_offset, intervention_range, print_samples=parameters['debug'], 
+        test(model, dataset, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
              sample_size=parameters['sample_testing_size'], homogeneous=parameters['homogeneous']);
+        
         # Save weights to pickles
         if (saveModels):
             saveVars = model.getVars();
             save_to_pickle('saved_models/%s_%d.model' % (name, r), saveVars, settings=parameters);
-        
-        if (terminate):
-            break;
     
-    if (terminate):
-        print("Experiment terminated prematurely!");
-    else:
-        print("Training all datasets finished!");
+    print("Training finished!");
     
     

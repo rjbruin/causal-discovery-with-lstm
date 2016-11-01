@@ -27,7 +27,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     def __init__(self, data_dim, hidden_dim, output_dim, minibatch_size, 
                  lstm=True, weight_values={}, single_digit=False, 
                  EOS_symbol_index=None, GO_symbol_index=None, n_max_digits=24, 
-                 decoder=False, verboseOutputter=None, finishExpressions=False,
+                 decoder=False, verboseOutputter=None, finishExpressions=True,
                  optimizer=0, learning_rate=0.01,
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
                  clipping=False, doubleLayer=False, dropoutProb=0., useEncoder=True, outputBias=False,
@@ -407,8 +407,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             raise ValueError("n_max_digits too small! Increase to %d" % training_labels.shape[1]);
     
     def sgd(self, dataset, data, label, learning_rate, emptySamples=None, 
-            expressions=None, intervention=False, 
-            interventionLocations=0, fixedDecoderInputs=False, topcause=True,
+            expressions=None,
+            interventionLocations=0, topcause=True,
             bothcause=False, nrSamples=None):
         """
         The intervention location for finish expressions must be the same for 
@@ -421,29 +421,25 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         label = np.swapaxes(label, 0, 1);
         return self._sgd(data, label, interventionLocations, nrSamples), [], expressions, expressions;
         
-    def predict(self, data, label=None, interventionLocations=None, alreadySwapped=False, 
+    def predict(self, encoding_label, prediction_label, interventionLocations=None, 
                 intervention=True, fixedDecoderInputs=True, topcause=True, nrSamples=None):
         """
-        Perform necessary models-specific transformations and call the actual 
-        prediction function of the model.
-        The intervention location for finish expressions must be the same for 
-        all samples in this batch.
+        Uses an encoding_label (formerly data) and a prediction_label (formerly
+        label) to input to the predictive RNN.
         """
         if (nrSamples is None):
             nrSamples = self.minibatch_size;
         
         # Swap axes of index in sentence and datapoint for Theano purposes
-        if (not alreadySwapped):
-            data = np.swapaxes(data, 0, 1);
-            if (label is not None):
-                label = np.swapaxes(label, 0, 1);
+        encoding_label = np.swapaxes(encoding_label, 0, 1);
+        prediction_label = np.swapaxes(prediction_label, 0, 1);
         
         if (not self.only_cause_expression):
             prediction_1, prediction_2, right_hand, error = \
-                    self._predict(data, label, interventionLocations, nrSamples);
+                    self._predict(encoding_label, prediction_label, interventionLocations, nrSamples);
         else:
             prediction_1, right_hand, error = \
-                    self._predict(data, label, interventionLocations, nrSamples);
+                    self._predict(encoding_label, prediction_label, interventionLocations, nrSamples);
         
         # Swap sentence index and datapoints back
         prediction_1 = np.swapaxes(prediction_1, 0, 1);
