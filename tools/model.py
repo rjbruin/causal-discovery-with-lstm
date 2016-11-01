@@ -50,7 +50,8 @@ def constructModels(parameters, seed, verboseOutputter):
                                      doubleLayer=parameters['double_layer'],
                                      dropoutProb=parameters['dropout_prob'],
                                      outputBias=parameters['output_bias'],
-                                     useEncoder=parameters['use_encoder']);
+                                     useEncoder=parameters['use_encoder'],
+                                     crosslinks=parameters['crosslinks']);
     
     return dataset, rnn;
 

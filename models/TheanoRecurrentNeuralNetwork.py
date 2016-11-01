@@ -13,8 +13,6 @@ from models.RecurrentModel import RecurrentModel
 #from theano.compile.nanguardmode import NanGuardMode
 import lasagne;
 
-from profiler import profiler;
-
 class TheanoRecurrentNeuralNetwork(RecurrentModel):
     '''
     Recurrent neural network model with one hidden layer. Models single class 
@@ -168,7 +166,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             initial_encode = ({'initial': T.zeros((self.minibatch_size,self.hidden_dim)), 'taps': [-1]},{'initial': T.zeros((self.minibatch_size,self.hidden_dim)), 'taps': [-1]});
         
         if (self.useEncoder):
-            if (self.crosslinks):
+            if (self.crosslinks and not self.only_cause_expression):
                 hiddens, _ = theano.scan(fn=encode_function,
                                         sequences=X,
                                         # Input a zero hidden layer
@@ -186,28 +184,31 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                            outputs_info=initial_encode,
                                            non_sequences=encode_parameters + [0,self.data_dim],
                                            name='encode_scan_1');
-                initial_encode_bot = ({'initial': T.zeros((self.minibatch_size,self.hidden_dim)), 'taps': [-1]});
-                if (self.doubleLayer):
-                    initial_encode_bot = ({'initial': T.zeros((self.minibatch_size,self.hidden_dim)), 'taps': [-1]},{'initial': T.zeros((self.minibatch_size,self.hidden_dim)), 'taps': [-1]});
-                hiddens_bot, _ = theano.scan(fn=encode_function,
-                                           sequences=X,
-                                           # Input a zero hidden layer
-                                           outputs_info=initial_encode_bot,
-                                           non_sequences=encode_parameters + [self.data_dim,self.data_dim*2],
-                                           name='encode_scan_2');
                 hidden_top = hiddens_top;
-                hidden_bot = hiddens_bot;
                 if (self.doubleLayer):
                     hidden_top = hiddens_top[0];
-                    hidden_bot = hiddens_bot[0];
                     hidden_2_top = hiddens_top[1];
-                    hidden_2_bot = hiddens_bot[1];
+                
+                if (not self.only_cause_expression):
+                    initial_encode_bot = ({'initial': T.zeros((self.minibatch_size,self.hidden_dim)), 'taps': [-1]});
+                    if (self.doubleLayer):
+                        initial_encode_bot = ({'initial': T.zeros((self.minibatch_size,self.hidden_dim)), 'taps': [-1]},{'initial': T.zeros((self.minibatch_size,self.hidden_dim)), 'taps': [-1]});
+                    hiddens_bot, _ = theano.scan(fn=encode_function,
+                                               sequences=X,
+                                               # Input a zero hidden layer
+                                               outputs_info=initial_encode_bot,
+                                               non_sequences=encode_parameters + [self.data_dim,self.data_dim*2],
+                                               name='encode_scan_2');
+                    hidden_bot = hiddens_bot;
+                    if (self.doubleLayer):
+                        hidden_bot = hiddens_bot[0];
+                        hidden_2_bot = hiddens_bot[1];
             
         else:
             hidden = [T.zeros((self.minibatch_size,self.hidden_dim))];
             if (self.doubleLayer):
                 hidden_2 = [T.zeros((self.minibatch_size,self.hidden_dim))];
-            if (not self.crosslinks):
+            if (not self.crosslinks or self.only_cause_expression is not False):
                 hidden_top = hidden;
                 hidden_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
                 if (self.doubleLayer):
@@ -215,7 +216,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     hidden_2_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
     
         # DECODING PHASE
-        if (self.crosslinks):
+        if (self.crosslinks and not self.only_cause_expression):
             init_values = ({'initial': T.zeros((self.minibatch_size,actual_data_dim)), 'taps': [-1]}, 
                            {'initial': hidden[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
             if (self.doubleLayer):
@@ -251,24 +252,27 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             else:
                 right_hand_1, _, _ = outputs_1;
             
-            init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]}, 
-                           {'initial': hidden_bot[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
-            if (self.doubleLayer):
+            if (not self.only_cause_expression):
                 init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]}, 
-                               {'initial': hidden_bot[-1], 'taps': [-1]}, 
-                               {'initial': hidden_2_bot[-1], 'taps': [-1]}, 
-                               {'initial': 0., 'taps': [-1]});
-            outputs_2, _ = theano.scan(fn=decode_function,
-                                     sequences=label,
-                                     outputs_info=init_values,
-                                     non_sequences=decode_parameters + [self.data_dim,self.data_dim*2],
-                                     name='decode_scan_2')
-            if (self.doubleLayer):
-                right_hand_2, _, _, _ = outputs_2;
-            else:
-                right_hand_2, _, _ = outputs_2;
+                               {'initial': hidden_bot[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
+                if (self.doubleLayer):
+                    init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]}, 
+                                   {'initial': hidden_bot[-1], 'taps': [-1]}, 
+                                   {'initial': hidden_2_bot[-1], 'taps': [-1]}, 
+                                   {'initial': 0., 'taps': [-1]});
+                outputs_2, _ = theano.scan(fn=decode_function,
+                                         sequences=label,
+                                         outputs_info=init_values,
+                                         non_sequences=decode_parameters + [self.data_dim,self.data_dim*2],
+                                         name='decode_scan_2')
+                if (self.doubleLayer):
+                    right_hand_2, _, _, _ = outputs_2;
+                else:
+                    right_hand_2, _, _ = outputs_2;
             
-            right_hand = T.concatenate([right_hand_1, right_hand_2], axis=2);
+                right_hand = T.concatenate([right_hand_1, right_hand_2], axis=2);
+            else:
+                right_hand = right_hand_1;
         
         right_hand_near_zeros = T.ones_like(right_hand) * 1e-15;
         right_hand = T.maximum(right_hand, right_hand_near_zeros);
