@@ -94,7 +94,9 @@ def predictInterventionSample():
         response['sample1'] = sample1;
         response['sample2'] = sample2;
         
-        interventionLocation = int(request.form['interventionLocation']);
+        interventionLocations = np.zeros((2,data['rnn'].minibatch_size), dtype='int32');
+        interventionLocations[0,0] = int(request.form['interventionLocation']);
+        interventionLocations[1,0] = interventionLocations[0,0] + 1;
         intervention = request.form['intervention'];
         
         if (data['dataset'].dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV):
@@ -105,14 +107,14 @@ def predictInterventionSample():
         
         datasample = data['dataset'].fill_ndarray(datasample,1).reshape((1,datasample[0].shape[0],datasample[0].shape[1]));
         label = copy.deepcopy(datasample);
-        label[0,interventionLocation] = np.zeros((datasample[0].shape[1]), dtype='float32');
+        label[0,interventionLocations[0,0]] = np.zeros((datasample[0].shape[1]), dtype='float32');
         # Only supports interventions on the first sample
-        label[0,interventionLocation,data['dataset'].oneHot[intervention]] = 1.0;
+        label[0,interventionLocations[0,0],data['dataset'].oneHot[intervention]] = 1.0;
         if (len(datasample) < data['rnn'].minibatch_size):
             missing_datapoints = data['rnn'].minibatch_size - datasample.shape[0];
             datasample = np.concatenate((datasample,np.zeros((missing_datapoints, datasample.shape[1], datasample.shape[2]), dtype='float32')), axis=0);
             label = np.concatenate((label,np.zeros((missing_datapoints, datasample.shape[1], datasample.shape[2]), dtype='float32')), axis=0);
-        prediction, _ = data['rnn'].predict(datasample, label=label, interventionLocation=interventionLocation);
+        prediction, _ = data['rnn'].predict(datasample, label=label, interventionLocations=interventionLocations);
         
         if (not data['rnn'].only_cause_expression):
             response['prediction1'] = prediction[0][0].tolist();
@@ -141,9 +143,9 @@ def predictInterventionSample():
         response['success'] = True;
         
         test_n = 1;
-        stats = data['rnn'].batch_statistics(set_up_statistics(data['rnn'].decoding_output_dim, data['rnn'].n_max_digits), 
-                                             prediction, [(sample1,sample2)], interventionLocation,
-                                             {}, test_n, data['dataset'])
+        stats, _ = data['rnn'].batch_statistics(set_up_statistics(data['rnn'].decoding_output_dim, data['rnn'].n_max_digits), 
+                                             prediction, [(sample1,sample2)], interventionLocations,
+                                             {}, test_n, data['dataset'], labels_to_use=[(sample1,sample2)])
         response['stats'] = {};
         response['stats']['correct'] = stats['correct'];
         response['stats']['valid'] = stats['valid'];

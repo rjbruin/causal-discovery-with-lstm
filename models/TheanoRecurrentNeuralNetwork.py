@@ -1073,17 +1073,19 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             
             # Digit precision and prediction size computation
             i = 0;
-            for i in range(intervention_locations[causeIndex,j]+1,min(len(causeExpressionPrediction),len(labels_to_use[j][causeIndex]))):
+            len_to_use = min(len(causeExpressionPrediction),len(labels_to_use[j][causeIndex]));
+            for i in range(intervention_locations[causeIndex,j]+1,len_to_use):
                 if (causeExpressionPrediction[i] == labels_to_use[j][causeIndex][i]):
                     stats['digit_1_correct'] += 1.0;
-            stats['digit_1_prediction_size'] += len(causeExpressionPrediction) - (intervention_locations[causeIndex,j]+1);
+            stats['digit_1_prediction_size'] += len_to_use;
             
             if (not self.only_cause_expression):
                 i = 0;
-                for i in range(intervention_locations[effectIndex,j]+1,min(len(effectExpressionPrediction),len(labels_to_use[j][effectIndex]))):
+                len_to_use = min(len(effectExpressionPrediction),len(labels_to_use[j][effectIndex]));
+                for i in range(intervention_locations[effectIndex,j]+1,len_to_use):
                     if (effectExpressionPrediction[i] == labels_to_use[j][effectIndex][i]):
                         stats['digit_2_correct'] += 1.0;
-                stats['digit_2_prediction_size'] += len(effectExpressionPrediction) - (intervention_locations[effectIndex,j]+1);      
+                stats['digit_2_prediction_size'] += len_to_use;
 
        
             stats['prediction_1_size_histogram'][int(eos_location)] += 1;
