@@ -56,7 +56,7 @@ def constructModels(parameters, seed, verboseOutputter):
     return dataset, rnn;
 
 def set_up_statistics(output_dim, n_max_digits):
-    return {'correct': 0.0, 'valid': 0.0, 
+    return {'correct': 0.0, 'valid': 0.0, 'inDataset': 0.0,
             'structureCorrectCause': 0.0, 'structureCorrectEffect': 0.0, 
             'structureValidCause': 0.0, 'structureValidEffect': 0.0,
             'structureCorrectTop': 0.0, 'structureCorrectBot': 0.0,

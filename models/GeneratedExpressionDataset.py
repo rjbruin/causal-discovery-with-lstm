@@ -16,6 +16,7 @@ class GeneratedExpressionDataset(Dataset):
     
     DATASET_EXPRESSIONS = 0;
     DATASET_SEQ2NDMARKOV = 1;
+    DATASET_DOUBLEOPERATOR = 2;
     
     def __init__(self, trainSource, testSource, configSource, 
                  preload=True,
@@ -58,8 +59,13 @@ class GeneratedExpressionDataset(Dataset):
         # Set the method that matches an effect prediction against an effect 
         # expression generated from the cause prediction
         self.effect_matcher = self.effect_matcher_expressions_simple;
+        self.valid_checker = self.valid_expression;
         if (dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV):
             self.effect_matcher = self.effect_matcher_seq2ndmarkov;
+            self.valid_checker = self.valid_seq2ndmarkov
+        elif (dataset_type == GeneratedExpressionDataset.DATASET_DOUBLEOPERATOR):
+            self.effect_matcher = self.effect_matcher_doubleoperator;
+            self.valid_checker = self.valid_doubleoperator;
         
         # Read config to overwrite settings
         if (os.path.exists(configSource)):
@@ -68,12 +74,21 @@ class GeneratedExpressionDataset(Dataset):
             config_f.close();
             for key in self.config:
                 if (key == 'effect_matcher'):
-                    if (self.config[key] == 'seq2ndmarkov_0'):
+                    if (self.config[key] == 'expressions_simple'):
+                        self.effect_matcher = self.effect_matcher_expressions_simple;
+                    elif (self.config[key] == 'seq2ndmarkov_0'):
                         self.effect_matcher = self.effect_matcher_seq2ndmarkov;
                     elif (self.config[key] == 'seq2ndmarkov_2'):
                         self.effect_matcher = self.effect_matcher_seq2ndmarkov_2;
                     elif (self.config[key] == 'seq2ndmarkov_both'):
                         self.effect_matcher = self.effect_matcher_seq2ndmarkov_both;
+                elif (key == 'valid_checker'):
+                    if (self.config[key] == 'expressions_simple'):
+                        self.valid_checker = self.valid_checker_expressions_simple;
+                    elif (self.config[key] == 'seq2ndmarkov'):
+                        self.valid_checker = self.valid_checker_seq2ndmarkov;
+                    elif (self.config[key] == 'doubleoperator'):
+                        self.valid_checker = self.valid_checker_doubleoperator;
         
         # Digits are pre-assigned 0-self.digits
         self.oneHot = {};
@@ -704,6 +719,24 @@ class GeneratedExpressionDataset(Dataset):
         
         return success;
     
+    def effect_matcher_doubleoperator(self, cause_expression_encoded, predicted_effect_expression_encoded, nr_digits, nr_operators, topcause):
+        OPERATORS = [lambda x, y, max: (x+y) % max,
+                     lambda x, y, max: (x-y) % max,
+                     lambda x, y, max: (x*y) % max];
+        
+        for i in range(0,len(cause_expression_encoded),2):
+            digit_top = cause_expression_encoded[i];
+            digit_bot = predicted_effect_expression_encoded[i];
+            op_top = cause_expression_encoded[i+1] - nr_digits;
+            op_bot = predicted_effect_expression_encoded[i+1] - nr_digits;
+            result_top = cause_expression_encoded[i+2];
+            result_bot = predicted_effect_expression_encoded[i+2];
+            if (OPERATORS[op_top](digit_top, digit_bot) != result_top):
+                return 0;
+            if (OPERATORS[op_bot](digit_top, digit_bot) != result_bot):
+                return 0;
+        return 1;
+    
     def valid_seq2ndmarkov(self, expression_encoded, nr_digits, nr_operators):
         OPERATORS = [lambda x, y, max: (x+y) % max,
                      lambda x, y, max: (x-y) % max,
@@ -728,6 +761,23 @@ class GeneratedExpressionDataset(Dataset):
                 return False;
             i += 3;
         return True;
+    
+    def valid_expression(self, expression_encoded, nr_digits, nr_operators):
+        str_expression = self.indicesToStr(expression_encoded);
+        try:
+            equals_index = str_expression.index("=");
+            node = ExpressionNode.fromStr(str_expression[:equals_index]);
+            return node.getValue() == int(str_expression[equals_index+1:]);
+        except Exception:
+            return False;
+    
+    def valid_doubleoperator(self, expression_encoded, nr_digits, nr_operators):
+        for i in range(0,len(expression_encoded),2):
+            if (not (expression_encoded[i] < nr_digits and \
+                expression_encoded[i+1] >= nr_digits and \
+                expression_encoded[i+1] < nr_digits + nr_operators)):
+                return 0;
+        return 1;
     
     def findAnswer(self, onehot_encodings):
         answer_allzeros = map(lambda d: d.sum() == 0.0, onehot_encodings);
@@ -795,6 +845,11 @@ class ExpressionNode(object):
     operators = range(OPERATOR_SIZE);
     
     def __init__(self, nodeType, value):
+        if (nodeType == self.TYPE_DIGIT and value >= 10):
+            raise ValueError("Illegal digit value!");
+        elif (nodeType == self.TYPE_OPERATOR and value >= self.OPERATOR_SIZE):
+            raise ValueError("Illegal operator value!");
+        
         self.nodeType = nodeType;
         self.value = value;
     
@@ -806,10 +861,15 @@ class ExpressionNode(object):
     @staticmethod
     def createDigit(value):
         # Create terminal child (digit)
+        if (value > 10):
+            raise ValueError("Illegal digit value!");
         return ExpressionNode(ExpressionNode.TYPE_DIGIT, value);
     
     @staticmethod
     def createOperator(operator, left, right):
+        if (operator >= ExpressionNode.OPERATOR_SIZE):
+            raise ValueError("Illegal operator value!");
+        
         node = ExpressionNode(ExpressionNode.TYPE_OPERATOR, operator);
         node.left = left;
         node.right = right;
@@ -830,88 +890,6 @@ class ExpressionNode(object):
             else:
                 raise ValueError("Invalid operator type");
     
-    def solveAll(self, targetValue):
-        """
-        We need a cheap way to find expressions that are near to the current 
-        expression. While the digits have to be low the problem is that target 
-        values can be very large and multiplication and division are the cause of
-        this. We need a way to control the complexity of the solver so we can
-        run the least complex one before we use complexer stuff. 
-        """
-        ownValue = self.getValue();
-        difference = targetValue - ownValue;
-        
-        if (self.nodeType == self.TYPE_DIGIT):
-            if (difference == 0):
-                return [self];
-            if (targetValue >= 10 or targetValue < 0):
-                return [];
-            newMe = ExpressionNode.createDigit(targetValue)
-            return [newMe];
-        
-        answers = [];
-        if (difference == 0):
-            answers.append(self);
-        
-        leftValue = self.left.getValue();
-        rightValue = self.right.getValue();
-        
-        if (self.value == self.OP_PLUS):
-            combinations = [];
-            for i in range(10):
-                for j in range(10):
-                    if (i + j == targetValue and (i != leftValue or j != rightValue)):
-                        combinations.append((i,j));
-        elif (self.value == self.OP_MINUS):
-            combinations = [];
-            for i in range(10):
-                for j in range(10):
-                    if (i - j == targetValue):
-                        combinations.append((i,j));
-            
-#             if (difference > 0):
-#                 for i in range(0,difference+1):
-#                     if (leftValue + i < 10 and rightValue - (difference - i) >= 0):
-#                         combinations.append((leftValue+i,rightValue-(difference-i)));
-#             elif (difference < 0):
-#                 for i in range(difference+1,0):
-#                     if (leftValue + i >= 0 and rightValue - (difference - i) < 10):
-#                         combinations.append((leftValue+i,rightValue-(difference-i)));
-#             else:
-#                 combinations.extend([(i, i) for i in range(10)]);
-        elif (self.value == self.OP_MULTIPLY):
-            combinations = [(1,targetValue),(targetValue,1)];
-            if (targetValue == 0):
-                combinations.append((0,0));
-                for j in range(2,10):
-                    combinations.append((0,j));
-                    combinations.append((j,0));
-            else:
-                for i in range(2,10):
-                    if (i == targetValue):
-                        continue;
-                    if ((targetValue / float(i)) % 1.0 == 0.0):
-                        combinations.append((i,targetValue/i));
-                        combinations.append((targetValue/i,i));
-        elif (self.value == self.OP_DIVIDE):
-            combinations = [(targetValue,1)];
-            if (targetValue == 0):
-                for j in range(2,10):
-                    combinations.append((0,j));
-            else:
-                for i in range(2,10):
-                    if ((targetValue * i) < 10):
-                        combinations.append((targetValue*i,i));
-            
-        for (leftVal, rightVal) in combinations:
-            lefts = self.left.solveAll(leftVal);
-            rights = self.right.solveAll(rightVal);
-            for left in lefts:
-                for right in rights:
-                    answers.append(ExpressionNode.createOperator(self.value,left,right));
-    
-        return answers;
-    
     def __str__(self):
         return self.getStr(True);
     
@@ -928,17 +906,24 @@ class ExpressionNode(object):
         else:
             left = ExpressionNode(ExpressionNode.TYPE_DIGIT, int(expression[i]));
             j = i+1;
+        
         op_type = ExpressionNode.getOperator(expression[j]);
         operator = ExpressionNode(ExpressionNode.TYPE_OPERATOR, op_type);
+        
         j = j+1;
         if (expression[j] == '('):
             subclause = ExpressionNode.getClause(expression[j:]);
             right = ExpressionNode.fromStr(subclause);
+            j += len(subclause) + 2;
         else:
             right = ExpressionNode(ExpressionNode.TYPE_DIGIT, int(expression[j]));
+            j += 1;
         
         operator.left = left;
         operator.right = right;
+        
+        if (len(expression) > j):
+            raise ValueError("Incorrect syntax: characters present outside clause!");
         
         return operator;
     

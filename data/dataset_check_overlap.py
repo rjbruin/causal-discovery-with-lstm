@@ -20,5 +20,8 @@ for key, value in lines.items():
 		sizes_histogram[value] = 0;
 	sizes_histogram[value] += 1;
 
+print("Unique labels: %d" % len(lines.keys()));
+
+print("Occurrences:");
 for key, value in sorted(sizes_histogram.items(), key=lambda (k,v): v, reverse=True):
 	print("%d: %d times" % (key, value));

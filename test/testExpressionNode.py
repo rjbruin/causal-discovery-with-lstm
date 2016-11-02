@@ -8,6 +8,14 @@ import unittest
 from models.GeneratedExpressionDataset import ExpressionNode;
 
 
+def valid_expression(str_expression):
+    try:
+        equals_index = str_expression.index("=");
+        node = ExpressionNode.fromStr(str_expression[:equals_index]);
+        return node.getValue() == int(str_expression[equals_index+1:]), node;
+    except Exception:
+        return False, None;
+
 class Test(unittest.TestCase):
 
 
@@ -19,6 +27,21 @@ class Test(unittest.TestCase):
         
         for i, (expression,answer) in enumerate(expressions):
             self.assertEqual(ExpressionNode.fromStr(expression).getValue(),answer,"(strToVal) Answer #%d not correct!" % (i+1));
+    
+    def testInvalidExpressions(self):
+        expressions = [('1+1=2',True),
+                       ("(1+)=2",False),
+                       ("=3",False),
+                       ("1+1+1=4",False),
+                       ("(1+3)",False),
+                       ("=(4+4)+6",False),
+                       ("(2+2)/4=1",True),
+                       ("1=1",True),
+                       ("1+1=4",False)];
+        
+        for i, (expression,answer) in enumerate(expressions):
+            given, node = valid_expression(expression);
+            self.assertEqual(given,answer,"(strToVal) Answer #%d not correct: %s" % (i+1, str(node)));
     
     def testSolve(self):
         expressions = [

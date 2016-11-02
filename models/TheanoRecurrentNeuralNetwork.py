@@ -537,7 +537,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                          other, test_n, dataset, labels_to_use,
                          emptySamples=None,
                          training=False, topcause=True,
-                         testValidity=True, bothcause=False):
+                         testInDataset=True, bothcause=False):
         """
         Overriding for finish-target_expressions.
         expressions_with_interventions contains the label-target_expressions (in 
@@ -582,110 +582,84 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             if (not self.only_cause_expression):
                 effectExpressionPrediction = dataset.indicesToStr(prediction[effectIndex][j]);
             
-            if (self.seq2ndmarkov):
-                # Check if cause sequence prediction is in dataset
-                causeInDataset = False;
-                if (causeExpressionPrediction == labels_to_use[j][causeIndex]):
-                    stats['structureCorrectCause'] += 1.0;
+            
+            
+            # Check if cause sequence prediction is in dataset
+            causeMatchesLabel = False;
+            if (causeExpressionPrediction == labels_to_use[j][causeIndex]):
+                stats['structureCorrectCause'] += 1.0;
+                if (topcause):
+                    stats['structureCorrectTop'] += 1.0;
+                else:
+                    stats['structureCorrectBot'] += 1.0;
+                causeMatchesLabel = True;
+            
+            causeValid = False;
+            # Check if cause sequence prediction is valid
+            if (dataset.valid_checker(prediction[causeIndex][j][:eos_location],dataset.digits,dataset.operators)):
+                causeValid = True;
+                stats['structureValidCause'] += 1.0;
+                if (topcause):
+                    stats['structureValidTop'] += 1.0;
+                else:
+                    stats['structureValidBot'] += 1.0;
+            
+            effectMatchesLabel = False;
+            effectValid = False;
+            if (not self.only_cause_expression):
+                # Check if effect sequence prediction is in dataset
+                if (effectExpressionPrediction == labels_to_use[j][effectIndex]):
+                    stats['structureCorrectEffect'] += 1.0;
                     if (topcause):
-                        stats['structureCorrectTop'] += 1.0;
-                    else:
                         stats['structureCorrectBot'] += 1.0;
-                    causeInDataset = True;
-                
-                # Check if cause sequence prediction is valid
-                causeValid = False;
-                if (dataset.valid_seq2ndmarkov(prediction[causeIndex][j][:eos_location],dataset.digits,dataset.operators)):
-                    causeValid = True;
-                    stats['structureValidCause'] += 1.0;
-                    if (topcause):
-                        stats['structureValidTop'] += 1.0;
                     else:
+                        stats['structureCorrectTop'] += 1.0;
+                    effectMatchesLabel = True;
+                
+                # Check if effect sequence prediction is valid
+                if (dataset.valid_checker(prediction[effectIndex][j][:eos_location],dataset.digits,dataset.operators)):
+                    effectValid = True;
+                    stats['structureValidEffect'] += 1.0;
+                    if (topcause):
                         stats['structureValidBot'] += 1.0;
-                
-                effectInDataset = False;
-                effectValid = False;
-                if (not self.only_cause_expression):
-                    # Check if effect sequence prediction is in dataset
-                    if (effectExpressionPrediction == labels_to_use[j][effectIndex]):
-                        stats['structureCorrectEffect'] += 1.0;
-                        if (topcause):
-                            stats['structureCorrectBot'] += 1.0;
-                        else:
-                            stats['structureCorrectTop'] += 1.0;
-                        effectInDataset = True;
-                    
-                    # Check if effect sequence prediction is valid
-                    if (dataset.valid_seq2ndmarkov(prediction[effectIndex][j][:eos_location],dataset.digits,dataset.operators)):
-                        effectValid = True;
-                        stats['structureValidEffect'] += 1.0;
-                        if (topcause):
-                            stats['structureValidBot'] += 1.0;
-                        else:
-                            stats['structureValidTop'] += 1.0;
-                
-                # Check if effect prediction is valid
-                effectMatch = False;
-                if (not self.only_cause_expression):
-                    effect = dataset.effect_matcher(prediction[causeIndex][j][:eos_location],
-                                                    prediction[effectIndex][j][:eos_location],
-                                                    self.digits,self.operators,topcause);
-                    if (effect == 1 or effect == 2):
-                        stats['effectCorrect'] += 1.0;
-                        if (effect == 2):
-                            stats['noEffect'] += 1.0;
-                        effectMatch = True;
-                
-                # Determine validity of sample
+                    else:
+                        stats['structureValidTop'] += 1.0;
+            
+            # Check if effect prediction is valid
+            effectMatch = False;
+            if (not self.only_cause_expression):
+                effect = dataset.effect_matcher(prediction[causeIndex][j][:eos_location],
+                                                prediction[effectIndex][j][:eos_location],
+                                                self.digits,self.operators,topcause);
+                if (effect == 1 or effect == 2):
+                    stats['effectCorrect'] += 1.0;
+                    if (effect == 2):
+                        stats['noEffect'] += 1.0;
+                    effectMatch = True;
+            
+            # Determine sample in dataset
+            if ((causeMatchesLabel and self.only_cause_expression is not False) or (causeMatchesLabel and effectMatchesLabel)):
+                stats['structureCorrect'] += 1.0;
+            if ((causeMatchesLabel and self.only_cause_expression is not False) or (causeMatchesLabel and effectMatchesLabel and effectMatch)):
+                stats['correct'] += 1.0;
+                stats['valid'] += 1.0;
+                stats['inDataset'] += 1.0;
+            else:
+                # Determine validity of sample if it is not correct
                 if ((causeValid and self.only_cause_expression is not False) or (causeValid and effectValid and effectMatch)):
                     stats['valid'] += 1.0;
+                if (testInDataset and not training and self.only_cause_expression is not False):
+                    if (dataset.testExpressionsByPrefix.exists(causeExpressionPrediction)):
+                        stats['inDataset'] += 1.0;
+                    elif (dataset.expressionsByPrefix.exists(causeExpressionPrediction)):
+                        stats['inDataset'] += 1.0;
                 
-                # Determine sample in dataset
-                if ((causeInDataset and self.only_cause_expression is not False) or (causeInDataset and effectInDataset)):
-                    stats['structureCorrect'] += 1.0;
-                if ((causeInDataset and self.only_cause_expression is not False) or (causeInDataset and effectInDataset and effectMatch)):
-                    stats['correct'] += 1.0;
+                difference1 = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][causeIndex]);
+                if (not self.only_cause_expression):
+                    difference2 = TheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, labels_to_use[j][effectIndex]);
                 else:
-                    difference1 = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][causeIndex]);
-                    if (not self.only_cause_expression):
-                        difference2 = TheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, labels_to_use[j][effectIndex]);
-                    else:
-                        difference2 = 0;
-                    if (difference1 + difference2 == 0):
-                        print("%s vs %s" % (causeExpressionPrediction, labels_to_use[j][causeIndex]));
-                        print("%s vs %s" % (effectExpressionPrediction, labels_to_use[j][effectIndex]));
-                        print("causeValid: %s, effectValid: %s, effectMatch: %s, self.only_cause_exression: %s" % \
-                              (str(causeValid), str(effectValid), str(effectMatch), str(self.only_cause_expression)));
-                        raise ValueError("Difference is zero!");
-                    stats['error_histogram'][difference1 + difference2] += 1;
-            else:
-                if (causeExpressionPrediction == labels_to_use[j][causeIndex]):
-                    stats['structureCorrect'] += 1.0;
-                    stats['structureValidCause'] += 1.0;
-                    if (self.only_cause_expression is not False):
-                        stats['correct'] += 1.0;
-                        stats['valid'] += 1.0;
-                    elif (effectExpressionPrediction == labels_to_use[j][effectIndex]):
-                        stats['correct'] += 1.0;
-                        stats['valid'] += 1.0;
-                        stats['effectCorrect'] += 1.0;
-                        stats['structureValidEffect'] += 1.0;
-                else:
-                    if (testValidity and not training and self.only_cause_expression is not False):
-                        if (dataset.testExpressionsByPrefix.exists(causeExpressionPrediction)):
-                            stats['valid'] += 1.0;
-                        elif (dataset.expressionsByPrefix.exists(causeExpressionPrediction)):
-                            stats['valid'] += 1.0;
-                    
-                    difference1 = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][causeIndex]);
-                    if (not self.only_cause_expression):
-                        difference2 = TheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, labels_to_use[j][effectIndex]);
-                    else:
-                        difference2 = 0;
-                    stats['error_histogram'][difference1 + difference2] += 1;
-                    # Defer matching of effect prediction and what it should be to dataset effect matcher (dependent on dataset)
-                    if (not self.only_cause_expression and dataset.effect_matcher(prediction[causeIndex][j][:eos_location],prediction[effectIndex][j][:eos_location],self.digits,self.operators,topcause)):
-                        stats['effectCorrect'] += 1.0;
+                    difference2 = 0;
+                stats['error_histogram'][difference1 + difference2] += 1;
             
             # Digit precision and prediction size computation
             i = 0;
