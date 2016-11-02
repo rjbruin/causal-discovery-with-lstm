@@ -84,11 +84,11 @@ class GeneratedExpressionDataset(Dataset):
                         self.effect_matcher = self.effect_matcher_seq2ndmarkov_both;
                 elif (key == 'valid_checker'):
                     if (self.config[key] == 'expressions_simple'):
-                        self.valid_checker = self.valid_checker_expressions_simple;
+                        self.valid_checker = self.valid_expressions_simple;
                     elif (self.config[key] == 'seq2ndmarkov'):
-                        self.valid_checker = self.valid_checker_seq2ndmarkov;
+                        self.valid_checker = self.valid_seq2ndmarkov;
                     elif (self.config[key] == 'doubleoperator'):
-                        self.valid_checker = self.valid_checker_doubleoperator;
+                        self.valid_checker = self.valid_doubleoperator;
         
         # Digits are pre-assigned 0-self.digits
         self.oneHot = {};
