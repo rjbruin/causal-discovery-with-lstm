@@ -648,10 +648,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 # Determine validity of sample if it is not correct
                 if ((causeValid and self.only_cause_expression is not False) or (causeValid and effectValid and effectMatch)):
                     stats['valid'] += 1.0;
-                if (testInDataset and not training and self.only_cause_expression is not False):
-                    if (dataset.testExpressionsByPrefix.exists(causeExpressionPrediction)):
+                if (testInDataset and not training):
+                    primeToUse = None;
+                    if (self.only_cause_expression is False):
+                        primeToUse = effectExpressionPrediction;
+                    if (dataset.testExpressionsByPrefix.exists(causeExpressionPrediction, prime=primeToUse)):
                         stats['inDataset'] += 1.0;
-                    elif (dataset.expressionsByPrefix.exists(causeExpressionPrediction)):
+                    elif (dataset.expressionsByPrefix.exists(causeExpressionPrediction, prime=primeToUse)):
                         stats['inDataset'] += 1.0;
                 
                 difference1 = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][causeIndex]);

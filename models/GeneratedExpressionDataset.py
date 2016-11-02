@@ -731,9 +731,9 @@ class GeneratedExpressionDataset(Dataset):
             op_bot = predicted_effect_expression_encoded[i-1] - nr_digits;
             result_top = cause_expression_encoded[i];
             result_bot = predicted_effect_expression_encoded[i];
-            if (op_top >= nr_operators or OPERATORS[op_top](digit_top, digit_bot, nr_digits) != result_top):
+            if (op_top < 0 or op_top >= nr_operators or OPERATORS[op_top](digit_top, digit_bot, nr_digits) != result_top):
                 return 0;
-            if (op_bot >= nr_operators or OPERATORS[op_bot](digit_top, digit_bot, nr_digits) != result_bot):
+            if (op_bot < 0 or op_bot >= nr_operators or OPERATORS[op_bot](digit_top, digit_bot, nr_digits) != result_bot):
                 return 0;
         return 1;
     

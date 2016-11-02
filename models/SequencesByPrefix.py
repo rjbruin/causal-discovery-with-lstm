@@ -215,11 +215,17 @@ class SequencesByPrefix(object):
 #             return False;
 #         return self.fullExpressions[expressionsAtCurrentLevel[choiceExpression][0]], [(1, choiceExpression)];
     
-    def exists(self, prefix):
+    def exists(self, prefix, prime=None):
         if (len(prefix) == 0):
-            return "" in self.expressions;
+            if ("" in self.expressions):
+                if (prime is None):
+                    return True;
+                else:
+                    if (prime in self.primedExpressions):
+                        return True;
+            return False;
         if (prefix[0] in self.prefixedExpressions):
-            return self.prefixedExpressions[prefix[0]].exists(prefix[1:]);
+            return self.prefixedExpressions[prefix[0]].exists(prefix[1:], prime=prime);
         else:
             return False;
         
