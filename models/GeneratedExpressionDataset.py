@@ -724,16 +724,16 @@ class GeneratedExpressionDataset(Dataset):
                      lambda x, y, max: (x-y) % max,
                      lambda x, y, max: (x*y) % max];
         
-        for i in range(0,len(cause_expression_encoded),2):
-            digit_top = cause_expression_encoded[i];
-            digit_bot = predicted_effect_expression_encoded[i];
-            op_top = cause_expression_encoded[i+1] - nr_digits;
-            op_bot = predicted_effect_expression_encoded[i+1] - nr_digits;
-            result_top = cause_expression_encoded[i+2];
-            result_bot = predicted_effect_expression_encoded[i+2];
-            if (OPERATORS[op_top](digit_top, digit_bot) != result_top):
+        for i in range(2,len(cause_expression_encoded),2):
+            digit_top = cause_expression_encoded[i-2];
+            digit_bot = predicted_effect_expression_encoded[i-2];
+            op_top = cause_expression_encoded[i-1] - nr_digits;
+            op_bot = predicted_effect_expression_encoded[i-1] - nr_digits;
+            result_top = cause_expression_encoded[i];
+            result_bot = predicted_effect_expression_encoded[i];
+            if (op_top >= nr_operators or OPERATORS[op_top](digit_top, digit_bot, nr_digits) != result_top):
                 return 0;
-            if (OPERATORS[op_bot](digit_top, digit_bot) != result_bot):
+            if (op_bot >= nr_operators or OPERATORS[op_bot](digit_top, digit_bot, nr_digits) != result_bot):
                 return 0;
         return 1;
     
@@ -772,10 +772,10 @@ class GeneratedExpressionDataset(Dataset):
             return False;
     
     def valid_doubleoperator(self, expression_encoded, nr_digits, nr_operators):
-        for i in range(0,len(expression_encoded),2):
-            if (not (expression_encoded[i] < nr_digits and \
-                expression_encoded[i+1] >= nr_digits and \
-                expression_encoded[i+1] < nr_digits + nr_operators)):
+        for i in range(1,len(expression_encoded),2):
+            if (not (expression_encoded[i-1] < nr_digits and \
+                expression_encoded[i] >= nr_digits and \
+                expression_encoded[i] < nr_digits + nr_operators)):
                 return 0;
         return 1;
     
