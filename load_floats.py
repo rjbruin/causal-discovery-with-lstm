@@ -20,8 +20,7 @@ if __name__ == '__main__':
         result = load_from_pickle_with_filename(filepath);
         if (result is not False):
             savedFloats, settings = result;
-            datasets, rnn = constructModels(settings, 0, None);
-            dataset = datasets[-1];
+            dataset, rnn = constructModels(settings, 0, None);
             savedVars = zip(sorted(rnn.vars.keys()),savedFloats);
             modelSet = rnn.loadVars(dict(savedVars), floats=True); 
             if (modelSet):

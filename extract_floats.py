@@ -21,8 +21,7 @@ if __name__ == '__main__':
         result = load_from_pickle_with_filename(filepath);
         if (result is not False):
             savedVars, settings = result;
-            datasets, rnn = constructModels(settings, 0, None);
-            dataset = datasets[-1];
+            dataset, rnn = constructModels(settings, 0, None);
             modelSet = rnn.loadVars(dict(savedVars)); 
             if (modelSet):
                 modelInfo = settings;

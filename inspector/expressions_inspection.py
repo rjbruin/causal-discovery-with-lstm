@@ -12,6 +12,7 @@ import copy;
 import tools.model;
 from tools.file import load_from_pickle_with_filename
 from tools.model import set_up_statistics;
+from subsystems_finish import test;
 from models.GeneratedExpressionDataset import GeneratedExpressionDataset
 
 app = Flask(__name__)
@@ -154,8 +155,23 @@ def predictInterventionSample():
 
 @app.route("/api/predict/testset", methods=['GET'])
 def predictTestset():
-    response = {'success': False};
-    tools.model.test(data['rnn'],data['dataset'],data['modelInfo'], 0);
+    response = {'success': True};
+    stats, samples = test(data['rnn'],data['dataset'],data['modelInfo'],
+                          data['modelInfo']['n_max_digits'],
+                          data['modelInfo']['intervention_base_offset'],
+                          data['modelInfo']['intervention_range']);
+    
+    response['stats'] = stats;
+    response['samples'] = [];
+    response['only_cause_expression'] = data['modelInfo']['only_cause_expression'] != False;
+    for i in range(100):
+        if (data['modelInfo']['only_cause_expression'] is not False):
+            data, prediction = samples[i];
+            response['samples'].append({'data': data, 'prediction': prediction});
+        else:
+            data, prediction, dataBot, predictionBot = samples[i];
+            response['samples'].append({'data': data, 'prediction': prediction,
+                                        'dataBot': dataBot, 'predictionBot': predictionBot});
     return flask.jsonify(response);
 
 def loadModel(name):

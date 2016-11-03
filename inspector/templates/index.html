@@ -21,7 +21,7 @@ $(document).ready( function() {
 		repr += "<div class='input-group-btn'><button class='btn btn-primary'>Predict</button></div></div>";
 		repr += "</form><div id='predictionResults'></div></div>";
 		return repr;
-	}
+	}	
 
 	formatDatasetForm = function() {
 		var repr = "<div class='col-md-6' id='datasetContainer'>";
@@ -39,7 +39,7 @@ $(document).ready( function() {
 		//repr += "</select></div></div>";
 
 		repr += "<button class='btn btn-default pull-right'>Predict</button>";
-		repr += "</form></div>";
+		repr += "</form><div id='testsetPredictionResults'></div></div>";
 		return repr;
 	}
 
@@ -65,6 +65,23 @@ $(document).ready( function() {
 	formatPredictionResult = function(response) {
 		var repr = "<div class='result'>" + response.sample1 + "<br />" + response.sample2 + "</div>";
 		repr += "<div class='result prediction'>" + response.prediction1Pretty + "<br />" + response.prediction2Pretty + "</div><div style='clear: both'></div>";
+		return repr;
+	}
+	
+	formatTestsetPredictionResult = function(response) {
+		var repr = "";
+		for (var i = 0; i < response.samples.length; i++) {
+			repr += "<div class='result'>" + response.samples[i].data;
+			if (response.only_cause_expression == false) {
+				repr += "<br />" + response.samples[i].dataBot;
+			}
+			repr += "</div>";
+			repr += "<div class='result prediction'>" + response.samples[i].prediction;
+			if (response.only_cause_expression == false) {
+				repr += "<br />" + response.samples[i].predictionBot;
+			}
+			repr += "</div><div style='clear: both'></div>";
+		}
 		return repr;
 	}
 
@@ -176,7 +193,7 @@ $(document).ready( function() {
 						console.log(response);
 						$("#datasetForm button").removeAttr('disabled');
 						// Show results
-						// TODO
+						$("#testsetPredictionResults").append(formatTestsetPredictionResult(response));
 					} else {
 						console.log("no success!");
 						$("#datasetForm input").parent().addClass("has-error");

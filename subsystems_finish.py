@@ -177,7 +177,7 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
     return data, targets, labels, expressions, interventionLocations, topcause, nrSamples;
 
 def test(model, dataset, parameters, max_length, base_offset, intervention_range, print_samples=False, 
-         sample_size=False, homogeneous=False):
+         sample_size=False, homogeneous=False, returnTestSamples=False):
     # Test
     print("Testing...");
         
@@ -197,6 +197,7 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
     printed_samples = False;
     totalError = 0.0;
     k = 0;
+    testSamples = [];
     while k < total:
         # Get data from batch
         test_data, test_targets, _, test_expressions, \
@@ -238,6 +239,19 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                 total_labels_used[labels_used[j][0]] = True;
             else:
                 total_labels_used[labels_used[j][0]+";"+labels_used[j][1]] = True;
+            
+            # Save predictions to testSamples
+            if (returnTestSamples):
+                strData = map(lambda x: dataset.findSymbol[x], 
+                              np.argmax(test_targets[j,:,:model.data_dim],len(test_targets.shape)-2));
+                strPrediction = map(lambda x: dataset.findSymbol[x], prediction_1[j]);
+                if (parameters['only_cause_expression'] is False):
+                    strDataBot = map(lambda x: dataset.findSymbol[x], 
+                                     np.argmax(test_targets[j,:,model.data_dim:],len(test_targets.shape)-2));
+                    strPredictionBot = map(lambda x: dataset.findSymbol[x], prediction_2[j]);
+                    testSamples.append((strData,strPrediction,strDataBot,strPredictionBot));
+                else:
+                    testSamples.append((strData,strPrediction));
         
         # Print samples
         if (print_samples and not printed_samples):
@@ -269,7 +283,10 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
     stats = model.total_statistics(stats, total_labels_used=total_labels_used);
     print_stats(stats, parameters);
     
-    return stats;
+    if (returnTestSamples):
+        return stats, testSamples;
+    else:
+        return stats;
 
 if __name__ == '__main__':
     theano.config.floatX = 'float32';
