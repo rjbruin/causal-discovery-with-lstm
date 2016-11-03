@@ -133,12 +133,12 @@ class GeneratedExpressionDataset(Dataset):
         else:
             self.outputByInput = None;
         
-        if (preload):
-            self.preloaded = self.preload();
-            if (not self.preloaded):
-                print("WARNING! PRELOADING DATASET WAS ATTEMPTED BUT FAILED!");
-        else:
-            self.preloaded = False;
+            if (preload):
+                self.preloaded = self.preload();
+                if (not self.preloaded):
+                    print("WARNING! PRELOADING DATASET WAS ATTEMPTED BUT FAILED!");
+            else:
+                self.preloaded = False;
     
     def preload(self, onlyStoreByPrefix=False):
         """
