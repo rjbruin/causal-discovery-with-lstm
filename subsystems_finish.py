@@ -171,7 +171,7 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
             data, targets, labels, expressions, _ = dataset.processor(";".join([expression, expression_prime]), 
                                                                       data,targets, labels, expressions);
     
-    data = dataset.fill_ndarray(data, 1);
+    data = dataset.fill_ndarray(data, 1, fixed_length=model.n_max_digits);
     targets = dataset.fill_ndarray(copy.deepcopy(targets), 1, fixed_length=model.n_max_digits);
     
     return data, targets, labels, expressions, interventionLocations, topcause, nrSamples;
@@ -380,9 +380,10 @@ if __name__ == '__main__':
             # Run training
             profiler.start('train sgd');
             outputs = model.sgd(dataset, data, target, parameters['learning_rate'],
-                                  emptySamples=[], expressions=target_expressions,
+                                  nrSamples=model.minibatch_size, expressions=target_expressions,
                                   interventionLocations=interventionLocations,
-                                  topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
+                                  topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause'],
+                                  use_label_search=parameters['use_label_search']);
             total_error += outputs[0];
             profiler.stop('train sgd');
             

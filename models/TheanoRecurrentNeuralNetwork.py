@@ -13,6 +13,8 @@ from models.RecurrentModel import RecurrentModel
 #from theano.compile.nanguardmode import NanGuardMode
 import lasagne;
 
+from profiler import profiler;
+
 class TheanoRecurrentNeuralNetwork(RecurrentModel):
     '''
     Recurrent neural network model with one hidden layer. Models single class 
@@ -484,19 +486,382 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             raise ValueError("n_max_digits too small! Increase to %d" % training_labels.shape[1]);
     
     def sgd(self, dataset, data, label, learning_rate, emptySamples=None, 
-            expressions=None,
+            expressions=None, use_label_search=False,
             interventionLocations=0, topcause=True,
             bothcause=False, nrSamples=None):
         """
         The intervention location for finish expressions must be the same for 
         all samples in this batch.
         """
-        if (nrSamples is None):
-            nrSamples = self.minibatch_size;
+        if (use_label_search):
+            return self.sgd_finish_expression(dataset, data, expressions, interventionLocations, learning_rate, nrSamples, topcause, bothcause)
+        else:
+            if (nrSamples is None):
+                nrSamples = self.minibatch_size;
+            
+            data = np.swapaxes(data, 0, 1);
+            label = np.swapaxes(label, 0, 1);
+            return self._sgd(data, label, interventionLocations, nrSamples);
+    
+    def sgd_finish_expression(self, dataset, encoded_expressions, expressions,
+                              interventionLocations, learning_rate, nrSamples, 
+                              topcause=True, bothcause=False):
+        profiler.start('train sgd predict');
+        if (not self.only_cause_expression):
+            [predictions_1, predictions_2], other = self.predict(encoded_expressions, encoded_expressions, 
+                                                                 interventionLocations, intervention=True);
+        else:
+            predictions_1, other = self.predict(encoded_expressions, encoded_expressions, 
+                                                interventionLocations, intervention=True);
+        right_hand_1 = other['right_hand'][:,:,:self.data_dim];
+        if (not self.only_cause_expression):
+            right_hand_2 = other['right_hand'][:,:,self.data_dim:];
+        profiler.stop('train sgd predict');
         
-        data = np.swapaxes(data, 0, 1);
-        label = np.swapaxes(label, 0, 1);
-        return self._sgd(data, label, interventionLocations, nrSamples);
+        # Set which expression is cause and which is effect
+        if (topcause or bothcause):
+            # Assume all samples in the batch have the same setting for
+            # which of the expressions is the cause and which is the effect
+            causeExpressionPredictions = predictions_1;
+            causeExpressionRightHand = right_hand_1;
+            if (not self.only_cause_expression):
+                effectExpressionPredictions = predictions_2;
+                effectExpressionRightHand = right_hand_2;
+            else:
+                effectExpressionPredictions = None;
+                effectExpressionRightHand = None;
+                
+            # Unzip the tuples of expressions into two lists
+            causeExpressions, effectExpressions = zip(*expressions);
+        else:
+            if (self.only_cause_expression):
+                causeExpressionPredictions = predictions_1;
+                causeExpressionRightHand = right_hand_1;
+                effectExpressionPredictions = None;
+                effectExpressionRightHand = None;
+            else:
+                causeExpressionPredictions = predictions_2;
+                causeExpressionRightHand = right_hand_2;
+                effectExpressionPredictions = predictions_1;
+                effectExpressionRightHand = right_hand_1;
+                
+            # Unzip the tuples of expressions into two lists
+            _, causeExpressions = zip(*expressions);
+        
+        profiler.start('train sgd find labels');
+        # Change the target of the SGD to the nearest valid expression-subsystem
+        if (not bothcause):
+            encoded_expressions_with_intervention, labels_to_use = \
+                self.finish_expression_find_labels(causeExpressionPredictions, effectExpressionPredictions,
+                                                   dataset, 
+                                                   causeExpressions, 
+                                                   interventionLocations,
+                                                   updateTargets=True, updateLabels=True,
+                                                   encoded_causeExpression=causeExpressionRightHand,
+                                                   encoded_effectExpression=effectExpressionRightHand,
+                                                   topcause=topcause);
+        else:
+            encoded_expressions_with_intervention, labels_to_use = \
+                self.finish_expression_find_labels_both_cause(causeExpressionPredictions, effectExpressionPredictions,
+                                                   dataset, 
+                                                   causeExpressions, effectExpressions,
+                                                   interventionLocations,
+                                                   updateTargets=True, updateLabels=True,
+                                                   encoded_topExpression=causeExpressionRightHand,
+                                                   encoded_botExpression=effectExpressionRightHand);
+        profiler.stop('train sgd find labels');
+        
+        # Swap axes of index in sentence and datapoint for Theano purposes
+        encoded_expressions = np.swapaxes(encoded_expressions, 0, 1);
+        encoded_expressions_with_intervention = np.swapaxes(encoded_expressions_with_intervention, 0, 1);
+        
+        profiler.start('train sgd actual sgd');
+        if (not self.only_cause_expression):
+            result = self._sgd(encoded_expressions, encoded_expressions_with_intervention, 
+                             interventionLocations, nrSamples);
+        else:
+            result = self._sgd(encoded_expressions, encoded_expressions_with_intervention, 
+                             interventionLocations, nrSamples);
+        profiler.stop('train sgd actual sgd');
+        return result;
+    
+    def finish_expression_find_labels(self, causeExpressionPredictions, effectExpressionPredictions,
+                                       dataset,
+                                       causeExpressions, 
+                                       interventionLocations,
+                                       updateTargets=False, updateLabels=False,
+                                       encoded_causeExpression=False, encoded_effectExpression=False,
+                                       emptySamples=False, test_n=False, useTestStorage=False,
+                                       topcause=True):
+        if (not self.only_cause_expression):
+            target = np.zeros((self.minibatch_size,self.n_max_digits,self.decoding_output_dim*2));
+        else:
+            target = np.zeros((self.minibatch_size,self.n_max_digits,self.decoding_output_dim));
+        label_expressions = [];
+        if (emptySamples is False):
+            emptySamples = [];
+        if (test_n is False):
+            test_n = len(causeExpressionPredictions);
+        
+        causeIndex = 0;
+        if (not topcause):
+            causeIndex = 1;
+        if (self.only_cause_expression is not False):
+            causeIndex = 0;
+        
+        # Set the storage and helper methods
+        storage = dataset.expressionsByPrefix;
+        appendToLabels = lambda cause, effect: (cause, effect);
+        def setTarget(j,cause,value):
+            profiler.start("fl target setting");
+            if (cause):
+                target[j,:,:self.data_dim] = value;
+            else:
+                target[j,:,self.data_dim:] = value;
+            profiler.stop("fl target setting");
+        if (self.seq2ndmarkov and not topcause):
+            storage = dataset.expressionsByPrefixBot;
+            appendToLabels = lambda cause, effect: (effect, cause);
+            def setTarget(j,cause,value):
+                profiler.start("fl target setting");
+                if (cause):
+                    target[j,:,self.data_dim:] = value;
+                else:
+                    target[j,:,:self.data_dim] = value;
+                profiler.stop("fl target setting");
+        
+        # Set the storage and helper methods for testing
+        if (useTestStorage):
+            storage = dataset.testExpressionsByPrefix;
+            if (self.seq2ndmarkov and not topcause):
+                storage = dataset.testExpressionsByPrefixBot;
+        
+        if (self.only_cause_expression is not False):
+            def setTarget(j,cause,value):
+                profiler.start("fl target setting");
+                target[j,:,:] = value;
+                profiler.stop("fl target setting");
+        
+        for i, prediction in enumerate(causeExpressionPredictions[:test_n]):
+            if (i in emptySamples):
+                # Skip empty samples caused by the intervention generation process
+                continue;
+            
+            profiler.start("fl string prediction compilation");
+            # Find the string representation of the prediction
+            string_prediction = dataset.indicesToStr(prediction);
+            profiler.stop("fl string prediction compilation");
+            
+            # Get all valid predictions for this data sample including intervention
+            # Note: the prediction might deviate from the label even before the intervention
+            # We still use the label expressions provided (even though we know that our
+            # prediction will not be in valid_prediction) because we do want to use a label 
+            # that does the intervention right so the model can learn from this mistake
+            profiler.start("fl storage querying");
+            _, _, valid_predictions, validPredictionEffectExpressions, branch = storage.get(causeExpressions[i][:interventionLocations[causeIndex,i]+1], alsoGetStructure=True);
+            profiler.stop("fl storage querying");
+            if (len(valid_predictions) == 0):
+                # Invalid example because the intervention has no corrected examples
+                # We don't correct by looking at expression structure here because 
+                # that is not a realistic usage of a dataset
+                raise ValueError("No valid predictions available! This should not happen at all...");
+                if (updateLabels):
+                    label_expressions.append(appendToLabels(string_prediction,""));
+            elif (string_prediction in valid_predictions):
+                # The prediction of the cause expression is right, so we
+                # use the right_hand predicted for this part
+                if (updateTargets):
+                    setTarget(i,True,encoded_causeExpression[i]);
+                
+                # If our prediction is valid we check if the other expression matches 
+                # the predicted expression
+                other_string_prediction = "";
+                if (not self.only_cause_expression):
+                    profiler.start("fl other prediction checking");
+                    other_string_prediction = dataset.indicesToStr(effectExpressionPredictions[i]);
+                    prediction_index = valid_predictions.index(string_prediction);
+                    if (other_string_prediction == validPredictionEffectExpressions[prediction_index]):
+                        # If the effect expression predicted matches the 
+                        # expression attached to the cause expression,
+                        # this prediction is right, so we use it as right_hand
+                        if (updateTargets):
+                            setTarget(i,False,encoded_effectExpression[i]);
+                    else:
+                        # If the cause expression was predicted right but the
+                        # effect expression is wrong we need to run SGD with
+                        # as target for the effect expression the effect
+                        # expression stored with the cause expression
+                        if (updateTargets):
+                            other_expression_target_expression = validPredictionEffectExpressions[prediction_index];
+                            setTarget(i,False,dataset.encodeExpression(other_expression_target_expression, \
+                                                                       self.n_max_digits));
+                    profiler.stop("fl other prediction checking");
+                if (updateLabels):
+                    # Regardless of whether the effect/other prediction is right we know
+                    # what labels to supply: the set of correct cause prediction and its
+                    # corresponding effect prediction
+                    label_expressions.append(appendToLabels(string_prediction,other_string_prediction));
+            else:
+                # Find the nearest expression to our prediction
+                profiler.start("fl nearest finding");
+                closest_expression, closest_expression_prime, _, _ = branch.get_closest(string_prediction[interventionLocations[causeIndex,i]+1:]);
+                
+                # Use as targets the found cause expression and its 
+                # accompanying effect expression
+                if (updateTargets):
+                    setTarget(i,True,dataset.encodeExpression(closest_expression, self.n_max_digits));
+                    if (not self.only_cause_expression):
+                        setTarget(i,False,dataset.encodeExpression(closest_expression_prime,
+                                                                   self.n_max_digits));
+                if (updateLabels):
+                    label_expressions.append(appendToLabels(closest_expression,closest_expression_prime));
+                profiler.stop("fl nearest finding");
+        
+        return target, label_expressions;
+    
+    def finish_expression_find_labels_both_cause(self, topExpressionPredictions, botExpressionPredictions,
+                                                 dataset,
+                                                 topExpressions, botExpressions,
+                                                 interventionLocations,
+                                                 updateTargets=False, updateLabels=False,
+                                                 encoded_topExpression=False, encoded_botExpression=False,
+                                                 emptySamples=False, test_n=False, useTestStorage=False):
+        if (not self.only_cause_expression):
+            target = np.zeros((self.minibatch_size,self.n_max_digits,self.decoding_output_dim*2));
+        else:
+            target = np.zeros((self.minibatch_size,self.n_max_digits,self.decoding_output_dim));
+        label_expressions = [];
+        if (emptySamples is False):
+            emptySamples = [];
+        if (test_n is False):
+            test_n = len(topExpressionPredictions);
+        
+        # Set the storage and helper methods
+        storage = dataset.expressionsByPrefix;
+        if (not self.only_cause_expression):
+            storage_bot = dataset.expressionsByPrefixBot;
+        def setTarget(j,top,value):
+            if (top):
+                target[j,:,:self.data_dim] = value;
+            else:
+                target[j,:,self.data_dim:] = value;
+        
+        # Set the storage and helper methods for testing
+        if (useTestStorage):
+            storage = dataset.testExpressionsByPrefix;
+            if (not self.only_cause_expression):
+                storage_bot = dataset.testExpressionsByPrefixBot;
+        
+        if (self.only_cause_expression is not False):
+            def setTarget(j,top,value):
+                target[j,:,:] = value;
+        
+        for i, prediction in enumerate(topExpressionPredictions[:test_n]):
+            if (i in emptySamples):
+                # Skip empty samples caused by the intervention generation process
+                continue;
+            
+            # Find the string representation of the prediction
+            top_string_prediction = dataset.indicesToStr(prediction);
+            if (not self.only_cause_expression):
+                bot_string_prediction = dataset.indicesToStr(botExpressionPredictions[i]);
+            
+            # Get all valid predictions for this data sample including intervention
+            # Note: the prediction might deviate from the label even before the intervention
+            # We still use the label expressions provided (even though we know that our
+            # prediction will not be in valid_prediction) because we do want to use a label 
+            # that does the intervention right so the model can learn from this mistake
+            _, _, validTopPredictions, validTopPredictionBotSamples, branch = storage.get(topExpressions[i][:interventionLocations[0,i]+1], alsoGetStructure=True);
+            if (not self.only_cause_expression):
+                _, _, validBotPredictions, validBotPredictionTopSamples, branch_bot = storage_bot.get(botExpressions[i][:interventionLocations[1,i]+1], alsoGetStructure=True);
+            
+            if (not self.only_cause_expression):
+                validTops = validTopPredictions + validBotPredictionTopSamples;
+                validBots = validTopPredictionBotSamples + validBotPredictions;
+            else:
+                validTops = validTopPredictions
+            
+            if (len(validTops) == 0):
+                # Invalid example because the intervention has no corrected examples
+                # We don't correct by looking at expression structure here because 
+                # that is not a realistic usage of a dataset
+                raise ValueError("No valid predictions available! This should not happen at all...");
+                if (updateLabels):
+                    label_expressions.append((top_string_prediction,bot_string_prediction));
+            else:
+                match = False;
+                predictionPool = [];
+                for k in range(len(validTops)):
+                    topMatch = False;
+                    botMatch = False;
+                    if (validTops[k] == top_string_prediction):
+                        topMatch = True;
+                    if (not self.only_cause_expression):
+                        if (validBots[k] == bot_string_prediction):
+                            botMatch = True;
+                    if (topMatch and (botMatch or self.only_cause_expression is not False)):
+                        match = True;
+                        break;
+                    elif (topMatch or botMatch):
+                        if (not self.only_cause_expression):
+                            predictionPool.append((validTops[k], validBots[k], int(topMatch)));
+                        else:
+                            predictionPool.append(validTops[k]);
+                
+                if (match):
+                    # The prediction of the cause expression is right, so we
+                    # use the right_hand predicted for this part
+                    if (updateTargets):
+                        setTarget(i,True,encoded_topExpression[i]);
+                        if (not self.only_cause_expression):
+                            setTarget(i,False,encoded_botExpression[i]);
+                    if (updateLabels):
+                        if (not self.only_cause_expression):
+                            label_expressions.append((top_string_prediction,bot_string_prediction));
+                        else:
+                            label_expressions.append((top_string_prediction,""));
+                else:
+                    if (len(predictionPool) == 0):
+                        # Get closest for both and add both to prediction pool
+                        closest_expression, closest_expression_prime, _, _ = branch.get_closest(top_string_prediction[interventionLocations[0,i]+1:]);
+                        predictionPool.append((closest_expression, closest_expression_prime, -1));
+                        if (not self.only_cause_expression):
+                            closest_expression, closest_expression_prime, _, _ = branch_bot.get_closest(bot_string_prediction[interventionLocations[1,i]+1:]);
+                            predictionPool.append((closest_expression, closest_expression_prime, -1));
+                    
+                    # Find the nearest expression to our prediction
+                    nearest = -1;
+                    nearestScore = 100000;
+                    for i_near, labels in enumerate(predictionPool):
+                        if (not self.only_cause_expression):
+                            topLabel, botLabel, checkWhich = labels;
+                        else:
+                            topLabel = labels;
+                            checkWhich = 0;
+                        # Compute string difference
+                        score = 0;
+                        if (checkWhich == -1 or checkWhich == 0):
+                            score += TheanoRecurrentNeuralNetwork.string_difference(top_string_prediction[interventionLocations[0,i]+1:], topLabel[interventionLocations[0,i]+1:]);
+                        if (checkWhich == -1 or checkWhich == 1):
+                            score += TheanoRecurrentNeuralNetwork.string_difference(bot_string_prediction[interventionLocations[1,i]+1:], botLabel[interventionLocations[1,i]+1:]);
+                        if (score < nearestScore):
+                            nearest = i_near;
+                            nearestScore = score;
+                    
+                    # Use as targets the found cause expression and its 
+                    # accompanying effect expression
+                    if (updateTargets):
+                        setTarget(i,True,dataset.encodeExpression(predictionPool[nearest][0], self.n_max_digits));
+                        if (not self.only_cause_expression):
+                            setTarget(i,False,dataset.encodeExpression(predictionPool[nearest][1],
+                                                                       self.n_max_digits));
+                    if (updateLabels):
+                        if (not self.only_cause_expression):
+                            label_expressions.append((predictionPool[nearest][0],predictionPool[nearest][1]));
+                        else:
+                            label_expressions.append((predictionPool[nearest][0],""));
+        
+        return target, label_expressions;
         
     def predict(self, encoding_label, prediction_label, interventionLocations=None, 
                 intervention=True, fixedDecoderInputs=True, topcause=True, nrSamples=None):

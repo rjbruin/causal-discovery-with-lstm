@@ -75,7 +75,8 @@ argumentProcessors = {'name': processString,
                       'output_bias': processBool,
                       'subbatch_size': processInt,
                       'homogeneous': processBool,
-                      'crosslinks': processBool
+                      'crosslinks': processBool,
+                      'use_label_search': processBool
                       }
 defaults = {'report_to_tracker': True,
             'debug': False,
@@ -120,7 +121,8 @@ defaults = {'report_to_tracker': True,
             'output_bias': False,
             'subbatch_size': 1,
             'homogeneous': False,
-            'crosslinks': True
+            'crosslinks': True,
+            'use_label_search': False
             }
 
 def processKeyValue(key,value):

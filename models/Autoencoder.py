@@ -21,6 +21,7 @@ class Autoencoder(object):
         Constructor
         '''
         self.data_dim = data_dim;
+        self.hidden_dim = hidden_dim;
         self.minibatch_size = minibatch_size;
         self.EOS_symbol_index = EOS_symbol_index;
         self.n_max_digits = n_max_digits;
@@ -86,6 +87,19 @@ class Autoencoder(object):
         self._predict = theano.function([data], [output, predictions, digits_correct, error]);
         self._encode = theano.function([data], [hiddens_encode[-1]]);
         
+        # Constructing graph for decoding method
+        code = T.fmatrix('code');
+        first_decode_x = T.zeros((data_dim), dtype=theano.config.floatX);
+        T.set_subtensor(first_decode_x[GO_symbol_index],1.);
+        (output, _), _ = theano.scan(fn=self.lstm_predict_single,
+                                     # Input a zero hidden layer
+                                     outputs_info=({'initial': first_decode_x, 'taps': [-1]}, {'initial': code, 'taps': [-1]}),
+                                     non_sequences=decode_params,
+                                     name='decode_code_scan',
+                                     n_steps=n_max_digits);
+        code_prediction = T.argmax(output, axis=1);
+        self._decode = theano.function([code], [code_prediction]);
+        
     def lstm_predict_single(self, previous_output, previous_hidden, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY, hbY):
         forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + previous_output.dot(XWf));
         input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + previous_output.dot(XWi));
@@ -140,6 +154,12 @@ class Autoencoder(object):
         code = np.swapaxes(code, 0, 1);
         return code;
     
+    def decode(self, code):
+        code = np.swapaxes(code, 0, 1);
+        data = self._decode(code);
+        data = np.swapaxes(data, 0, 1);
+        return data;
+    
     def precision_from_digits_correct(self, data, digits_correct):
         correct = 0;
         d_correct = 0;
@@ -159,3 +179,20 @@ class Autoencoder(object):
     
     def getVars(self):
         return self.vars.items();
+
+    def randomWalk(self, nrSamples=100):
+        current = np.random.uniform(0.0, 1.0, (self.hidden_dim));
+        predictions = [self.decode(current)];
+        failLimit = 10000;
+        while (len(predictions) < nrSamples):
+            changeIndex = np.random.randint(0,self.hidden_dim);
+            current[changeIndex] = np.random.random();
+            newPrediction = self.decode(current);
+            if (newPrediction != predictions[-1]):
+                predictions.append(newPrediction);
+            else:
+                failLimit += 1;
+                if (failLimit >= failLimit):
+                    return [];
+        
+        return predictions; 
