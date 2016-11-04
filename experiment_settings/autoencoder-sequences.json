@@ -1,0 +1,18 @@
+[
+    {
+        "name": "a-seqs-s",
+        "script": "autoencoder_train.py",
+        "dataset": "./data/subsystems_shallow_simple_topcause",
+        "repetitions": "500",
+        "sample_testing_size": "10000",
+        "finish_subsystems": "True",
+        "n_max_digits": "17",
+        "intervention_base_offset": "1",
+        "intervention_range": "16",
+        "nesterov_optimizer": "True",
+        "learning_rate": "0.005",
+        "hidden_dim": "128",
+        "only_cause_expression": "1",
+      	"minibatch_size": "10"
+    }
+]
