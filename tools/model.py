@@ -10,7 +10,7 @@ from models.GeneratedExpressionDataset import GeneratedExpressionDataset;
 from models.TheanoRecurrentNeuralNetwork import TheanoRecurrentNeuralNetwork
 
 
-def constructModels(parameters, seed, verboseOutputter):
+def constructModels(parameters, seed, verboseOutputter, noModel=False):
     train_path = "%s/train.txt" % (parameters['dataset']);
     test_path = "%s/test.txt" % (parameters['dataset']);
     config_path = "%s/config.json" % (parameters['dataset']);
@@ -32,26 +32,28 @@ def constructModels(parameters, seed, verboseOutputter):
                                          bothcause=parameters['bothcause'],
                                          debug=parameters['debug']);
     
-    rnn = TheanoRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
-                                     lstm=True,
-                                     minibatch_size=parameters['minibatch_size'],
-                                     n_max_digits=parameters['n_max_digits'],
-                                     decoder=parameters['decoder'] and parameters['use_encoder'] and \
-                                             not parameters['homogeneous'] and \
-                                             not parameters['no_label_search'],
-                                     verboseOutputter=verboseOutputter,
-                                     GO_symbol_index=dataset.GO_symbol_index,
-                                     optimizer=1 if parameters['nesterov_optimizer'] else 0,
-                                     learning_rate=parameters['learning_rate'],
-                                     operators=parameters['operators'],
-                                     digits=parameters['digits'],
-                                     only_cause_expression=parameters['only_cause_expression'],
-                                     seq2ndmarkov=parameters['dataset_type'] == 1,
-                                     doubleLayer=parameters['double_layer'],
-                                     dropoutProb=parameters['dropout_prob'],
-                                     outputBias=parameters['output_bias'],
-                                     useEncoder=parameters['use_encoder'],
-                                     crosslinks=parameters['crosslinks']);
+    if (not noModel):
+        rnn = TheanoRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
+                                         lstm=True,
+                                         minibatch_size=parameters['minibatch_size'],
+                                         n_max_digits=parameters['n_max_digits'],
+                                         decoder=parameters['decoder'] and parameters['use_encoder'] and \
+                                                 not parameters['homogeneous'],
+                                         verboseOutputter=verboseOutputter,
+                                         GO_symbol_index=dataset.GO_symbol_index,
+                                         optimizer=1 if parameters['nesterov_optimizer'] else 0,
+                                         learning_rate=parameters['learning_rate'],
+                                         operators=parameters['operators'],
+                                         digits=parameters['digits'],
+                                         only_cause_expression=parameters['only_cause_expression'],
+                                         seq2ndmarkov=parameters['dataset_type'] == 1,
+                                         doubleLayer=parameters['double_layer'],
+                                         dropoutProb=parameters['dropout_prob'],
+                                         outputBias=parameters['output_bias'],
+                                         useEncoder=parameters['use_encoder'],
+                                         crosslinks=parameters['crosslinks']);
+    else:
+        rnn = None;
     
     return dataset, rnn;
 

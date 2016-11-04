@@ -184,8 +184,8 @@ def loadModel(name):
         return False;
     savedVars, settings = result;
     settings['dataset'] = "." + settings['dataset'];
-    datasets, data['rnn'] = tools.model.constructModels(settings, 0, None);
-    data['dataset'] = datasets[-1];
+    dataset, data['rnn'] = tools.model.constructModels(settings, 0, None);
+    data['dataset'] = dataset;
     data['modelSet'] = data['rnn'].loadVars(dict(savedVars)); 
     if (data['modelSet']):
         data['modelInfo'] = settings;
