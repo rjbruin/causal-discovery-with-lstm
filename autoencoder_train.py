@@ -6,9 +6,8 @@ Created on 4 nov. 2016
 
 import time;
 import sys;
-from math import floor;
 
-from tools.file import save_to_pickle, load_from_pickle_with_filename;
+from tools.file import save_to_pickle;
 from tools.arguments import processCommandLineArguments;
 from tools.model import constructModels, set_up_statistics;
 from tools.gpu import using_gpu; # @UnresolvedImport
@@ -17,7 +16,6 @@ from models.Autoencoder import Autoencoder;
 
 import numpy as np;
 import theano;
-import copy;
 from profiler import profiler
 
 def print_stats(precision, digit_precision):

@@ -69,6 +69,7 @@ class Autoencoder(object):
                                      n_steps=n_max_digits);
         
 #         error = T.mean(T.nnet.categorical_crossentropy(output, data));
+#         error = T.mean(T.sqr(data - output));
         
         cat_cross = -T.sum(data * T.log(output), axis=output.ndim-1);
         mean_cross_per_sample = T.sum(cat_cross, axis=0) / float(self.n_max_digits);
@@ -88,17 +89,17 @@ class Autoencoder(object):
         self._encode = theano.function([data], [hiddens_encode[-1]]);
         
         # Constructing graph for decoding method
-        code = T.fmatrix('code');
-        first_decode_x = T.zeros((data_dim), dtype=theano.config.floatX);
-        T.set_subtensor(first_decode_x[GO_symbol_index],1.);
-        (output, _), _ = theano.scan(fn=self.lstm_predict_single,
-                                     # Input a zero hidden layer
-                                     outputs_info=({'initial': first_decode_x, 'taps': [-1]}, {'initial': code, 'taps': [-1]}),
-                                     non_sequences=decode_params,
-                                     name='decode_code_scan',
-                                     n_steps=n_max_digits);
-        code_prediction = T.argmax(output, axis=1);
-        self._decode = theano.function([code], [code_prediction]);
+#         code = T.fvector('code');
+#         first_decode_code_x = T.zeros((data_dim), dtype=theano.config.floatX);
+#         #T.set_subtensor(first_decode_x_decode[GO_symbol_index],1.);
+#         (output, _), _ = theano.scan(fn=self.lstm_predict_single,
+#                                      # Input a zero hidden layer
+#                                      outputs_info=({'initial': first_decode_code_x, 'taps': [-1]}, {'initial': code, 'taps': [-1]}),
+#                                      non_sequences=decode_params,
+#                                      name='decode_code_scan',
+#                                      n_steps=n_max_digits);
+#         code_prediction = T.argmax(output, axis=1);
+#         self._decode = theano.function([code], [code_prediction]);
         
     def lstm_predict_single(self, previous_output, previous_hidden, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY, hbY):
         forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + previous_output.dot(XWf));
@@ -133,6 +134,7 @@ class Autoencoder(object):
     def predict(self, data):
         swapped_data = np.swapaxes(data, 0, 1);
         output, predictions, digits_correct, error = self._predict(swapped_data);
+        predictions = np.swapaxes(predictions, 0, 1);
         output = np.swapaxes(output, 0, 1);
         digits_correct = np.swapaxes(digits_correct, 0, 1);
         
