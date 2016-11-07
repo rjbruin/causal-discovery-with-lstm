@@ -23,6 +23,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     
     SGD_OPTIMIZER = 0;
     ADAM_OPTIMIZER = 1;
+    RMS_OPTIMIZER = 1;
 
     def __init__(self, data_dim, hidden_dim, output_dim, minibatch_size, 
                  lstm=True, weight_values={}, single_digit=False, 
@@ -313,8 +314,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             # Automatic backward pass for all models: gradients
             derivatives = T.grad(error, var_list);
             updates = [(var,var-self.learning_rate*der) for (var,der) in zip(var_list,derivatives)];
+        elif (self.optimizer == self.RMS_OPTIMIZER):
+            derivatives = T.grad(error, var_list);
+            updates = lasagne.updates.rmsprop(derivatives,var_list).items();
         else:
-            #updates, derivatives = self.adam(error, map(lambda var: self.vars[var], variables), learning_rate);
             derivatives = T.grad(error, var_list);
             updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
         

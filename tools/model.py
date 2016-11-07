@@ -41,7 +41,7 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False):
                                                  not parameters['homogeneous'],
                                          verboseOutputter=verboseOutputter,
                                          GO_symbol_index=dataset.GO_symbol_index,
-                                         optimizer=1 if parameters['nesterov_optimizer'] else 0,
+                                         optimizer=parameters['optimizer'],
                                          learning_rate=parameters['learning_rate'],
                                          operators=parameters['operators'],
                                          digits=parameters['digits'],
