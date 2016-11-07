@@ -167,15 +167,18 @@ class Autoencoder(object):
         d_correct = 0;
         digits_total = 0;
         for i in range(data.shape[0]):
+            seqCorrect = True;
             for j in range(data[i].shape[0]):
                 if (digits_correct[i,j] == 0.):
                     # Stop if we encounter a wrong digit
-                    break;
+                    seqCorrect = False;
+                else:
+                    d_correct += 1;
                 if (np.argmax(data[i,j]) == self.EOS_symbol_index):
-                    # Stop if we encounter EOS and count as correct
-                    correct += 1;
+                    # Stop if we encounter EOS
+                    if (seqCorrect):
+                        correct += 1;
                     break;
-                d_correct += 1;
             digits_total += j+1;
         return correct / float(i+1), d_correct / float(digits_total);
     
