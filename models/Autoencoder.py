@@ -170,7 +170,6 @@ class Autoencoder(object):
             seqCorrect = True;
             for j in range(data[i].shape[0]):
                 if (digits_correct[i,j] == 0.):
-                    # Stop if we encounter a wrong digit
                     seqCorrect = False;
                 else:
                     d_correct += 1;
@@ -179,6 +178,8 @@ class Autoencoder(object):
                     if (seqCorrect):
                         correct += 1;
                     break;
+            if (seqCorrect):
+                correct += 1;
             digits_total += j+1;
         return correct / float(i+1), d_correct / float(digits_total);
     
