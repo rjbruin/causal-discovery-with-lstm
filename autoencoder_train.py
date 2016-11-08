@@ -83,7 +83,6 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
     
     # Set up statistics
     stats = set_up_statistics(dataset.data_dim, model.n_max_digits);
-    total_labels_used = {k: 0 for k in range(30)};
     
     # Predict
     printed_samples = False;
@@ -110,12 +109,6 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
         else:
             prediction_1 = predictions[0];
             prediction_2 = predictions[1];
-        
-        for j in range(model.minibatch_size):
-            if (parameters['only_cause_expression'] is not False):
-                total_labels_used[test_expressions[j][0]] = True;
-            else:
-                total_labels_used[test_expressions[j][0]+";"+test_expressions[j][1]] = True;
         
         # Print samples
         if (print_samples and not printed_samples):
@@ -244,6 +237,9 @@ if __name__ == '__main__':
         #if (r != repetition_size-1):
         test(model, dataset, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
              sample_size=parameters['sample_testing_size'], homogeneous=parameters['homogeneous']);
+        
+        # Do random walk
+        print("Random walk: " + str(model.randomWalk(nrSamples=10)));
         
         # Save weights to pickles
         if (saveModels):
