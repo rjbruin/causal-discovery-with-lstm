@@ -175,8 +175,6 @@ class Autoencoder(object):
                     d_correct += 1;
                 if (np.argmax(data[i,j]) == self.EOS_symbol_index):
                     # Stop if we encounter EOS
-                    if (seqCorrect):
-                        correct += 1;
                     break;
             if (seqCorrect):
                 correct += 1;

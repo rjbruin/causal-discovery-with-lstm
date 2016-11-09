@@ -23,8 +23,8 @@ def print_stats(precision, digit_precision):
     output = "\n";
 
     # Print statistics
-    output += "Score: %.2f percent\n" % (precision);
-    output += "Digit-based score: %.2f percent\n" % (digit_precision);
+    output += "Score: %.2f percent\n" % (precision * 100.);
+    output += "Digit-based score: %.2f percent\n" % (digit_precision * 100.);
     
     output += "\n";
     print(output);
