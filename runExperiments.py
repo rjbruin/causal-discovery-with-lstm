@@ -121,8 +121,9 @@ if __name__ == '__main__':
                     currentIteration = int(out.split(" ")[3]);
                     currentDataset = int(out.split(" ")[7]);
                 # Compose data object
-                trackerreporter.fromExperimentOutput(experimentId, out, 
-                    atProgress=currentIteration, atDataset=currentDataset);
+                if (report):
+                    trackerreporter.fromExperimentOutput(experimentId, out, 
+                        atProgress=currentIteration, atDataset=currentDataset);
                         
                 if (out != '' and out[0] != '#'):
                     # Write to file
