@@ -82,6 +82,9 @@ if __name__ == '__main__':
         report = True;
         if ('report_to_tracker' in exp):
             report = exp['report_to_tracker'] == 'True';
+        if ('--report_to_tracker' in extraArgs):
+            index = extraArgs.index('report_to_tracker');
+            report = extraArgs[index+1] == 'True';
         if (report):
             if ('multipart_dataset' in exp):
                 datasets = exp['multipart_dataset'];

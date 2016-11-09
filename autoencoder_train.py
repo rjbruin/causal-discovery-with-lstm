@@ -239,7 +239,7 @@ if __name__ == '__main__':
              sample_size=parameters['sample_testing_size'], homogeneous=parameters['homogeneous']);
         
         # Do random walk
-        print("Random walk: " + str(model.randomWalk(nrSamples=10)));
+        print("Random walk: " + str(model.randomWalk(nrSamples=10)) + "\n\n");
         
         # Save weights to pickles
         if (saveModels):
