@@ -132,7 +132,7 @@ class GeneratedExpressionDataset(Dataset):
             self.preload(onlyStoreByPrefix=True);
         else:
             self.outputByInput = None;
-        
+         
             if (preload):
                 self.preloaded = self.preload();
                 if (not self.preloaded):
@@ -824,7 +824,45 @@ class GeneratedExpressionDataset(Dataset):
             data[i+1,self.EOS_symbol_index] = 1.0;
             
         return data;
+    
+    def abstractExpression(self, expression):
+        """
+        value bins        0-10, 10-50, 50-100, 100+
+        nr of unique operators    0, 1, 2, 3
+        depth of expression    0, 1, 2, 3
+        """
+        value = int(expression[expression.index("=")+1:]);
+        valueBins = [0, 0, 0, 0];
+        if (value < 10):
+            valueBins[0] = 1;
+        elif (value < 50):
+            valueBins[1] = 1;
+        elif (value < 100):
+            valueBins[2] = 1;
+        else:
+            valueBins[3] = 1;
         
+        uniqueOperators = [];
+        for s in expression:
+            if (s in ['+','-','*','/']):
+                if (s not in uniqueOperators):
+                    uniqueOperators.append(s);
+        
+        operators = [0, 0, 0, 0, 0];
+        operators[len(uniqueOperators)] = 1;
+        
+        expressionDepth = [0, 0, 0, 0];
+        if (len(expression) <= 3):
+            expressionDepth[0] = 1;
+        elif (len(expression) <= 5):
+            expressionDepth[1] = 1;
+        elif (len(expression) <= 9):
+            expressionDepth[2] = 1;
+        else:
+            expressionDepth[3] = 1;
+        
+        return np.array(valueBins + operators + expressionDepth);
+            
         
 class ExpressionNode(object):
     

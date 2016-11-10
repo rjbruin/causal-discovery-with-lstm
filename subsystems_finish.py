@@ -377,13 +377,21 @@ if __name__ == '__main__':
             # Make intervention locations into matrix
             interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
             
+            # Create init hidden layers from abstract expressions
+            abstractExpressions = np.zeros((model.minibatch_size, model.hidden_dim), dtype='float32');
+            if (parameters['use_abstract']):
+                for i in range(model.minibatch_size):
+                    # TODO: make this work with subsystems
+                    abstractExpr = dataset.abstractExpression(target_expressions[i][0]);
+                    abstractExpressions[i,:abstractExpr.shape[0]] = abstractExpr;
+            
             # Run training
             profiler.start('train sgd');
             outputs = model.sgd(dataset, data, target, parameters['learning_rate'],
                                   nrSamples=model.minibatch_size, expressions=target_expressions,
                                   interventionLocations=interventionLocations,
                                   topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause'],
-                                  use_label_search=parameters['use_label_search']);
+                                  use_label_search=parameters['use_label_search'], abstractExpressions=abstractExpressions);
             total_error += outputs[0];
             profiler.stop('train sgd');
             

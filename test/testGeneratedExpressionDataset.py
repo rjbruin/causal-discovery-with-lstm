@@ -6,11 +6,12 @@ Created on 13 jun. 2016
 import unittest
 from models.GeneratedExpressionDataset import GeneratedExpressionDataset
 
+import numpy as np;
 
 class Test(unittest.TestCase):
 
     # Data for use case
-    sourceFolder = '../data/expressions_positive_integer_answer_shallow';
+    sourceFolder = '../data/subsystems_shallow_simple_topcause';
     single_digit = False;
     oneHot = {str(i): i for i in range(10)};
     oneHot['+'] = 10;
@@ -180,6 +181,21 @@ class Test(unittest.TestCase):
                     results = dataset.get_test_batch();
             except Exception as error:
                 self.assertEqual(True,False,"(test sampling) Exception '%s' occurred in batch %d of size %d" % (error, i, sample_batch_size));
+    
+    def testAbstractExpression(self):
+        # Construct
+        dataset = GeneratedExpressionDataset(self.sourceFolder + '/train.txt', self.sourceFolder + '/test.txt', 'thisdoesnotexist',
+                                             copyMultipleExpressions=True);
+        
+        samples = [('1=1',np.array([1,0,0,0,1,0,0,0,0,1,0,0,0])),
+                   ('1+1=1',np.array([1,0,0,0,0,1,0,0,0,0,1,0,0])),
+                   ('1+(2-3)=1',np.array([1,0,0,0,0,0,1,0,0,0,0,1,0])),
+                   ('(3*3)+(2-3)=1',np.array([1,0,0,0,0,0,0,1,0,0,0,0,1])),
+                   ('(3*3)+(2-3)=51',np.array([0,0,1,0,0,0,0,1,0,0,0,0,1]))];
+        
+        for i, (expression, abstractExpression) in enumerate(samples):
+            encodedAbstract = dataset.abstractExpression(expression);
+            self.assertEqual(np.array_equal(abstractExpression,encodedAbstract),True,"(%d) No match: %s vs. encoded %s" % (i, str(abstractExpression), str(encodedAbstract)));
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testProcessing']
