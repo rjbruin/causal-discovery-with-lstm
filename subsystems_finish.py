@@ -214,6 +214,14 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
         # Make intervention locations into matrix
         interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
         
+        # Create init hidden layers from abstract expressions
+        abstractExpressions = np.zeros((model.minibatch_size, model.hidden_dim), dtype='float32');
+        if (parameters['use_abstract']):
+            for i in range(model.minibatch_size):
+                # TODO: make this work with subsystems
+                abstractExpr = dataset.abstractExpression(test_expressions[i][0]);
+                abstractExpressions[i,:abstractExpr.shape[0]] = abstractExpr;
+        
         predictions, other = model.predict(test_data, test_targets, 
                                            interventionLocations=interventionLocations,
                                            nrSamples=nrSamples); 
@@ -384,6 +392,15 @@ if __name__ == '__main__':
                     # TODO: make this work with subsystems
                     abstractExpr = dataset.abstractExpression(target_expressions[i][0]);
                     abstractExpressions[i,:abstractExpr.shape[0]] = abstractExpr;
+            
+            # Append abstract to data dim
+            if (parameters['append_abstract']):
+                newData = np.zeros((model.minibatch_size,model.n_max_digits,model.data_dim));
+                for i in range(model.minibatch_size):
+                    # TODO: make this work with subsystems
+                    newData[i,:,:-13] = data;
+                    abstractExpr = dataset.abstractExpression(target_expressions[i][0]);
+                    newData[i,:,-13:] = abstractExpr;
             
             # Run training
             profiler.start('train sgd');

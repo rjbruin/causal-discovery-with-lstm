@@ -828,7 +828,7 @@ class GeneratedExpressionDataset(Dataset):
     def abstractExpression(self, expression):
         """
         value bins        0-10, 10-50, 50-100, 100+
-        nr of unique operators    0, 1, 2, 3
+        nr of unique operators    0, 1, 2, 3, 4
         depth of expression    0, 1, 2, 3
         """
         value = int(expression[expression.index("=")+1:]);
