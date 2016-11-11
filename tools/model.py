@@ -51,7 +51,8 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False):
                                          dropoutProb=parameters['dropout_prob'],
                                          outputBias=parameters['output_bias'],
                                          useEncoder=parameters['use_encoder'],
-                                         crosslinks=parameters['crosslinks']);
+                                         crosslinks=parameters['crosslinks'],
+                                         appendAbstract=parameters['append_abstract']);
     else:
         rnn = None;
     

@@ -861,7 +861,7 @@ class GeneratedExpressionDataset(Dataset):
         else:
             expressionDepth[3] = 1;
         
-        return np.array(valueBins + operators + expressionDepth);
+        return np.array(valueBins + operators + expressionDepth, dtype='float32');
             
         
 class ExpressionNode(object):

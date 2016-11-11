@@ -32,7 +32,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  optimizer=0, learning_rate=0.01,
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
                  doubleLayer=False, dropoutProb=0., useEncoder=True, outputBias=False,
-                 crosslinks=True):
+                 crosslinks=True, appendAbstract=False):
         '''
         Initialize all Theano models.
         '''
@@ -54,6 +54,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.useEncoder = useEncoder;
         self.outputBias = outputBias;
         self.crosslinks = crosslinks;
+        self.appendAbstract = appendAbstract;
         
         if (not self.lstm):
             raise ValueError("Feature LSTM = False is no longer supported!");
@@ -70,11 +71,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.decoding_output_dim = output_dim;
         self.prediction_output_dim = output_dim;
         
-        actual_data_dim = self.data_dim * 2;
+        per_expression_dim = self.data_dim;
+        if (self.appendAbstract):
+            per_expression_dim += 13;
+        
+        actual_data_dim = per_expression_dim * 2;
         actual_decoding_output_dim = self.decoding_output_dim * 2;
         actual_prediction_output_dim = self.prediction_output_dim * 2;
         if (self.only_cause_expression):
-            actual_data_dim = self.data_dim;
+            actual_data_dim = per_expression_dim;
             actual_decoding_output_dim = self.decoding_output_dim;
             actual_prediction_output_dim = self.prediction_output_dim;
         
@@ -147,10 +152,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         abstractExpressions = T.fmatrix();
         
         # Set the RNN cell to use for encoding and decoding
-        encode_function = self.lstm_predict_single_no_output;
         decode_function = self.lstm_predict_single;
         if (self.doubleLayer):
-            encode_function = self.lstm_predict_double_no_output;
             decode_function = self.lstm_predict_double;
         
         if (self.dropoutProb > 0.):
@@ -164,60 +167,18 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         else:
             decode_parameters = [intervention_locations] + encode_parameters + [self.vars['hWY'], self.vars['hbY']];
         
-        # ENCODING PHASE
-        initial_encode = ({'initial': T.zeros((self.minibatch_size,self.hidden_dim)), 'taps': [-1]});
-        if (self.doubleLayer):
-            initial_encode = ({'initial': T.zeros((self.minibatch_size,self.hidden_dim)), 'taps': [-1]},{'initial': T.zeros((self.minibatch_size,self.hidden_dim)), 'taps': [-1]});
-        
-        if (self.useEncoder):
-            if (self.crosslinks and not self.only_cause_expression):
-                hiddens, _ = theano.scan(fn=encode_function,
-                                        sequences=X,
-                                        # Input a zero hidden layer
-                                        outputs_info=initial_encode,
-                                        non_sequences=encode_parameters + [0,actual_data_dim],
-                                        name='encode_scan_1');
-                hidden = hiddens;
-                if (self.doubleLayer):
-                    hidden = hiddens[0];
-                    hidden_2 = hiddens[1];
-            else:
-                hiddens_top, _ = theano.scan(fn=encode_function,
-                                           sequences=X,
-                                           # Input a zero hidden layer
-                                           outputs_info=initial_encode,
-                                           non_sequences=encode_parameters + [0,self.data_dim],
-                                           name='encode_scan_1');
-                hidden_top = hiddens_top;
-                if (self.doubleLayer):
-                    hidden_top = hiddens_top[0];
-                    hidden_2_top = hiddens_top[1];
-                
-                if (not self.only_cause_expression):
-                    initial_encode_bot = ({'initial': T.zeros((self.minibatch_size,self.hidden_dim)), 'taps': [-1]});
-                    if (self.doubleLayer):
-                        initial_encode_bot = ({'initial': T.zeros((self.minibatch_size,self.hidden_dim)), 'taps': [-1]},{'initial': T.zeros((self.minibatch_size,self.hidden_dim)), 'taps': [-1]});
-                    hiddens_bot, _ = theano.scan(fn=encode_function,
-                                               sequences=X,
-                                               # Input a zero hidden layer
-                                               outputs_info=initial_encode_bot,
-                                               non_sequences=encode_parameters + [self.data_dim,self.data_dim*2],
-                                               name='encode_scan_2');
-                    hidden_bot = hiddens_bot;
-                    if (self.doubleLayer):
-                        hidden_bot = hiddens_bot[0];
-                        hidden_2_bot = hiddens_bot[1];
-            
-        else:
+        if (not self.appendAbstract):
             hidden = [abstractExpressions];
+        else:
+            hidden = [T.zeros((self.minibatch_size,self.hidden_dim))];
+        if (self.doubleLayer):
+            hidden_2 = [T.zeros((self.minibatch_size,self.hidden_dim))];
+        if (not self.crosslinks or self.only_cause_expression is not False):
+            hidden_top = hidden;
+            hidden_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
             if (self.doubleLayer):
-                hidden_2 = [T.zeros((self.minibatch_size,self.hidden_dim))];
-            if (not self.crosslinks or self.only_cause_expression is not False):
-                hidden_top = hidden;
-                hidden_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
-                if (self.doubleLayer):
-                    hidden_2_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
-                    hidden_2_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
+                hidden_2_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
+                hidden_2_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
     
         # DECODING PHASE
         if (self.crosslinks and not self.only_cause_expression):
@@ -231,7 +192,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             outputs, _ = theano.scan(fn=decode_function,
                                      sequences=label,
                                      outputs_info=init_values,
-                                     non_sequences=decode_parameters + [0,actual_data_dim],
+                                     non_sequences=decode_parameters + [0,actual_data_dim,abstractExpressions],
                                      name='decode_scan_1')
             if (self.doubleLayer):
                 right_hand, _, _, _ = outputs;
@@ -248,7 +209,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             outputs_1, _ = theano.scan(fn=decode_function,
                                      sequences=label,
                                      outputs_info=init_values,
-                                     non_sequences=decode_parameters + [0,self.data_dim],
+                                     non_sequences=decode_parameters + [0,per_expression_dim,abstractExpressions],
                                      name='decode_scan_1')
             
             if (self.doubleLayer):
@@ -267,7 +228,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 outputs_2, _ = theano.scan(fn=decode_function,
                                          sequences=label,
                                          outputs_info=init_values,
-                                         non_sequences=decode_parameters + [self.data_dim,self.data_dim*2],
+                                         non_sequences=decode_parameters + [per_expression_dim,per_expression_dim*2,abstractExpressions],
                                          name='decode_scan_2')
                 if (self.doubleLayer):
                     right_hand_2, _, _, _ = outputs_2;
@@ -362,7 +323,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     
     # PREDICTION FUNCTIONS
     
-    def lstm_predict_single(self, given_X, previous_output, previous_hidden, sentence_index, intervention_locations, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY, hbY, sd, ed):
+    def lstm_predict_single(self, given_X, previous_output, previous_hidden, sentence_index, intervention_locations, 
+                            hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY, hbY, sd, ed, abstractExpressions):
+        if (self.appendAbstract):
+            previous_output = T.concatenate([previous_output, abstractExpressions], 1);
+        
         forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + previous_output.dot(XWf[sd:ed,:]));
         input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + previous_output.dot(XWi[sd:ed,:]));
         candidate_cell = T.tanh(previous_hidden.dot(hWc) + previous_output.dot(XWc[sd:ed,:]));
@@ -504,7 +469,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             if (nrSamples is None):
                 nrSamples = self.minibatch_size;
             if (abstractExpressions is None):
-                abstractExpressions = np.zeros((self.minibatch_size, self.hidden_dim), dtype='float32');
+                if (self.appendAbstract):
+                    abstractExpressions = np.zeros((self.minibatch_size, 13), dtype='float32');
+                else:
+                    abstractExpressions = np.zeros((self.minibatch_size, self.hidden_dim), dtype='float32');
             
             data = np.swapaxes(data, 0, 1);
             label = np.swapaxes(label, 0, 1);
@@ -880,7 +848,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (nrSamples is None):
             nrSamples = self.minibatch_size;
         if (abstractExpressions is None):
-            abstractExpressions = np.zeros((self.minibatch_size, self.hidden_dim), dtype='float32');
+            if (self.appendAbstract):
+                abstractExpressions = np.zeros((self.minibatch_size, 13), dtype='float32');
+            else:
+                abstractExpressions = np.zeros((self.minibatch_size, self.hidden_dim), dtype='float32');
         
         # Swap axes of index in sentence and datapoint for Theano purposes
         encoding_label = np.swapaxes(encoding_label, 0, 1);

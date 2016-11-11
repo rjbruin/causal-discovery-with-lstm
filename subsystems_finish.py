@@ -222,9 +222,17 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                 abstractExpr = dataset.abstractExpression(test_expressions[i][0]);
                 abstractExpressions[i,:abstractExpr.shape[0]] = abstractExpr;
         
+        # Append abstract to data dim
+        if (parameters['append_abstract']):
+            abstractExpressions = np.zeros((model.minibatch_size,13), dtype='float32');
+            for i in range(model.minibatch_size):
+                # TODO: make this work with subsystems
+                abstractExpressions[i] = dataset.abstractExpression(target_expressions[i][0]);
+        
         predictions, other = model.predict(test_data, test_targets, 
                                            interventionLocations=interventionLocations,
-                                           nrSamples=nrSamples); 
+                                           nrSamples=nrSamples,
+                                           abstractExpressions=abstractExpressions); 
         totalError += other['error'];
         
         if (parameters['only_cause_expression']):
@@ -395,12 +403,10 @@ if __name__ == '__main__':
             
             # Append abstract to data dim
             if (parameters['append_abstract']):
-                newData = np.zeros((model.minibatch_size,model.n_max_digits,model.data_dim));
+                abstractExpressions = np.zeros((model.minibatch_size,13), dtype='float32');
                 for i in range(model.minibatch_size):
                     # TODO: make this work with subsystems
-                    newData[i,:,:-13] = data;
-                    abstractExpr = dataset.abstractExpression(target_expressions[i][0]);
-                    newData[i,:,-13:] = abstractExpr;
+                    abstractExpressions[i] = dataset.abstractExpression(target_expressions[i][0]);
             
             # Run training
             profiler.start('train sgd');
