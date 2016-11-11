@@ -32,7 +32,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  optimizer=0, learning_rate=0.01,
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
                  doubleLayer=False, dropoutProb=0., useEncoder=True, outputBias=False,
-                 crosslinks=True, appendAbstract=False):
+                 crosslinks=True, appendAbstract=False, useAbstract=False):
         '''
         Initialize all Theano models.
         '''
@@ -54,6 +54,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.useEncoder = useEncoder;
         self.outputBias = outputBias;
         self.crosslinks = crosslinks;
+        self.useAbstract = useAbstract;
         self.appendAbstract = appendAbstract;
         
         if (not self.lstm):
@@ -167,7 +168,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         else:
             decode_parameters = [intervention_locations] + encode_parameters + [self.vars['hWY'], self.vars['hbY']];
         
-        if (not self.appendAbstract):
+        if (self.useAbstract):
             hidden = [abstractExpressions];
         else:
             hidden = [T.zeros((self.minibatch_size,self.hidden_dim))];
