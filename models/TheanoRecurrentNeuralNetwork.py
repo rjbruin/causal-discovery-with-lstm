@@ -943,7 +943,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             
             causeValid = False;
             # Check if cause sequence prediction is valid
-            if (dataset.valid_checker(prediction[causeIndex][j][:eos_location],dataset.digits,dataset.operators)):
+            if (dataset.valid_checker(causeExpressionPrediction,dataset.digits,dataset.operators)):
                 causeValid = True;
                 stats['structureValidCause'] += 1.0;
                 if (topcause):
@@ -964,7 +964,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     effectMatchesLabel = True;
                 
                 # Check if effect sequence prediction is valid
-                if (dataset.valid_checker(prediction[effectIndex][j][:eos_location],dataset.digits,dataset.operators)):
+                if (dataset.valid_checker(effectExpressionPrediction,dataset.digits,dataset.operators)):
                     effectValid = True;
                     stats['structureValidEffect'] += 1.0;
                     if (topcause):

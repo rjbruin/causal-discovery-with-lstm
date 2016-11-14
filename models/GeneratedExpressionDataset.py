@@ -762,12 +762,11 @@ class GeneratedExpressionDataset(Dataset):
             i += 3;
         return True;
     
-    def valid_expression(self, expression_encoded, nr_digits, nr_operators):
-        str_expression = self.indicesToStr(expression_encoded);
+    def valid_expression(self, expression, nr_digits, nr_operators):
         try:
-            equals_index = str_expression.index("=");
-            node = ExpressionNode.fromStr(str_expression[:equals_index]);
-            return node.getValue() == int(str_expression[equals_index+1:]);
+            equals_index = expression.index("=");
+            node = ExpressionNode.fromStr(expression[:equals_index]);
+            return node.getValue() == int(expression[equals_index+1:]);
         except Exception:
             return False;
     
