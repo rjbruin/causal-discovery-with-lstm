@@ -77,7 +77,7 @@ def _post(experiment_id, url, data):
                 success = False;
         except Exception as e:
             print(e);
-            raise ValueError("Error in call %s" % str(data));
+            return False;
     
     stack = newStack;
     return success;
