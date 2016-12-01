@@ -34,6 +34,7 @@ if __name__ == '__main__':
                    'Validity (c)': 'Structure valid cause',
                    'Validity (e)': 'Structure valid effect',
                    'In dataset': 'In dataset',
+                   'Skipped': 'Skipped because of zero prediction length',
                    'Unique predictions': 'Unique labels predicted'};
     trackerreporter.init('http://rjbruin.nl/experimenttracker/api/',api_key);
     
