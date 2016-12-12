@@ -20,8 +20,8 @@ def causalNeuralNetwork(data_dim, hidden_dim, output_dim):
     hWY = theano.shared(np.random.uniform(-np.sqrt(1./hidden_dim),np.sqrt(1./hidden_dim),(hidden_dim, output_dim)), name='hWY');
     hbY = theano.shared(np.random.uniform(-np.sqrt(1./output_dim),np.sqrt(1./output_dim),(output_dim)), name='hbY');
     
-    hidden = T.tanh(X.dot(XWh) + Xbh);
-    output = (T.tanh(hidden.dot(hWY) + hbY) + 1.) / 2.;
+    hidden = T.tanh(((X-.5)*2.).dot(XWh) + Xbh);
+    output = (T.tanh(hidden.dot(hWY) + hbY) / 2.) + .5;
     prediction = output > 0.5;
     hidden_prediction = hidden > 0.;
 
