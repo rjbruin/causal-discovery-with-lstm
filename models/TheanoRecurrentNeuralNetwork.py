@@ -31,7 +31,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  decoder=False, verboseOutputter=None, finishExpressions=True,
                  optimizer=0, learning_rate=0.01,
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
-                 doubleLayer=False, dropoutProb=0., useEncoder=True, outputBias=False,
+                 doubleLayer=False, tripleLayer=False, dropoutProb=0., useEncoder=True, outputBias=False,
                  crosslinks=True, appendAbstract=False, useAbstract=False):
         '''
         Initialize all Theano models.
@@ -50,6 +50,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.verboseOutputter = verboseOutputter;
         self.finishExpressions = finishExpressions;
         self.doubleLayer = doubleLayer;
+        self.tripleLayer = tripleLayer;
         self.dropoutProb = dropoutProb;
         self.useEncoder = useEncoder;
         self.outputBias = outputBias;
@@ -94,7 +95,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         varSettings.append(('XWc',actual_data_dim,self.hidden_dim));
         varSettings.append(('hWo',self.hidden_dim,self.hidden_dim));
         varSettings.append(('XWo',actual_data_dim,self.hidden_dim));
-        if (self.doubleLayer):
+        if (self.doubleLayer or self.tripleLayer):
             varSettings.append(('hWf2',self.hidden_dim,self.hidden_dim));
             varSettings.append(('XWf2',self.hidden_dim,self.hidden_dim));
             varSettings.append(('hWi2',self.hidden_dim,self.hidden_dim));
@@ -103,6 +104,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             varSettings.append(('XWc2',self.hidden_dim,self.hidden_dim));
             varSettings.append(('hWo2',self.hidden_dim,self.hidden_dim));
             varSettings.append(('XWo2',self.hidden_dim,self.hidden_dim));
+        if (self.tripleLayer):
+            varSettings.append(('hWf3',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('XWf3',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('hWi3',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('XWi3',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('hWc3',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('XWc3',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('hWo3',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('XWo3',self.hidden_dim,self.hidden_dim));
             
         if (self.decoder):
             # Add variables for the decoding phase
@@ -116,7 +126,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             varSettings.append(('DXWc',actual_data_dim,self.hidden_dim));
             varSettings.append(('DhWo',self.hidden_dim,self.hidden_dim));
             varSettings.append(('DXWo',actual_data_dim,self.hidden_dim));
-            if (self.doubleLayer):
+            if (self.doubleLayer or self.tripleLayer):
                 varSettings.append(('DhWf2',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('DXWf2',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('DhWi2',self.hidden_dim,self.hidden_dim));
@@ -125,6 +135,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 varSettings.append(('DXWc2',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('DhWo2',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('DXWo2',self.hidden_dim,self.hidden_dim));
+            if (self.tripleLayer):
+                varSettings.append(('DhWf3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DXWf3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DhWi3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DXWi3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DhWc3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DXWc3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DhWo3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('DXWo3',self.hidden_dim,self.hidden_dim));
             varSettings.append(('DhWY',self.hidden_dim,actual_decoding_output_dim));
             varSettings.append(('DhbY',False,actual_decoding_output_dim));
         else:
@@ -156,6 +175,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         decode_function = self.lstm_predict_single;
         if (self.doubleLayer):
             decode_function = self.lstm_predict_double;
+        if (self.tripleLayer):
+            decode_function = self.lstm_predict_triple;
         
         if (self.dropoutProb > 0.):
             self.random_stream = T.shared_randomstreams.RandomStreams(seed=np.random.randint(10000));
@@ -172,14 +193,19 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             hidden = [abstractExpressions];
         else:
             hidden = [T.zeros((self.minibatch_size,self.hidden_dim))];
-        if (self.doubleLayer):
+        if (self.doubleLayer or self.tripleLayer):
             hidden_2 = [T.zeros((self.minibatch_size,self.hidden_dim))];
+        if (self.tripleLayer):
+            hidden_3 = [T.zeros((self.minibatch_size,self.hidden_dim))];
         if (not self.crosslinks or self.only_cause_expression is not False):
             hidden_top = hidden;
             hidden_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
-            if (self.doubleLayer):
+            if (self.doubleLayer or self.tripleLayer):
                 hidden_2_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
                 hidden_2_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
+            if (self.tripleLayer):
+                hidden_3_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
+                hidden_3_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
     
         # DECODING PHASE
         if (self.crosslinks and not self.only_cause_expression):
@@ -188,35 +214,37 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             if (self.doubleLayer):
                 init_values = ({'initial': T.zeros((self.minibatch_size,actual_data_dim)), 'taps': [-1]}, 
                                {'initial': hidden[-1], 'taps': [-1]}, 
-                               {'initial': hidden_2[-1], 'taps': [-1]}, 
-                               {'initial': 0., 'taps': [-1]});
+                               {'initial': hidden_2[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
+            if (self.tripleLayer):
+                init_values = ({'initial': T.zeros((self.minibatch_size,actual_data_dim)), 'taps': [-1]}, 
+                               {'initial': hidden[-1], 'taps': [-1]}, 
+                               {'initial': hidden_2[-1], 'taps': [-1]},
+                               {'initial': hidden_3[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
             outputs, _ = theano.scan(fn=decode_function,
                                      sequences=label,
                                      outputs_info=init_values,
                                      non_sequences=decode_parameters + [0,actual_data_dim,abstractExpressions],
                                      name='decode_scan_1')
-            if (self.doubleLayer):
-                right_hand, _, _, _ = outputs;
-            else:
-                right_hand, _, _ = outputs;
+            right_hand = outputs[0];
         else:
             init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]}, 
                            {'initial': hidden_top[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
             if (self.doubleLayer):
                 init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]}, 
                                {'initial': hidden_top[-1], 'taps': [-1]}, 
-                               {'initial': hidden_2_top[-1], 'taps': [-1]}, 
-                               {'initial': 0., 'taps': [-1]});
+                               {'initial': hidden_2_top[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
+            if (self.tripleLayer):
+                init_values = ({'initial': T.zeros((self.minibatch_size,actual_data_dim)), 'taps': [-1]}, 
+                               {'initial': hidden[-1], 'taps': [-1]}, 
+                               {'initial': hidden_2_top[-1], 'taps': [-1]},
+                               {'initial': hidden_3_top[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
             outputs_1, _ = theano.scan(fn=decode_function,
                                      sequences=label,
                                      outputs_info=init_values,
                                      non_sequences=decode_parameters + [0,per_expression_dim,abstractExpressions],
                                      name='decode_scan_1')
             
-            if (self.doubleLayer):
-                right_hand_1, _, _, _ = outputs_1;
-            else:
-                right_hand_1, _, _ = outputs_1;
+            right_hand_1 = outputs_1[0];
             
             if (not self.only_cause_expression):
                 init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]}, 
@@ -226,16 +254,19 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                    {'initial': hidden_bot[-1], 'taps': [-1]}, 
                                    {'initial': hidden_2_bot[-1], 'taps': [-1]}, 
                                    {'initial': 0., 'taps': [-1]});
+                if (self.tripleLayer):
+                    init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]}, 
+                                   {'initial': hidden_bot[-1], 'taps': [-1]}, 
+                                   {'initial': hidden_2_bot[-1], 'taps': [-1]},
+                                   {'initial': hidden_3_bot[-1], 'taps': [-1]},  
+                                   {'initial': 0., 'taps': [-1]});
                 outputs_2, _ = theano.scan(fn=decode_function,
                                          sequences=label,
                                          outputs_info=init_values,
                                          non_sequences=decode_parameters + [per_expression_dim,per_expression_dim*2,abstractExpressions],
                                          name='decode_scan_2')
-                if (self.doubleLayer):
-                    right_hand_2, _, _, _ = outputs_2;
-                else:
-                    right_hand_2, _, _ = outputs_2;
-            
+                
+                right_hand_2 = outputs_2[0];
                 right_hand = T.concatenate([right_hand_1, right_hand_2], axis=2);
             else:
                 right_hand = right_hand_1;
@@ -376,7 +407,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     def lstm_predict_double(self, given_X, previous_output, previous_hidden_1, 
                             previous_hidden_2, sentence_index, intervention_locations,
                             hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo,
-                            hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, hWY, hbY, sd, ed):
+                            hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, hWY, hbY, sd, ed, abstractExpressions):
         forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + given_X.dot(XWf));
         input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + given_X.dot(XWi));
         candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + given_X.dot(XWc));
@@ -444,6 +475,72 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         hidden_2 = output_gate_2 * cell_2;
         
         return hidden_1, hidden_2;
+
+    def lstm_predict_triple(self, given_X, previous_output, previous_hidden_1, 
+                            previous_hidden_2, previous_hidden_3, sentence_index, intervention_locations,
+                            hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo,
+                            hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, 
+                            hWf3, XWf3, hWi3, XWi3, hWc3, XWc3, hWo3, XWo3,
+                            hWY, hbY, sd, ed, abstractExpressions):
+        forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + given_X.dot(XWf));
+        input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + given_X.dot(XWi));
+        candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + given_X.dot(XWc));
+        cell = forget_gate * previous_hidden_1 + input_gate * candidate_cell;
+        output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + given_X.dot(XWo));
+        hidden_1 = output_gate * cell;
+        
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            hidden_1 = lasagne.layers.dropout((self.minibatch_size, self.hidden_dim), self.dropoutProb).get_output_for(hidden_1);
+        
+        forget_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWf2) + hidden_1.dot(XWf2));
+        input_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWi2) + hidden_1.dot(XWi2));
+        candidate_cell_2 = T.tanh(previous_hidden_2.dot(hWc2) + hidden_1.dot(XWc2));
+        cell_2 = forget_gate_2 * previous_hidden_2 + input_gate_2 * candidate_cell_2;
+        output_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWo2) + hidden_1.dot(XWo2));
+        hidden_2 = output_gate_2 * cell_2;
+        
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            hidden_2 = lasagne.layers.dropout((self.minibatch_size, self.hidden_dim), self.dropoutProb).get_output_for(hidden_2);
+        
+        forget_gate_3 = T.nnet.sigmoid(previous_hidden_3.dot(hWf3) + hidden_2.dot(XWf3));
+        input_gate_3 = T.nnet.sigmoid(previous_hidden_3.dot(hWi3) + hidden_2.dot(XWi3));
+        candidate_cell_3 = T.tanh(previous_hidden_3.dot(hWc3) + hidden_2.dot(XWc3));
+        cell_3 = forget_gate_3 * previous_hidden_3 + input_gate_3 * candidate_cell_3;
+        output_gate_3 = T.nnet.sigmoid(previous_hidden_3.dot(hWo3) + hidden_2.dot(XWo3));
+        hidden_3 = output_gate_3 * cell_3;
+        
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            hidden_3 = lasagne.layers.dropout((self.minibatch_size, self.hidden_dim), self.dropoutProb).get_output_for(hidden_3);
+        
+        # Use given intervention locations to determine whether to use label
+        # or previous prediction. This should allow for flexible minibatching
+        # Use given intervention locations to determine whether to use label
+        # or previous prediction. This should allow for flexible minibatching
+        comparison_top = T.le(sentence_index,intervention_locations[0]).reshape((T.constant(self.minibatch_size), T.constant(1)), ndim=2);
+        if (not self.only_cause_expression):
+            comparison_bot = T.le(sentence_index,intervention_locations[1]).reshape((T.constant(self.minibatch_size), T.constant(1)), ndim=2);
+        
+        if (self.outputBias):
+            Y_output = T.nnet.softmax(hidden_3.dot(hWY) + hbY);
+        else:
+            Y_output = T.nnet.softmax(hidden_3.dot(hWY));
+
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            Y_output = lasagne.layers.dropout((self.minibatch_size, self.decoding_output_dim), self.dropoutProb).get_output_for(Y_output);
+        
+        # Filter for intervention location
+        if (not self.only_cause_expression):
+            Y_output = T.concatenate([T.switch(comparison_top,given_X[:,:self.data_dim],Y_output[:,:self.data_dim]), T.switch(comparison_bot,given_X[:,self.data_dim:],Y_output[:,self.data_dim:])], axis=1);
+        else:
+            Y_output = T.switch(comparison_top,given_X,Y_output);
+        
+        new_sentence_index = sentence_index + 1.;
+        
+        return Y_output, hidden_1, hidden_2, hidden_3, new_sentence_index;
     
     # END OF INITIALIZATION
     
@@ -911,7 +1008,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             if (emptySamples is not None and j in emptySamples):
                 continue;
             
-            if (intervention_locations[0,j] >= len(labels_to_use[j][causeIndex])):
+            if (intervention_locations[0,j] >= len(labels_to_use[j][causeIndex]) - 1):
                 stats['skipped_because_intervention_location'] += 1;
                 continue;
             
