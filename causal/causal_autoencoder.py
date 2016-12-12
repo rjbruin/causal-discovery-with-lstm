@@ -47,7 +47,7 @@ def causalNeuralNetwork(data_dim, hidden_dim):
 #     hidden = T.tanh(X.dot(XWh) + Xbh);
 #     reconstruction = (T.tanh((hidden + Xbh).dot(T.transpose(XWh))) + 1.) / 2.;
     hidden = T.tanh(((X-.5)*2.).dot(XWh));
-    reconstruction = (T.tanh(hidden.dot(T.transpose(XWh))) / 2.) + 1.;
+    reconstruction = (T.tanh(hidden.dot(T.transpose(XWh))) / 2.) + .5;
     prediction = reconstruction > 0.5;
     hidden_prediction = hidden > 0.;
 
