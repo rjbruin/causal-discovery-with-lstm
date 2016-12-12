@@ -12,8 +12,8 @@ import lasagne;
 from CausalNode import *
 
 def causalNeuralNetwork(data_dim, hidden_dim, output_dim):
-    X = T.fvector('X');
-    Y = T.fvector('Y');
+    X = T.fmatrix('X');
+    Y = T.fmatrix('Y');
     global XWh, Xbh, hWY, hbY;
     XWh = theano.shared(np.random.uniform(-np.sqrt(1./data_dim),np.sqrt(1./data_dim),(data_dim, hidden_dim)), name='XWh');
     Xbh = theano.shared(np.random.uniform(-np.sqrt(1./hidden_dim),np.sqrt(1./hidden_dim),(hidden_dim)), name='Xbh');
@@ -32,8 +32,8 @@ def causalNeuralNetwork(data_dim, hidden_dim, output_dim):
     
     var_list = [XWh, Xbh, hWY, hbY];
     gradients = T.grad(loss, var_list);
-#     updates = lasagne.updates.rmsprop(gradients, var_list);
-    updates = lasagne.updates.sgd(gradients, var_list, 0.01);
+    updates = lasagne.updates.rmsprop(gradients, var_list);
+#     updates = lasagne.updates.sgd(gradients, var_list, 0.01);
     
     sgd = theano.function([X, Y], [loss], updates=updates);
     predict = theano.function([X], [prediction]);
@@ -61,7 +61,7 @@ def randomNetworks(n, input_dim, hidden_dim, output_dim):
             relation = np.random.randint(0,CausalNode.RELATIONS);
             cause1 = input_layer[np.random.randint(0,len(input_layer))];
             incomingNodes = [cause1];
-            if (relation <= 0):
+            if (relation >= 2):
                 cause2 = input_layer[np.random.randint(0,len(input_layer))];
                 while (cause1 == cause2):
                     cause2 = input_layer[np.random.randint(0,len(input_layer))];
@@ -74,7 +74,7 @@ def randomNetworks(n, input_dim, hidden_dim, output_dim):
             relation = np.random.randint(0,CausalNode.RELATIONS);
             cause1 = latent_layer[np.random.randint(0,len(latent_layer))];
             incomingNodes = [cause1];
-            if (relation <= 0):
+            if (relation >= 2):
                 cause2 = latent_layer[np.random.randint(0,len(latent_layer))];
                 while (cause1 == cause2):
                     cause2 = latent_layer[np.random.randint(0,len(latent_layer))];
@@ -94,9 +94,10 @@ if __name__ == '__main__':
     input_dim = 3;
     hidden_dim = 2;
     output_dim = 3;
-    n_networks = 10;
+    n_networks = 100;
     network_tries = 10;
-    train_iterations = 100000;
+    train_samples = 100000;
+    msize = 1000;
     reset_after_iteration = False;
     verbose = False;
     
@@ -121,36 +122,49 @@ if __name__ == '__main__':
             while (precision < 100.):
                 if (it > limit):
                     break;
-                for i in range(train_iterations):
+                for i in range(train_samples / msize):
 #                     if (i % (train_iterations / 10) == 0):
 #                         print("%.2f%% done" % ((i / float(train_iterations)) * 100));
-                    values = simulate(network, {});
-                    floatLayeredValues = getLayeredValues(network, values, toFloat=True);
-                    loss = sgd(np.array(floatLayeredValues[0]).astype('float32'), np.array(floatLayeredValues[2]).astype('float32'));
+                    data_values = [];
+                    label_values = [];
+                    for j in range(msize):
+                        vals = simulate(network, {});
+                        layers = getLayeredValues(network, vals, toFloat=True);
+                        data_values.append(layers[0]);
+                        label_values.append(layers[2]);
+                    loss = sgd(np.array(data_values).astype('float32'), np.array(label_values).astype('float32'));
                 
                 # Testing
 #                 print("INPUT\t\t\t/\tOUTPUT\t\t\t=>\tRESULT\t/\tHIDDEN IN\t/\tHIDDEN OUT")
                 correctCount = 0;
                 samples = 1000;
+                samples_processed = 0;
                 hidden_equals = [];
-                for i in range(samples):
-                    values = simulate(network, {});
-                    floatLayeredValues = getLayeredValues(network, values, toFloat=True);
-                    prediction, hidden_prediction, hidden = graph(np.array(floatLayeredValues[0]).astype('float32'));
-                    correct = all(np.equal(floatLayeredValues[0],prediction));
-                    if (correct):
-                        correctCount += 1;
-#                     print("%s\t/\t%s\t=>\t%s\t/\t%s\t/\t%s\t%s" % (str(map(bool,dataLayer)), str(map(bool,prediction)), 
-#                                                                    str(correct), str(map(bool,floatLayeredValues[0])), 
-#                                                                    str(map(bool,hidden_prediction)),
-#                                                                    str(hidden)));
-                    hidden_equals.append(map(lambda (x,y): x == y,zip(map(bool,floatLayeredValues[1]),map(bool,hidden_prediction))));
+                for i in range(0,samples,msize):
+                    data_values = [];
+                    label_values = [];
+                    for j in range(msize):
+                        vals = simulate(network, {});
+                        layers = getLayeredValues(network, vals, toFloat=True);
+                        data_values.append(layers[0]);
+                        label_values.append(layers[2]);
+                    samples_processed += msize;
+                    prediction, hidden_prediction, hidden = graph(np.array(data_values).astype('float32'));
+                    for j in range(msize):
+                        correct = all(np.equal(label_values[j],prediction[j]));
+                        if (correct):
+                            correctCount += 1;
+#                         print("%s\t/\t%s\t=>\t%s\t/\t%s\t/\t%s\t%s" % (str(map(bool,dataLayer)), str(map(bool,prediction)), 
+#                                                                        str(correct), str(map(bool,floatLayeredValues[0])), 
+#                                                                        str(map(bool,hidden_prediction)),
+#                                                                        str(hidden)));
+                    # TODO: fix hidden_equals.append(map(lambda (x,y): x == y,zip(map(bool,floatLayeredValues[1]),map(bool,hidden_prediction))));
                 
-                hidden_equals = np.sum(np.array(hidden_equals),axis=0);
-                precision = (correctCount / float(samples)) * 100.;
+                # TODO: fix hidden_equals = np.sum(np.array(hidden_equals),axis=0);
+                precision = (correctCount / float(samples_processed)) * 100.;
                 
                 if (verbose):
-                    print("Iteration %d: %.2f%% (%d samples)" % (it, precision, it*train_iterations));
+                    print("Iteration %d: %.2f%% (%d samples)" % (it, precision, it*(train_samples / msize)));
                 it += 1;
                 
                 if (reset_after_iteration):
@@ -165,16 +179,16 @@ if __name__ == '__main__':
             learned_network_string = strLearnedNetwork(network, [XWh.get_value(), hWY.get_value()]);
             if (verbose):
                 print(learned_network_string);
-                print("Hidden node consistency: %s / %d" % (str(hidden_equals), samples));  
+#                 print("Hidden node consistency: %s / %d" % (str(hidden_equals), samples_processed));  
             if (learned_network_string not in learned_networks):
                 learned_networks[learned_network_string] = [];
             learned_networks[learned_network_string].append(precision);
-            hidden_matches.append(hidden_equals);
-        print(hidden_matches);
+#             hidden_matches.append(hidden_equals);
+#         print(hidden_matches);
         success_percentage = (successes/float(network_tries))*100.;
         
         for network, precisions in sorted(learned_networks.items(), key=lambda (c,n): c, reverse=False):
-            print("%d: (%.2f%%) %s" % (len(precisions), np.mean(precisions), network));
+            print("%d: (%.2f%%)\t%s" % (len(precisions), np.mean(precisions), network));
         
         print("Successes: %.2f%% (%d/%d)" % (success_percentage, successes, network_tries));
         

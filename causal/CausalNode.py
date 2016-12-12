@@ -8,18 +8,18 @@ import numpy as np;
 
 class CausalNode:
     
-    RELATION_AND = 0;
-    RELATION_IDENTITY = 1;
-    RELATION_NOT = 2;
-    RELATION_XOR = 3;
+    RELATION_IDENTITY = 0;
+    RELATION_NOT = 1;
+    RELATION_XOR = 2;
+    RELATION_AND = 3;
     
-    RELATIONS = 3;
+    RELATIONS = 2;
     
-    relationStrings = ["&","=","!","|"];
-    relations = [lambda x, y: x and y,
-                 lambda x: x,
+    relationStrings = ["= ","! ","| ","& "];
+    relations = [lambda x: x,
                  lambda x: not x,
-                 lambda x, y: x or y and not (x and y)]; 
+                 lambda x, y: x or y and not (x and y),
+                 lambda x, y: x and y]; 
     
     def __init__(self, name=None, incomingRelation=None, incomingNodes=[]):
         """
@@ -40,7 +40,7 @@ class CausalNode:
         if (self.name not in values):
             if (self.incomingRelation is not None):
                 node1value = values[self.incomingNodes[0].name];
-                if (self.incomingRelation <= 0):
+                if (self.incomingRelation >= 2):
                     node2value = values[self.incomingNodes[1].name];
                     value = self.relations[self.incomingRelation](node1value,node2value);
                 else:
@@ -85,24 +85,32 @@ def strNetwork(network):
     for layer in network[1:]:
         for node in layer:
             if (node.incomingRelation is not None):
-                names = CausalNode.relationStrings[node.incomingRelation].join(map(lambda x: x.name, node.incomingNodes));
+                names = "";
                 if (len(node.incomingNodes) == 1):
                     names += CausalNode.relationStrings[node.incomingRelation];
+                names += CausalNode.relationStrings[node.incomingRelation].join(map(lambda x: x.name, node.incomingNodes));
                 repr += "(" + names + ")";
-            repr += node.name + " ";
+            repr += node.name + "\t";
     
     return repr;
 
 def strLearnedNetwork(network, weights):
     repr = "";
     
+#     bins = [(-1.,"!"),(-0.6,"?"),(-0.2,"-"),(0.2,"~"),(0.6,"=")];
+    bins = [(-1.,"!"),(-0.25,"-"),(0.25,"=")];
+    
     for i,layer in enumerate(network[1:]):
         for x,node in enumerate(layer):
             names = [];
             for l,latent in enumerate(network[i]):
-                if (abs(weights[i][l,x]) > 0.2):
-                    name = "%.1f %s" % (weights[i][l,x], latent.name);
-                    names.append(name);
-            repr += "(" + ", ".join(names) + ")" + node.name + " ";
+#                 if (abs(weights[i][l,x]) > 0.2):
+                symbol = "";
+                for (threshold, s) in bins:
+                    if (weights[i][l,x] >= threshold):
+                        symbol = s;
+                name = "%s %s" % (symbol, latent.name);
+                names.append(name);
+            repr += "(" + ", ".join(names) + ")" + node.name + "\t";
     
     return repr;
