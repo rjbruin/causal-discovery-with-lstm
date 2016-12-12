@@ -1027,14 +1027,19 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 effectExpressionPrediction = dataset.indicesToStr(prediction[effectIndex][j]);
             
             
+            # Prepare vars to save correct samples
+            topCorrect = False;
+            botCorrect = False;
             
             # Check if cause sequence prediction is in dataset
             causeMatchesLabel = False;
             if (causeExpressionPrediction == labels_to_use[j][causeIndex]):
                 stats['structureCorrectCause'] += 1.0;
                 if (topcause):
+                    topCorrect = True;
                     stats['structureCorrectTop'] += 1.0;
                 else:
+                    botCorrect = True;
                     stats['structureCorrectBot'] += 1.0;
                 causeMatchesLabel = True;
             
@@ -1055,8 +1060,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if (effectExpressionPrediction == labels_to_use[j][effectIndex]):
                     stats['structureCorrectEffect'] += 1.0;
                     if (topcause):
+                        topCorrect = True;
                         stats['structureCorrectBot'] += 1.0;
                     else:
+                        botCorrect = True;
                         stats['structureCorrectTop'] += 1.0;
                     effectMatchesLabel = True;
                 
@@ -1085,10 +1092,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             if ((causeMatchesLabel and self.only_cause_expression is not False) or (causeMatchesLabel and effectMatchesLabel)):
                 stats['structureCorrect'] += 1.0;
             if ((causeMatchesLabel and self.only_cause_expression is not False) or (causeMatchesLabel and effectMatchesLabel and effectMatch)):
+                if (self.only_cause_expression is False):
+                    stats['samplesCorrect'].append((True,True));
                 stats['correct'] += 1.0;
                 stats['valid'] += 1.0;
                 stats['inDataset'] += 1.0;
             else:
+                # Save sample correct
+                if (self.only_cause_expression is False):
+                    stats['samplesCorrect'].append((topCorrect,botCorrect));
                 # Determine validity of sample if it is not correct
                 if ((causeValid and self.only_cause_expression is not False) or (causeValid and effectValid and effectMatch)):
                     stats['valid'] += 1.0;

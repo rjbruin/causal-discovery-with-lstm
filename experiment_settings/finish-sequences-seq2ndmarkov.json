@@ -14,6 +14,7 @@
         "hidden_dim": "128",
         "minibatch_size": "64",
         "subbatch_size": "64",
+        "tripleLayer": "True",
         "dataset_type": "1",
         "operators": "3",
         "digits": "10",
