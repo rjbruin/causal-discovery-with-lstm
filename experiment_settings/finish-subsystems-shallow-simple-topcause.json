@@ -1,6 +1,6 @@
 [
     {
-        "name": "f-subs-s",
+        "name": "f-subs-stop",
         "script": "subsystems_finish.py",
         "dataset": "./data/subsystems_shallow_simple_topcause",
         "repetitions": "500",
@@ -12,6 +12,7 @@
         "optimizer": "1",
         "learning_rate": "0.005",
         "hidden_dim": "128",
-        "minibatch_size": "10"
+        "minibatch_size": "64",
+        "subbatch_size": "64"
     }
 ]

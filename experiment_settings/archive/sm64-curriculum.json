@@ -1,0 +1,14 @@
+[
+    {
+        "name": "sm64-sample-regular",
+        "script": "expressions_answer.py",
+        "dataset": "./data/expressions_positive_integer_answer_deep",
+        "multipart_dataset": "True",
+        "multipart_1": "_0",
+        "multipart_2": "_1",
+        "repetitions": "92",
+        "minibatch_size": "64",
+        "n_max_digits": "7",
+        "sample_testing_size": "10000"
+    }
+]
