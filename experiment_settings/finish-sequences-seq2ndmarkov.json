@@ -18,6 +18,6 @@
         "dataset_type": "1",
         "operators": "3",
         "digits": "10",
-        "only_cause_expression": "1",
+        "only_cause_expression": "1"
     }
 ]
