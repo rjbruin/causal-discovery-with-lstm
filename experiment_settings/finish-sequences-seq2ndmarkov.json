@@ -3,7 +3,7 @@
         "name": "f-seqs-s2m",
         "script": "subsystems_finish.py",
         "dataset": "./data/seq2ndmarkov",
-        "repetitions": "500",
+        "repetitions": "100",
         "sample_testing_size": "10000",
         "finish_subsystems": "True",
         "n_max_digits": "17",
