@@ -22,8 +22,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     '''
     
     SGD_OPTIMIZER = 0;
-    ADAM_OPTIMIZER = 1;
     RMS_OPTIMIZER = 1;
+    NESTEROV_OPTIMIZER = 2;
 
     def __init__(self, data_dim, hidden_dim, output_dim, minibatch_size, 
                  lstm=True, weight_values={}, single_digit=False, 
