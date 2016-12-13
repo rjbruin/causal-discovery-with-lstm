@@ -311,12 +311,12 @@ if __name__ == '__main__':
     np.set_printoptions(precision=3, threshold=10000000);
     profiler.off();
     
-    # Specific settings - default name is time of experiment
-    name = time.strftime("%d-%m-%Y_%H-%M-%S");
-    saveModels = True;
-    
     # Process parameters
     parameters = processCommandLineArguments(sys.argv[1:]);
+    
+    # Specific settings - default name is time of experiment
+    name = parameters['output_name'] + time.strftime("_%d-%m-%Y_%H-%M-%S");
+    saveModels = True;
     
     # Warn for unusual parameters
     if (parameters['max_training_size'] is not False):

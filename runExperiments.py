@@ -65,7 +65,10 @@ if __name__ == '__main__':
         newName = raw_input("Experiment %d name (%s): " % (i+1,exp['name']));
         if (newName != ''):
             exp['name'] = newName;
-        outputPath = './raw_results/%s-%s.txt' % (exp['name'], time.strftime("%d-%m-%Y_%H-%M-%S"));
+        output_name = exp['name'];
+        if (' ' in output_name):
+            raise ValueError("Experiment name cannot contain whitespace! Offending name: \"%s\"" % output_name);
+        outputPath = './raw_results/%s_%s.txt' % (exp['name'], time.strftime("%d-%m-%Y_%H-%M-%S"));
         # http://stackoverflow.com/questions/273192/in-python-check-if-a-directory-exists-and-create-it-if-necessary
         if (os.path.exists(outputPath)):
             exp['name'] = exp['name'] + '-';
@@ -100,7 +103,7 @@ if __name__ == '__main__':
             
         outputPath = experiment_outputPaths[i];
         extraArgs = experiment_args[i];
-        args = ['python',exp['script']];
+        args = ['python',exp['script'],'--output_name',output_name];
         for key,value in exp.items():
             if (key not in ['script','name']):
                 args.append("--" + key);
