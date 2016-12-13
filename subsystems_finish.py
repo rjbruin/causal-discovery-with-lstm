@@ -70,9 +70,9 @@ def print_stats(stats, parameters, prefix=''):
     output += prefix + "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
     output += prefix + "Digit histogram:   %s\n" % (str(stats['prediction_histogram']));
     
-    output += prefix + "Error margin 1 score: %.2f percent\n" % stats['error_1_score'];
-    output += prefix + "Error margin 2 score: %.2f percent\n" % stats['error_2_score'];
-    output += prefix + "Error margin 3 score: %.2f percent\n" % stats['error_3_score'];
+    output += prefix + "Error margin 1 score: %.2f percent\n" % (stats['error_1_score']*100.);
+    output += prefix + "Error margin 2 score: %.2f percent\n" % (stats['error_2_score']*100.);
+    output += prefix + "Error margin 3 score: %.2f percent\n" % (stats['error_3_score']*100.);
     
     output += prefix + "All error margins: %s\n" % str(stats['error_histogram']);
     
