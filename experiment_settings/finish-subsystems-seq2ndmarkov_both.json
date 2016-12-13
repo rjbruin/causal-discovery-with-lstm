@@ -4,7 +4,7 @@
         "script": "subsystems_finish.py",
         "dataset": "./data/seq2ndmarkov_both",
         "repetitions": "500",
-        "sample_testing_size": "10000",
+        "sample_testing_size": "100000",
         "finish_subsystems": "True",
         "n_max_digits": "17",
         "intervention_base_offset": "1",
