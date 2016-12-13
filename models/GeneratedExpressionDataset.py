@@ -26,7 +26,8 @@ class GeneratedExpressionDataset(Dataset):
                  use_GO_symbol=False, finishExpressions=False,
                  reverse=False, copyMultipleExpressions=False,
                  operators=4, digits=10, only_cause_expression=False,
-                 dataset_type=0, bothcause=False, debug=False):
+                 dataset_type=0, bothcause=False, debug=False,
+                 test_size=0.1, test_offset=0.):
         self.sources = [trainSource, testSource];
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
@@ -129,18 +130,18 @@ class GeneratedExpressionDataset(Dataset):
         if (self.finishExpressions or self.copyMultipleExpressions):
             # We need to save all expressions by answer for the fast lookup of
             # nearest labels
-            self.preload(onlyStoreByPrefix=True);
+            self.preload(onlyStoreByPrefix=True, test_size=test_size, test_offset=test_offset);
         else:
             self.outputByInput = None;
          
             if (preload):
-                self.preloaded = self.preload();
+                self.preloaded = self.preload(test_size=test_size, test_offset=test_offset);
                 if (not self.preloaded):
                     print("WARNING! PRELOADING DATASET WAS ATTEMPTED BUT FAILED!");
             else:
                 self.preloaded = False;
     
-    def preload(self, onlyStoreByPrefix=False):
+    def preload(self, onlyStoreByPrefix=False, test_size=0.1, test_offset=0.):
         """
         Preloads the dataset into memory. If onlyStoreLookupByInput is True,
         the data is not stored but only saved into the dictionary outputByInput
@@ -152,15 +153,19 @@ class GeneratedExpressionDataset(Dataset):
             self.expressionsByPrefix = SequencesByPrefix();
             if (not self.only_cause_expression): 
                 self.expressionsByPrefixBot = SequencesByPrefix();
+            self.testExpressionLengths = Counter();
+            self.testExpressionsByPrefix = SequencesByPrefix();
+            if (not self.only_cause_expression): 
+                self.testExpressionsByPrefixBot = SequencesByPrefix();
+            
             f = open(self.sources[self.TRAIN],'r');
             line = f.readline().strip();
             n = 0;
             
-            # Debug code that can make the model load the entire dataset 
-            # instead of just the 1000 samples usually used in debugging
-#             if (self.debug):
-#                 self.lengths = [900000,100000];
-            
+            append_to_train = True;
+            test_set_done = False;
+            if (test_offset == 0.):
+                append_to_train = False;
             # Check for n is to make the code work with max_training_size
             while (line != "" and n < self.lengths[self.TRAIN]):
                 result = line.split(";");
@@ -176,48 +181,37 @@ class GeneratedExpressionDataset(Dataset):
                     expression = expression_prime;
                     expression_prime = "";
                 
-                if (not self.only_cause_expression and \
-                        (topcause == '0' or \
-                        self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
-                        self.bothcause)):
-                    self.expressionsByPrefixBot.add(expression_prime, expression);
-                if (topcause == '1'):
-                    self.expressionsByPrefix.add(expression, expression_prime);
-                self.expressionLengths[len(expression)] += 1;
+                if (append_to_train):
+                    if (not self.only_cause_expression and \
+                            (topcause == '0' or \
+                            self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
+                            self.bothcause)):
+                        self.expressionsByPrefixBot.add(expression_prime, expression);
+                    if (topcause == '1'):
+                        self.expressionsByPrefix.add(expression, expression_prime);
+                    self.expressionLengths[len(expression)] += 1;
+                else:
+                    if (not self.only_cause_expression and \
+                            (topcause == '0' or \
+                            self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
+                            self.bothcause)):
+                        self.testExpressionsByPrefixBot.add(expression_prime, expression);
+                    if (topcause == '1'):
+                        self.testExpressionsByPrefix.add(expression, expression_prime);
+                    self.testExpressionLengths[len(expression)] += 1;
+                
                 line = f.readline().strip();
                 n += 1;
-            f.close();
-            
-            self.testExpressionLengths = Counter();
-            self.testExpressionsByPrefix = SequencesByPrefix();
-            if (not self.only_cause_expression): 
-                self.testExpressionsByPrefixBot = SequencesByPrefix();
-            f = open(self.sources[self.TEST],'r');
-            line = f.readline().strip();
-            n = 0;
-            while (line != "" and n < self.lengths[self.TEST]):
-                result = line.split(";");
-                if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV and not self.bothcause):
-                    expression, expression_prime, topcause = result;
-                else:
-                    expression, expression_prime = result;
-                    topcause = '1';
                 
-                if (self.only_cause_expression == 1):
-                    expression_prime = "";
-                elif (self.only_cause_expression == 2):
-                    expression = expression_prime;
-                    expression_prime = "";
-                
-                if (not self.only_cause_expression and \
-                        (topcause == '0' or \
-                        self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
-                        self.bothcause)):
-                    self.testExpressionsByPrefixBot.add(expression_prime, expression);
-                if (topcause == '1'):
-                    self.testExpressionsByPrefix.add(expression, expression_prime);
-                self.testExpressionLengths[len(expression)] += 1;
-                line = f.readline().strip();
+                # Reassess whether to switch target dataset part
+                if (not test_set_done):
+                    if (append_to_train):
+                        if (n / float(self.lengths[self.TRAIN]) >= test_offset and test_size > 0.):
+                            append_to_train = False;
+                    else:
+                        if (n / float(self.lengths[self.TRAIN]) >= test_offset + test_size):
+                            test_set_done = True;
+                            append_to_train = True;
             f.close();
         else:
             train, train_targets, train_labels, train_expressions = \

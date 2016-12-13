@@ -80,7 +80,9 @@ argumentProcessors = {'name': processString,
                       'crosslinks': processBool,
                       'use_label_search': processBool,
                       'use_abstract': processBool,
-                      'append_abstract': processBool
+                      'append_abstract': processBool,
+                      'test_size': processFloat,
+                      'test_offset': processFloat
                       }
 defaults = {'output_name': "",
             'report_to_tracker': True,
@@ -130,7 +132,9 @@ defaults = {'output_name': "",
             'crosslinks': True,
             'use_label_search': False,
             'use_abstract': False,
-            'append_abstract': False
+            'append_abstract': False,
+            'test_size': 0.1,
+            'test_offset': 0.
             }
 
 def processKeyValue(key,value):

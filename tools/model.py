@@ -11,7 +11,7 @@ from models.TheanoRecurrentNeuralNetwork import TheanoRecurrentNeuralNetwork
 
 
 def constructModels(parameters, seed, verboseOutputter, noModel=False):
-    train_path = "%s/train.txt" % (parameters['dataset']);
+    train_path = "%s/all.txt" % (parameters['dataset']);
     test_path = "%s/test.txt" % (parameters['dataset']);
     config_path = "%s/config.json" % (parameters['dataset']);
     
@@ -30,7 +30,9 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False):
                                          only_cause_expression=parameters['only_cause_expression'],
                                          dataset_type=parameters['dataset_type'],
                                          bothcause=parameters['bothcause'],
-                                         debug=parameters['debug']);
+                                         debug=parameters['debug'],
+                                         test_size=parameters['test_size'],
+                                         test_offset=parameters['test_offset']);
     
     if (not noModel):
         rnn = TheanoRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
