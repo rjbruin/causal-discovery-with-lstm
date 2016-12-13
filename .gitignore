@@ -12,3 +12,9 @@ raw_results/*
 saved_models/*
 verbose_output/*
 data/archive/*
+
+# Miscellanious stuff
+data/dataset_generation_2ndmarkovseqs_no_structure.py
+dataset_generation_greedy.py
+test/testPrecisionFromDigitCorrect.py
+test_numpy_speed.py
