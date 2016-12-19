@@ -36,7 +36,7 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False):
     
     if (not noModel):
         rnn = TheanoRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim, 
-                                         lstm=True,
+                                         lstm=parameters['lstm'],
                                          minibatch_size=parameters['minibatch_size'],
                                          n_max_digits=parameters['n_max_digits'],
                                          decoder=parameters['decoder'] and parameters['use_encoder'] and \
@@ -53,7 +53,6 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False):
                                          tripleLayer=parameters['triple_layer'],
                                          dropoutProb=parameters['dropout_prob'],
                                          outputBias=parameters['output_bias'],
-                                         useEncoder=parameters['use_encoder'],
                                          crosslinks=parameters['crosslinks'],
                                          useAbstract=parameters['use_abstract'],
                                          appendAbstract=parameters['append_abstract']);

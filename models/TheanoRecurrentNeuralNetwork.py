@@ -31,7 +31,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  decoder=False, verboseOutputter=None, finishExpressions=True,
                  optimizer=0, learning_rate=0.01,
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
-                 doubleLayer=False, tripleLayer=False, dropoutProb=0., useEncoder=True, outputBias=False,
+                 doubleLayer=False, tripleLayer=False, dropoutProb=0., outputBias=False,
                  crosslinks=True, appendAbstract=False, useAbstract=False):
         '''
         Initialize all Theano models.
@@ -52,14 +52,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.doubleLayer = doubleLayer;
         self.tripleLayer = tripleLayer;
         self.dropoutProb = dropoutProb;
-        self.useEncoder = useEncoder;
         self.outputBias = outputBias;
         self.crosslinks = crosslinks;
         self.useAbstract = useAbstract;
         self.appendAbstract = appendAbstract;
         
-        if (not self.lstm):
-            raise ValueError("Feature LSTM = False is no longer supported!");
+#         if (not self.lstm):
+#             raise ValueError("Feature LSTM = False is no longer supported!");
                 
         self.EOS_symbol_index = EOS_symbol_index;
         self.GO_symbol_index = GO_symbol_index;
@@ -78,77 +77,61 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             per_expression_dim += 13;
         
         actual_data_dim = per_expression_dim * 2;
-        actual_decoding_output_dim = self.decoding_output_dim * 2;
         actual_prediction_output_dim = self.prediction_output_dim * 2;
         if (self.only_cause_expression):
             actual_data_dim = per_expression_dim;
-            actual_decoding_output_dim = self.decoding_output_dim;
             actual_prediction_output_dim = self.prediction_output_dim;
         
         # Set up shared variables
         varSettings = [];
-        varSettings.append(('hWf',self.hidden_dim,self.hidden_dim));
-        varSettings.append(('XWf',actual_data_dim,self.hidden_dim));
-        varSettings.append(('hWi',self.hidden_dim,self.hidden_dim));
-        varSettings.append(('XWi',actual_data_dim,self.hidden_dim));
-        varSettings.append(('hWc',self.hidden_dim,self.hidden_dim));
-        varSettings.append(('XWc',actual_data_dim,self.hidden_dim));
-        varSettings.append(('hWo',self.hidden_dim,self.hidden_dim));
-        varSettings.append(('XWo',actual_data_dim,self.hidden_dim));
-        if (self.doubleLayer or self.tripleLayer):
-            varSettings.append(('hWf2',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('XWf2',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('hWi2',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('XWi2',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('hWc2',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('XWc2',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('hWo2',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('XWo2',self.hidden_dim,self.hidden_dim));
-        if (self.tripleLayer):
-            varSettings.append(('hWf3',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('XWf3',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('hWi3',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('XWi3',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('hWc3',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('XWc3',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('hWo3',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('XWo3',self.hidden_dim,self.hidden_dim));
-            
-        if (self.decoder):
-            # Add variables for the decoding phase
-            # All these variables begin with 'D' so they can be 
-            # automatically filtered to be used as parameters
-            varSettings.append(('DhWf',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('DXWf',actual_data_dim,self.hidden_dim));
-            varSettings.append(('DhWi',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('DXWi',actual_data_dim,self.hidden_dim));
-            varSettings.append(('DhWc',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('DXWc',actual_data_dim,self.hidden_dim));
-            varSettings.append(('DhWo',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('DXWo',actual_data_dim,self.hidden_dim));
-            if (self.doubleLayer or self.tripleLayer):
-                varSettings.append(('DhWf2',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('DXWf2',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('DhWi2',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('DXWi2',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('DhWc2',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('DXWc2',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('DhWo2',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('DXWo2',self.hidden_dim,self.hidden_dim));
-            if (self.tripleLayer):
-                varSettings.append(('DhWf3',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('DXWf3',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('DhWi3',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('DXWi3',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('DhWc3',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('DXWc3',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('DhWo3',self.hidden_dim,self.hidden_dim));
-                varSettings.append(('DXWo3',self.hidden_dim,self.hidden_dim));
-            varSettings.append(('DhWY',self.hidden_dim,actual_decoding_output_dim));
-            varSettings.append(('DhbY',False,actual_decoding_output_dim));
+        if (self.lstm):
+            varSettings.append(('hWf',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('XWf',actual_data_dim,self.hidden_dim));
+            varSettings.append(('hWi',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('XWi',actual_data_dim,self.hidden_dim));
+            varSettings.append(('hWc',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('XWc',actual_data_dim,self.hidden_dim));
+            varSettings.append(('hWo',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('XWo',actual_data_dim,self.hidden_dim));
         else:
-            varSettings.append(('hWY',self.hidden_dim,actual_prediction_output_dim));
-            varSettings.append(('hbY',False,actual_prediction_output_dim));
+            varSettings.append(('XWh',actual_data_dim,self.hidden_dim));
+            varSettings.append(('Xbh',False,self.hidden_dim));
+            varSettings.append(('hWh',self.hidden_dim,self.hidden_dim));
+            varSettings.append(('hbh',False,self.hidden_dim));
+            
+        if (self.doubleLayer or self.tripleLayer):
+            if (self.lstm):
+                varSettings.append(('hWf2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('XWf2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('hWi2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('XWi2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('hWc2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('XWc2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('hWo2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('XWo2',self.hidden_dim,self.hidden_dim));
+            else:
+                varSettings.append(('XWh2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('Xbh2',False,self.hidden_dim));
+                varSettings.append(('hWh2',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('hbh2',False,self.hidden_dim));
+        if (self.tripleLayer):
+            if (self.lstm):
+                varSettings.append(('hWf3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('XWf3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('hWi3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('XWi3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('hWc3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('XWc3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('hWo3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('XWo3',self.hidden_dim,self.hidden_dim));
+            else:
+                varSettings.append(('XWh3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('Xbh3',False,self.hidden_dim));
+                varSettings.append(('hWh3',self.hidden_dim,self.hidden_dim));
+                varSettings.append(('hbh3',False,self.hidden_dim));
+            
+        varSettings.append(('hWY',self.hidden_dim,actual_prediction_output_dim));
+        varSettings.append(('hbY',False,actual_prediction_output_dim));
         
         # Contruct variables
         self.vars = {};
@@ -172,22 +155,18 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         abstractExpressions = T.fmatrix();
         
         # Set the RNN cell to use for encoding and decoding
-        decode_function = self.lstm_predict_single;
+        decode_function = self.lstm_predict_single if self.lstm else self.rnn_predict_single;
         if (self.doubleLayer):
-            decode_function = self.lstm_predict_double;
+            decode_function = self.lstm_predict_double if self.lstm else self.rnn_predict_double;
         if (self.tripleLayer):
-            decode_function = self.lstm_predict_triple;
+            decode_function = self.lstm_predict_triple if self.lstm else self.rnn_predict_triple;
         
         if (self.dropoutProb > 0.):
             self.random_stream = T.shared_randomstreams.RandomStreams(seed=np.random.randint(10000));
         
         # Set the prediction parameters to be either the prediction 
         # weights or the decoding weights depending on the setting 
-        encode_parameters = [self.vars[k[0]] for k in filter(lambda name: name[0][0] != 'D' and name[0] != 'hWY' and name[0] != 'hbY', varSettings)];
-        if (self.decoder):
-            decode_parameters = [intervention_locations] + [self.vars[k[0]] for k in filter(lambda name: name[0][0] == 'D', varSettings)];
-        else:
-            decode_parameters = [intervention_locations] + encode_parameters + [self.vars['hWY'], self.vars['hbY']];
+        decode_parameters = [intervention_locations] + [self.vars[k[0]] for k in varSettings];
         
         if (self.useAbstract):
             hidden = [abstractExpressions];
@@ -297,12 +276,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                                                                 error], on_unused_input='ignore');
         
         # Defining stochastic gradient descent
-        variables = filter(lambda name: name != 'hbY' and name != 'DhbY', self.vars.keys());
+        variables = filter(lambda name: name != 'hbY', self.vars.keys());
         if (self.outputBias):
-            if (self.decoder):
-                variables.append('DhbY');
-            else:
-                variables.append('hbY');
+            variables.append('hbY');
         var_list = map(lambda var: self.vars[var], variables)
         if (self.optimizer == self.SGD_OPTIMIZER):
             # Automatic backward pass for all models: gradients
@@ -541,6 +517,125 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         new_sentence_index = sentence_index + 1.;
         
         return Y_output, hidden_1, hidden_2, hidden_3, new_sentence_index;
+    
+    def rnn_predict_single(self, given_X, previous_output, previous_hidden, sentence_index, intervention_locations, 
+                            XWh, Xbh, hWh, hbh, hWY, hbY, sd, ed, abstractExpressions):
+        if (self.appendAbstract):
+            previous_output = T.concatenate([previous_output, abstractExpressions], 1);
+        
+        hidden = T.tanh(previous_output.dot(XWh) + Xbh + previous_hidden.dot(hWh) + hbh);
+        
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            hidden = lasagne.layers.dropout((self.minibatch_size, self.hidden_dim), self.dropoutProb).get_output_for(hidden);
+        
+        # Use given intervention locations to determine whether to use label
+        # or previous prediction. This should allow for flexible minibatching
+        comparison = T.le(sentence_index,intervention_locations).reshape((T.constant(2), T.constant(self.minibatch_size), T.constant(1)), ndim=3);
+        
+        if (self.outputBias):
+            Y_output = T.nnet.softmax(hidden.dot(hWY) + hbY);
+        else:
+            Y_output = T.nnet.softmax(hidden.dot(hWY));
+        
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            Y_output = lasagne.layers.dropout((self.minibatch_size, self.decoding_output_dim), self.dropoutProb).get_output_for(Y_output);
+        
+        # Filter for intervention location
+        if (not self.only_cause_expression):
+            Y_output = T.concatenate([T.switch(comparison[0],given_X[:,:self.data_dim],Y_output[:,:self.data_dim]), T.switch(comparison[1],given_X[:,self.data_dim:],Y_output[:,self.data_dim:])], axis=1)[:,sd:ed];
+        else:
+            Y_output = T.switch(comparison[0],given_X,Y_output)[:,sd:ed];
+        
+        new_sentence_index = sentence_index + 1.;
+        
+        return Y_output, hidden, new_sentence_index;
+    
+    def rnn_predict_double(self, given_X, previous_output, previous_hidden, previous_hidden_2, sentence_index, intervention_locations, 
+                            XWh, Xbh, hWh, hbh, 
+                            XWh2, Xbh2, hWh2, hbh2,
+                            hWY, hbY,
+                            sd, ed, abstractExpressions):
+        if (self.appendAbstract):
+            previous_output = T.concatenate([previous_output, abstractExpressions], 1);
+        
+        hidden = T.tanh(previous_output.dot(XWh) + Xbh + previous_hidden.dot(hWh) + hbh);
+        
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            hidden = lasagne.layers.dropout((self.minibatch_size, self.hidden_dim), self.dropoutProb).get_output_for(hidden);
+        
+        hidden_2 = T.tanh(hidden.dot(XWh2) + Xbh2 + previous_hidden_2.dot(hWh2) + hbh2);
+        
+        # Use given intervention locations to determine whether to use label
+        # or previous prediction. This should allow for flexible minibatching
+        comparison = T.le(sentence_index,intervention_locations).reshape((T.constant(2), T.constant(self.minibatch_size), T.constant(1)), ndim=3);
+        
+        if (self.outputBias):
+            Y_output = T.nnet.softmax(hidden_2.dot(hWY) + hbY);
+        else:
+            Y_output = T.nnet.softmax(hidden_2.dot(hWY));
+        
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            Y_output = lasagne.layers.dropout((self.minibatch_size, self.decoding_output_dim), self.dropoutProb).get_output_for(Y_output);
+        
+        # Filter for intervention location
+        if (not self.only_cause_expression):
+            Y_output = T.concatenate([T.switch(comparison[0],given_X[:,:self.data_dim],Y_output[:,:self.data_dim]), T.switch(comparison[1],given_X[:,self.data_dim:],Y_output[:,self.data_dim:])], axis=1)[:,sd:ed];
+        else:
+            Y_output = T.switch(comparison[0],given_X,Y_output)[:,sd:ed];
+        
+        new_sentence_index = sentence_index + 1.;
+        
+        return Y_output, hidden, hidden_2, new_sentence_index;
+    
+    def rnn_predict_triple(self, given_X, previous_output, previous_hidden, previous_hidden_2, previous_hidden_3, sentence_index, intervention_locations, 
+                            XWh, Xbh, hWh, hbh, 
+                            XWh2, Xbh2, hWh2, hbh2,
+                            XWh3, Xbh3, hWh3, hbh3,
+                            hWY, hbY,
+                            sd, ed, abstractExpressions):
+        if (self.appendAbstract):
+            previous_output = T.concatenate([previous_output, abstractExpressions], 1);
+        
+        hidden = T.tanh(previous_output.dot(XWh) + Xbh + previous_hidden.dot(hWh) + hbh);
+        
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            hidden = lasagne.layers.dropout((self.minibatch_size, self.hidden_dim), self.dropoutProb).get_output_for(hidden);
+        
+        hidden_2 = T.tanh(hidden.dot(XWh2) + Xbh2 + previous_hidden_2.dot(hWh2) + hbh2);
+        
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            hidden_2 = lasagne.layers.dropout((self.minibatch_size, self.hidden_dim), self.dropoutProb).get_output_for(hidden_2);
+        
+        hidden_3 = T.tanh(hidden_2.dot(XWh3) + Xbh3 + previous_hidden_3.dot(hWh3) + hbh3);
+        
+        # Use given intervention locations to determine whether to use label
+        # or previous prediction. This should allow for flexible minibatching
+        comparison = T.le(sentence_index,intervention_locations).reshape((T.constant(2), T.constant(self.minibatch_size), T.constant(1)), ndim=3);
+        
+        if (self.outputBias):
+            Y_output = T.nnet.softmax(hidden_3.dot(hWY) + hbY);
+        else:
+            Y_output = T.nnet.softmax(hidden_3.dot(hWY));
+        
+        # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
+        if (self.dropoutProb > 0.):
+            Y_output = lasagne.layers.dropout((self.minibatch_size, self.decoding_output_dim), self.dropoutProb).get_output_for(Y_output);
+        
+        # Filter for intervention location
+        if (not self.only_cause_expression):
+            Y_output = T.concatenate([T.switch(comparison[0],given_X[:,:self.data_dim],Y_output[:,:self.data_dim]), T.switch(comparison[1],given_X[:,self.data_dim:],Y_output[:,self.data_dim:])], axis=1)[:,sd:ed];
+        else:
+            Y_output = T.switch(comparison[0],given_X,Y_output)[:,sd:ed];
+        
+        new_sentence_index = sentence_index + 1.;
+        
+        return Y_output, hidden, hidden_2, hidden_3, new_sentence_index;
     
     # END OF INITIALIZATION
     
