@@ -425,9 +425,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         # Filter for intervention location
         if (not self.only_cause_expression):
-            Y_output = T.concatenate([T.switch(comparison_top,given_X[:,:self.data_dim],Y_output[:,:self.data_dim]), T.switch(comparison_bot,given_X[:,self.data_dim:],Y_output[:,self.data_dim:])], axis=1);
+            Y_output = T.concatenate([T.switch(comparison_top,given_X[:,:self.data_dim],Y_output[:,:self.data_dim]), T.switch(comparison_bot,given_X[:,self.data_dim:],Y_output[:,self.data_dim:])], axis=1)[:,sd:ed];
         else:
-            Y_output = T.switch(comparison_top,given_X,Y_output);
+            Y_output = T.switch(comparison_top,given_X,Y_output)[:,sd:ed];
         
         new_sentence_index = sentence_index + 1.;
         
@@ -510,9 +510,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         # Filter for intervention location
         if (not self.only_cause_expression):
-            Y_output = T.concatenate([T.switch(comparison_top,given_X[:,:self.data_dim],Y_output[:,:self.data_dim]), T.switch(comparison_bot,given_X[:,self.data_dim:],Y_output[:,self.data_dim:])], axis=1);
+            Y_output = T.concatenate([T.switch(comparison_top,given_X[:,:self.data_dim],Y_output[:,:self.data_dim]), T.switch(comparison_bot,given_X[:,self.data_dim:],Y_output[:,self.data_dim:])], axis=1)[:,sd:ed];
         else:
-            Y_output = T.switch(comparison_top,given_X,Y_output);
+            Y_output = T.switch(comparison_top,given_X,Y_output)[:,sd:ed];
         
         new_sentence_index = sentence_index + 1.;
         
