@@ -77,7 +77,9 @@ if __name__ == '__main__':
         # Ask for extra args
         extraArgs = raw_input("(optional) Add extra/overwriting parameters (e.g. '--key value'): ");
         experiment_args.append(extraArgs);
-        
+        if ('--repetitions' in extraArgs):
+            index = extraArgs.index('--repetitions');
+            experiments[i]['repetitions'] = int(extraArgs[index+1]);
     
     # Run experiments
     trackerStack = [];
@@ -88,7 +90,7 @@ if __name__ == '__main__':
         if ('report_to_tracker' in exp):
             report = exp['report_to_tracker'] == 'True';
         if ('--report_to_tracker' in extraArgs):
-            index = extraArgs.index('report_to_tracker');
+            index = extraArgs.index('--report_to_tracker');
             report = extraArgs[index+1] == 'True';
         if (report):
             if ('multipart_dataset' in exp):
