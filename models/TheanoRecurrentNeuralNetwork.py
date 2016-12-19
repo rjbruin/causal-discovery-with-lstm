@@ -213,7 +213,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                {'initial': hidden_top[-1], 'taps': [-1]}, 
                                {'initial': hidden_2_top[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
             if (self.tripleLayer):
-                init_values = ({'initial': T.zeros((self.minibatch_size,actual_data_dim)), 'taps': [-1]}, 
+                init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]}, 
                                {'initial': hidden[-1], 'taps': [-1]}, 
                                {'initial': hidden_2_top[-1], 'taps': [-1]},
                                {'initial': hidden_3_top[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
