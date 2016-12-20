@@ -1227,8 +1227,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 else:
                     difference2 = 0;
                 if (difference1 + difference2 == 0):
-                    raise ValueError("Difference is 0 but sample is not correct! difference1: %d, difference2: %d, cause matches label: %d, effect matches label: %d, effectMatch: %d" % 
-                                     (difference1, difference2, int(causeMatchesLabel), int(effectMatchesLabel), int(effectMatch)));
+                    raise ValueError("Difference is 0 but sample is not correct! causeIndex: %d, cause: %s, effect: %s, difference1: %d, difference2: %d, cause matches label: %d, effect matches label: %d, effectMatch: %d" % 
+                                     (causeIndex, causeExpressionPrediction, effectExpressionPrediction, difference1, difference2, int(causeMatchesLabel), int(effectMatchesLabel), int(effectMatch)));
                 stats['error_histogram'][difference1 + difference2] += 1;
             
             # Digit precision and prediction size computation
