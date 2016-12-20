@@ -16,12 +16,12 @@ OPERATORS = [lambda x, y, max: (x+y) % max,
 
 TO_VALUE = lambda x: int(x) if ord(x) < 65 else ((ord(x) - 65) + 10);
 
-def _mutator_digit_copy(digit_in, top, bot):
+def _mutator_digit_copy(digit_in, top, bot, start):
     """
     Only mutates in odd (AKA legal) positions, which is the position of the
     randomly generated argument to the operator.
     """
-    for i in range(2,len(top),3):
+    for i in range(start,len(top),3):
         symbol = top[i];
         if (symbol == SYMBOLS[digit_in]):
             argument1 = TO_VALUE(bot[i-2]);
@@ -31,12 +31,12 @@ def _mutator_digit_copy(digit_in, top, bot):
             bot = finishSeq(bot[:i] + symbol + SYMBOLS[result], len(bot), result);
     return bot;
 
-def _mutator_digit_change(digit_in, digit_out, top, bot):
+def _mutator_digit_change(digit_in, digit_out, top, bot, start):
     """
     Only mutates in odd (AKA legal) positions, which is the position of the
     randomly generated argument to the operator.
     """
-    for i in range(2,len(top),3):
+    for i in range(start,len(top),3):
         symbol = top[i];
         if (symbol == SYMBOLS[digit_in]):
             argument1 = TO_VALUE(bot[i-2]);
@@ -46,8 +46,8 @@ def _mutator_digit_change(digit_in, digit_out, top, bot):
             bot = finishSeq(bot[:i] + SYMBOLS[digit_out] + SYMBOLS[result], len(bot), result);
     return bot;
 
-def _mutator_digit_change_2ndorder(digit_in_1, digit_in_2, digit_out, top, bot):
-    for i in range(2,len(top),3):
+def _mutator_digit_change_2ndorder(digit_in_1, digit_in_2, digit_out, top, bot, start):
+    for i in range(start,len(top),3):
         symbol_1 = top[i-1];
         if (symbol_1 == SYMBOLS[digit_in_1]):
             symbol_2 = top[i];
@@ -92,12 +92,12 @@ def createSample(length, top_to_bot_mutators, bot_to_top_mutators, bothways=Fals
             symbolVal = TO_VALUE(top[i])
             if (symbolVal in top_to_bot_mutators):
                 mutator = top_to_bot_mutators[symbolVal];
-                bot = mutator(top, bot);
+                bot = mutator(top, bot, i);
         if (not topcause or bothways):
             symbolVal = TO_VALUE(bot[i]);
             if (symbolVal in bot_to_top_mutators):
                 mutator = bot_to_top_mutators[symbolVal];
-                top = mutator(bot, top);
+                top = mutator(bot, top, i);
     return top, bot, topcause;
 
 def generateSequences(baseFilePath, n, test_percentage,
@@ -182,20 +182,20 @@ if __name__ == '__main__':
 #     verbose = False;
 #     bothways = False;
     
-    folder = 'seq2ndmarkov_both';
+    folder = 'seq2ndmarkov_both_fixed';
     n = 1000000;
     max_digits = 8;
     max_ops = 2;
-    top_to_bot_mutators = {6: lambda top, bot: _mutator_digit_copy(6, top, bot),
-                           1: lambda top, bot: _mutator_digit_copy(1, top, bot),
-                           3: lambda top, bot: _mutator_digit_change(3, 5, top, bot),
-                           0: lambda top, bot: _mutator_digit_change(0, 3, top, bot),
-                           2: lambda top, bot: _mutator_digit_change(2, 0, top, bot)};
-    bot_to_top_mutators = {7: lambda bot, top: _mutator_digit_copy(7, bot, top),
-                           2: lambda bot, top: _mutator_digit_copy(2, bot, top),
-                           4: lambda bot, top: _mutator_digit_change(4, 3, bot, top),
-                           1: lambda bot, top: _mutator_digit_change(1, 7, bot, top),
-                           0: lambda bot, top: _mutator_digit_change(0, 4, bot, top)};
+    top_to_bot_mutators = {6: lambda top, bot, start: _mutator_digit_copy(6, top, bot, start),
+                           1: lambda top, bot, start: _mutator_digit_copy(1, top, bot, start),
+                           3: lambda top, bot, start: _mutator_digit_change(3, 5, top, bot, start),
+                           0: lambda top, bot, start: _mutator_digit_change(0, 3, top, bot, start),
+                           2: lambda top, bot, start: _mutator_digit_change(2, 0, top, bot, start)};
+    bot_to_top_mutators = {7: lambda bot, top, start: _mutator_digit_copy(7, bot, top, start),
+                           2: lambda bot, top, start: _mutator_digit_copy(2, bot, top, start),
+                           4: lambda bot, top, start: _mutator_digit_change(4, 3, bot, top, start),
+                           1: lambda bot, top, start: _mutator_digit_change(1, 7, bot, top, start),
+                           0: lambda bot, top, start: _mutator_digit_change(0, 4, bot, top, start)};
     length = 15;
     verbose = False;
     bothways = True;

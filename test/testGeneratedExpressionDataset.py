@@ -197,6 +197,23 @@ class Test(unittest.TestCase):
             encodedAbstract = dataset.abstractExpression(expression);
             self.assertEqual(np.array_equal(abstractExpression,encodedAbstract),True,"(%d) No match: %s vs. encoded %s" % (i, str(abstractExpression), str(encodedAbstract)));
 
+    def testEffectMatcher(self):
+        dataset = GeneratedExpressionDataset('../data/seq2ndmarkov_both/all.txt', '../data/seq2ndmarkov_both/test.txt', '../data/seq2ndmarkov_both/config.json',
+                                             operators=2,
+                                             digits=8,
+                                             dataset_type=GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV,
+                                             bothcause=True,
+                                             finishExpressions=True);
+        
+        for i in range(len(dataset.expressionsByPrefix.expressions)):
+            top = dataset.encodeExpression(dataset.expressionsByPrefix.expressions[i]);
+            bot = dataset.encodeExpression(dataset.expressionsByPrefix.primedExpressions[i]);
+            
+            test = dataset.effect_matcher_seq2ndmarkov_both(top, bot, 8, 2, True);
+            self.assertEqual(True,test,"(effect) %d is wrong: top = %s, bot = %s" % (i, top, bot));
+            if (not test):
+                print("(effect) %d is wrong: top = %s, bot = %s" % (i, top, bot));
+
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testProcessing']
     unittest.main()
