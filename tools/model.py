@@ -55,7 +55,8 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False):
                                          outputBias=parameters['output_bias'],
                                          crosslinks=parameters['crosslinks'],
                                          useAbstract=parameters['use_abstract'],
-                                         appendAbstract=parameters['append_abstract']);
+                                         appendAbstract=parameters['append_abstract'],
+                                         relu=parameters['relu']);
     else:
         rnn = None;
     

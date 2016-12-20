@@ -32,7 +32,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  optimizer=0, learning_rate=0.01,
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
                  doubleLayer=False, tripleLayer=False, dropoutProb=0., outputBias=False,
-                 crosslinks=True, appendAbstract=False, useAbstract=False):
+                 crosslinks=True, appendAbstract=False, useAbstract=False, relu=False):
         '''
         Initialize all Theano models.
         '''
@@ -56,6 +56,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.crosslinks = crosslinks;
         self.useAbstract = useAbstract;
         self.appendAbstract = appendAbstract;
+        self.relu = relu;
         
 #         if (not self.lstm):
 #             raise ValueError("Feature LSTM = False is no longer supported!");
@@ -533,10 +534,14 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # or previous prediction. This should allow for flexible minibatching
         comparison = T.le(sentence_index,intervention_locations).reshape((T.constant(2), T.constant(self.minibatch_size), T.constant(1)), ndim=3);
         
+        nonlin = T.nnet.softmax;
+        if (self.relu):
+            nonlin = T.nnet.relu;
+        
         if (self.outputBias):
-            Y_output = T.nnet.softmax(hidden.dot(hWY) + hbY);
+            Y_output = nonlin(hidden.dot(hWY) + hbY);
         else:
-            Y_output = T.nnet.softmax(hidden.dot(hWY));
+            Y_output = nonlin(hidden.dot(hWY));
         
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
         if (self.dropoutProb > 0.):
@@ -572,10 +577,14 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # or previous prediction. This should allow for flexible minibatching
         comparison = T.le(sentence_index,intervention_locations).reshape((T.constant(2), T.constant(self.minibatch_size), T.constant(1)), ndim=3);
         
+        nonlin = T.nnet.softmax;
+        if (self.relu):
+            nonlin = T.nnet.relu;
+        
         if (self.outputBias):
-            Y_output = T.nnet.softmax(hidden_2.dot(hWY) + hbY);
+            Y_output = nonlin(hidden_2.dot(hWY) + hbY);
         else:
-            Y_output = T.nnet.softmax(hidden_2.dot(hWY));
+            Y_output = nonlin(hidden_2.dot(hWY));
         
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
         if (self.dropoutProb > 0.):
@@ -618,10 +627,14 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # or previous prediction. This should allow for flexible minibatching
         comparison = T.le(sentence_index,intervention_locations).reshape((T.constant(2), T.constant(self.minibatch_size), T.constant(1)), ndim=3);
         
+        nonlin = T.nnet.softmax;
+        if (self.relu):
+            nonlin = T.nnet.relu;
+        
         if (self.outputBias):
-            Y_output = T.nnet.softmax(hidden_3.dot(hWY) + hbY);
+            Y_output = nonlin(hidden_3.dot(hWY) + hbY);
         else:
-            Y_output = T.nnet.softmax(hidden_3.dot(hWY));
+            Y_output = nonlin(hidden_3.dot(hWY));
         
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
         if (self.dropoutProb > 0.):
