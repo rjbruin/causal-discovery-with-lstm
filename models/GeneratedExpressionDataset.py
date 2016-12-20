@@ -802,6 +802,14 @@ class GeneratedExpressionDataset(Dataset):
             expression += self.findSymbol[index];
         return expression;
     
+    def strToIndices(self, prediction):
+        expression = [];
+        for symbol in prediction:
+            if (symbol == "_"):
+                break;
+            expression.append(self.oneHot[symbol]);
+        return expression;
+    
     def encodeExpression(self, structure, max_length):
         str_repr = str(structure);
         data = np.zeros((max_length,self.data_dim));
