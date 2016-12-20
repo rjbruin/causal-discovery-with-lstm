@@ -13,9 +13,7 @@ def testEffectMatcher():
                                          digits=8,
                                          dataset_type=GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV,
                                          bothcause=True,
-                                         finishExpressions=True,
-                                         max_training_size=1000,
-                                         max_testing_size=1000);
+                                         finishExpressions=True);
     
     print("Starting test...");
     for i in range(len(dataset.expressionsByPrefix.expressions)):
