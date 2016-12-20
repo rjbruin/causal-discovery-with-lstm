@@ -75,7 +75,7 @@ if __name__ == '__main__':
         experiment_outputPaths.append(outputPath);
         
         # Ask for extra args
-        extraArgs = raw_input("(optional) Add extra/overwriting parameters (e.g. '--key value'): ");
+        extraArgs = raw_input("(optional) Add extra/overwriting parameters (e.g. '--key value'): ").split(" ");
         experiment_args.append(extraArgs);
         if ('--repetitions' in extraArgs):
             index = extraArgs.index('--repetitions');
@@ -86,6 +86,7 @@ if __name__ == '__main__':
     for i,exp in enumerate(experiments):
         print("Beginning experiment %s\n" % exp['name']);
         
+        extraArgs = experiment_args[i];
         report = True;
         if ('report_to_tracker' in exp):
             report = exp['report_to_tracker'] == 'True';
@@ -104,13 +105,12 @@ if __name__ == '__main__':
                 print("WARNING! Experiment could not be posted to tracker!");
             
         outputPath = experiment_outputPaths[i];
-        extraArgs = experiment_args[i];
         args = ['python',exp['script'],'--output_name',output_name];
         for key,value in exp.items():
             if (key not in ['script','name']):
                 args.append("--" + key);
                 args.append(str(value));
-        joined_args = " ".join(args) + " " + extraArgs;
+        joined_args = " ".join(args + extraArgs);
         if (gpu):
             joined_args = "THEANO_FLAGS='device=gpu,floatX=float32' " + joined_args;
         print("Command string: %s" % (joined_args));
