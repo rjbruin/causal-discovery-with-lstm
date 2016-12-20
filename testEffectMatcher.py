@@ -20,8 +20,8 @@ def testEffectMatcher():
         if (i % 1000):
             print("%.2%% done" % (i / 10000.));
         
-        top = dataset.encodeExpression(dataset.expressionsByPrefix.expressions[i]);
-        bot = dataset.encodeExpression(dataset.expressionsByPrefix.primedExpressions[i]);
+        top = dataset.encodeExpression(dataset.expressionsByPrefix.expressions[i], 17);
+        bot = dataset.encodeExpression(dataset.expressionsByPrefix.primedExpressions[i], 17);
         
         test = dataset.effect_matcher_seq2ndmarkov_both(top, bot, 8, 2, True);
         if (not test):
