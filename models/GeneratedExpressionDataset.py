@@ -90,6 +90,8 @@ class GeneratedExpressionDataset(Dataset):
                         self.valid_checker = self.valid_seq2ndmarkov;
                     elif (self.config[key] == 'doubleoperator'):
                         self.valid_checker = self.valid_doubleoperator;
+        print(self.effect_matcher);
+        print(self.valid_checker);
         
         # Digits are pre-assigned 0-self.digits
         self.oneHot = {};
