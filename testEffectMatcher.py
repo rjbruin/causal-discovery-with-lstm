@@ -8,7 +8,7 @@ from models.GeneratedExpressionDataset import GeneratedExpressionDataset;
 
 def testEffectMatcher():
     print("Preloading data...");
-    dataset = GeneratedExpressionDataset('../data/seq2ndmarkov_both/all.txt', '../data/seq2ndmarkov_both/test.txt', '../data/seq2ndmarkov_both/config.json',
+    dataset = GeneratedExpressionDataset('./data/seq2ndmarkov_both/all.txt', './data/seq2ndmarkov_both/test.txt', './data/seq2ndmarkov_both/config.json',
                                          operators=2,
                                          digits=8,
                                          dataset_type=GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV,
