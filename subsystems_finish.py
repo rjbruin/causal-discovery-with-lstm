@@ -86,7 +86,8 @@ def print_stats(stats, parameters, prefix=''):
 
 def get_batch(isTrain, dataset, model, intervention_range, max_length, 
               debug=False, base_offset=12, 
-              seq2ndmarkov=False, bothcause=False, homogeneous=False):    
+              seq2ndmarkov=False, bothcause=False, homogeneous=False,
+              answering=False):    
     # Reseed the random generator to prevent generating identical batches
     np.random.seed();
     
@@ -147,12 +148,17 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
             else:
                 nrSamples = model.minibatch_size;
                 randomPrefix = np.random.randint(0,len(branch.fullExpressions));
+                
                 if (topcause):
                     subbatch.append((branch.fullExpressions[randomPrefix],
                                      branch.primedExpressions[randomPrefix]));
+                    if (answering):
+                        interventionLocation = branch.fullExpressions[randomPrefix].index("=");
                 else:
                     subbatch.append((branch.primedExpressions[randomPrefix],
                                      branch.fullExpressions[randomPrefix]));
+                    if (answering):
+                        interventionLocation = branch.primedExpressions[randomPrefix].index("=");
         
         # Add subbatch to batch
         batch.extend(subbatch);
@@ -209,7 +215,8 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
                                                                       base_offset=base_offset,
                                                                       seq2ndmarkov=parameters['dataset_type'] == 1,
                                                                       bothcause=parameters['bothcause'],
-                                                                      homogeneous=parameters['homogeneous']);
+                                                                      homogeneous=parameters['homogeneous'],
+                                                                      answering=parameters['answering']);
         for l in interventionLocations:
             stats['intervention_locations'][l] += 1;
             
@@ -389,7 +396,8 @@ if __name__ == '__main__':
                           base_offset=parameters['intervention_base_offset'],
                           seq2ndmarkov=parameters['dataset_type'] == 1,
                           bothcause=parameters['bothcause'],
-                          homogeneous=parameters['homogeneous']);
+                          homogeneous=parameters['homogeneous'],
+                          answering=parameters['answering']);
             profiler.stop('get train batch');
             
             # Make intervention locations into matrix

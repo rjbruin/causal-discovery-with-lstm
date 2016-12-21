@@ -83,7 +83,8 @@ argumentProcessors = {'name': processString,
                       'append_abstract': processBool,
                       'test_size': processFloat,
                       'test_offset': processFloat,
-                      'relu': processBool
+                      'relu': processBool,
+                      'answering': processBool
                       }
 defaults = {'output_name': "",
             'report_to_tracker': True,
@@ -137,7 +138,8 @@ defaults = {'output_name': "",
             'append_abstract': False,
             'test_size': 0.1,
             'test_offset': 0.,
-            'relu': False
+            'relu': False,
+            'answering': False
             }
 
 def processKeyValue(key,value):
