@@ -151,38 +151,20 @@ def writeToFiles(sequences,baseFilePath,test_percentage,isList=False):
 if __name__ == '__main__':
     # Settings
     test_size = 0.10;
-    
-#     folder = 'seq2ndmarkov';
-#     n = 1000000;
-#     max_digits = 10;
-#     max_ops = 3;
-#     top_to_bot_mutators = [lambda top, bot: _mutator_digit_copy(8, top, bot),
-#                            lambda top, bot: _mutator_digit_change(7, 6, top, bot)];
-#     bot_to_top_mutators = [lambda bot, top: _mutator_digit_copy(5, bot, top),
-#                            lambda bot, top: _mutator_digit_change(4, 3, bot, top)];
-#     length = 15;
-#     verbose = False;
-#     bothways = False;
 
-#     folder = 'seq2ndmarkov_2';
-#     n = 1000000;
-#     max_digits = 8;
-#     max_ops = 2;
-#     top_to_bot_mutators = {6: lambda top, bot: _mutator_digit_copy(6, top, bot),
-#                            1: lambda top, bot: _mutator_digit_copy(1, top, bot),
-#                            3: lambda top, bot: _mutator_digit_change(3, 5, top, bot),
-#                            0: lambda top, bot: _mutator_digit_change(0, 3, top, bot),
-#                            2: lambda top, bot: _mutator_digit_change(2, 0, top, bot)};
-#     bot_to_top_mutators = {7: lambda bot, top: _mutator_digit_copy(7, bot, top),
-#                            2: lambda bot, top: _mutator_digit_copy(2, bot, top),
-#                            4: lambda bot, top: _mutator_digit_change(4, 3, bot, top),
-#                            1: lambda bot, top: _mutator_digit_change(1, 7, bot, top),
-#                            0: lambda bot, top: _mutator_digit_change(0, 4, bot, top)};
-#     length = 15;
-#     verbose = False;
-#     bothways = False;
-    
-    folder = 'seq2ndmarkov_both_fixed';
+    # folder = 'seq2ndmarkov_fixed';
+    # n = 1000000;
+    # max_digits = 10;
+    # max_ops = 3;
+    # top_to_bot_mutators = [lambda top, bot, start: _mutator_digit_copy(8, top, bot, start),
+    #                        lambda top, bot, start: _mutator_digit_change(7, 6, top, bot, start)];
+    # bot_to_top_mutators = [lambda bot, top, start: _mutator_digit_copy(5, bot, top, start),
+    #                        lambda bot, top, start: _mutator_digit_change(4, 3, bot, top, start)];
+    # length = 15;
+    # verbose = False;
+    # bothways = False;
+
+    folder = 'seq2ndmarkov_2_fixed';
     n = 1000000;
     max_digits = 8;
     max_ops = 2;
@@ -198,7 +180,25 @@ if __name__ == '__main__':
                            0: lambda bot, top, start: _mutator_digit_change(0, 4, bot, top, start)};
     length = 15;
     verbose = False;
-    bothways = True;
+    bothways = False;
+
+    # folder = 'seq2ndmarkov_both_fixed';
+    # n = 1000000;
+    # max_digits = 8;
+    # max_ops = 2;
+    # top_to_bot_mutators = {6: lambda top, bot, start: _mutator_digit_copy(6, top, bot, start),
+    #                        1: lambda top, bot, start: _mutator_digit_copy(1, top, bot, start),
+    #                        3: lambda top, bot, start: _mutator_digit_change(3, 5, top, bot, start),
+    #                        0: lambda top, bot, start: _mutator_digit_change(0, 3, top, bot, start),
+    #                        2: lambda top, bot, start: _mutator_digit_change(2, 0, top, bot, start)};
+    # bot_to_top_mutators = {7: lambda bot, top, start: _mutator_digit_copy(7, bot, top, start),
+    #                        2: lambda bot, top, start: _mutator_digit_copy(2, bot, top, start),
+    #                        4: lambda bot, top, start: _mutator_digit_change(4, 3, bot, top, start),
+    #                        1: lambda bot, top, start: _mutator_digit_change(1, 7, bot, top, start),
+    #                        0: lambda bot, top, start: _mutator_digit_change(0, 4, bot, top, start)};
+    # length = 15;
+    # verbose = False;
+    # bothways = True;
 
     # Generate other variables
     trainFilePath = folder + '/train.txt';
@@ -224,5 +224,5 @@ if __name__ == '__main__':
     if (not stop):
         generateSequences(folder, n, test_size,
                           top_to_bot_mutators, bot_to_top_mutators,
-                          length=length, 
+                          length=length,
                           verbose=verbose, bothways=bothways);

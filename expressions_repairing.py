@@ -7,8 +7,8 @@ Created on 24 feb. 2016
 import pickle;
 import numpy as np;
 
-import model.RecurrentNeuralNetwork as rnn;
-import model.GeneratedExpressionDataset as ge_dataset;
+import models.TheanoRecurrentNeuralNetwork as rnn;
+import models.GeneratedExpressionDataset as ge_dataset;
 
 if __name__ == '__main__':
     # Default settings
