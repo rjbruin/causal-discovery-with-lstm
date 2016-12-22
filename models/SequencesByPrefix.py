@@ -159,6 +159,10 @@ class SequencesByPrefix(object):
         
         return self.prefixedExpressions[availablePrefixes[prefix]].get_random_by_length(length-1, getStructure=getStructure);
     
+    def get_random(self):
+        candidate = np.random.randint(0,len(self.expressions));
+        expression = self.expressions[candidate];
+        return self.get(expression);
     
     
 #     def get_next(self, lastPath):

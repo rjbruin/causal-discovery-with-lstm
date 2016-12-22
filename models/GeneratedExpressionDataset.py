@@ -23,7 +23,8 @@ class GeneratedExpressionDataset(Dataset):
                  test_batch_size=10000, train_batch_size=10000,
                  max_training_size=False, max_testing_size=False,
                  sample_testing_size=False, 
-                 use_GO_symbol=False, finishExpressions=False,
+                 use_GO_symbol=False, 
+                 finishExpressions=False, repairExpressions=False,
                  reverse=False, copyMultipleExpressions=False,
                  operators=4, digits=10, only_cause_expression=False,
                  dataset_type=0, bothcause=False, debug=False,
@@ -43,6 +44,7 @@ class GeneratedExpressionDataset(Dataset):
         self.digits = digits;
         
         self.finishExpressions = finishExpressions;
+        self.repairExpressions = repairExpressions;
         self.reverse = reverse;
         self.copyMultipleExpressions = copyMultipleExpressions;
         
@@ -52,6 +54,8 @@ class GeneratedExpressionDataset(Dataset):
             self.processor = self.processSeq2ndMarkov;
         elif (self.copyMultipleExpressions):
             self.processor = self.processSampleCopyMultipleInputs;
+        elif (self.repairExpressions):
+            self.processor = self.processSampleRepairing;
         elif (self.finishExpressions):
             self.processor = self.processSampleCopyInput;
         else:
@@ -96,6 +100,8 @@ class GeneratedExpressionDataset(Dataset):
         for digit in range(self.digits):
             self.oneHot[str(digit)] = digit;
         symbols = ['+','-','*','/'][:self.operators] + ['(',')','=','_','G'];
+        if (self.repairExpressions):
+            symbols.append('x');
         i = max(self.oneHot.values())+1;
         for sym in symbols:
             self.oneHot[sym] = i;
@@ -127,7 +133,7 @@ class GeneratedExpressionDataset(Dataset):
         self.train_done = False;
         self.test_done = False;
         
-        if (self.finishExpressions or self.copyMultipleExpressions):
+        if (self.finishExpressions or self.copyMultipleExpressions or self.repairExpressions):
             # We need to save all expressions by answer for the fast lookup of
             # nearest labels
             self.preload(onlyStoreByPrefix=True, test_size=test_size, test_offset=test_offset);
@@ -300,7 +306,7 @@ class GeneratedExpressionDataset(Dataset):
             max_length = max(map(lambda a: a.shape[axis-1], data));
         else:
             max_length = fixed_length;
-        if (not self.only_cause_expression):
+        if (not self.only_cause_expression and not self.repairExpressions):
             nd_data = np.zeros((len(data), max_length, self.data_dim*2), dtype='float32');
         else:
             nd_data = np.zeros((len(data), max_length, self.data_dim), dtype='float32');
@@ -435,6 +441,27 @@ class GeneratedExpressionDataset(Dataset):
         targets.append(np.array([target]));
         labels.append(np.array(self.oneHot[right_hand]));
         expressions.append(expression);
+        
+        return data, targets, labels, expressions, 1;
+    
+    def processSampleRepairing(self, line, data, targets, labels, expressions):
+        # Get expression from line
+        expression, expression_prime = line.strip().split(";");
+        
+        # Generate encodings for data and target
+        X = np.zeros((len(expression),self.data_dim));
+        for i, literal in enumerate(expression):
+            X[i,self.oneHot[literal]] = 1.0;
+        
+        target = np.zeros((len(expression_prime),self.data_dim));
+        for i, literal in enumerate(expression_prime):
+            target[i,self.oneHot[literal]] = 1.0;
+        
+        # Set training variables
+        data.append(np.array(X));
+        targets.append(np.array(target));
+        labels.append(np.argmax(expression_prime));
+        expressions.append(expression_prime);
         
         return data, targets, labels, expressions, 1;
     
