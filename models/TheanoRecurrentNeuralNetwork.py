@@ -385,11 +385,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             previous_hidden_2, sentence_index, intervention_locations,
                             hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo,
                             hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, hWY, hbY, sd, ed, abstractExpressions):
-        forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + given_X.dot(XWf));
-        input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + given_X.dot(XWi));
-        candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + given_X.dot(XWc));
+        forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + previous_output.dot(XWf));
+        input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + previous_output.dot(XWi));
+        candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + previous_output.dot(XWc));
         cell = forget_gate * previous_hidden_1 + input_gate * candidate_cell;
-        output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + given_X.dot(XWo));
+        output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + previous_output.dot(XWo));
         hidden_1 = output_gate * cell;
         
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
@@ -437,11 +437,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     def lstm_predict_double_no_output(self, current_X, previous_hidden_1, previous_hidden_2,
                                       hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo,
                                       hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, sd, ed):
-        forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + current_X.dot(XWf));
-        input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + current_X.dot(XWi));
-        candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + current_X.dot(XWc));
+        forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + current_X.dot(XWf[sd:ed,:]));
+        input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + current_X.dot(XWi[sd:ed,:]));
+        candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + current_X.dot(XWc[sd:ed,:]));
         cell = forget_gate * previous_hidden_1 + input_gate * candidate_cell;
-        output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + current_X.dot(XWo));
+        output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + current_X.dot(XWo[sd:ed,:]));
         hidden_1 = output_gate * cell;
         
         forget_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWf2) + hidden_1.dot(XWf2));
@@ -459,11 +459,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, 
                             hWf3, XWf3, hWi3, XWi3, hWc3, XWc3, hWo3, XWo3,
                             hWY, hbY, sd, ed, abstractExpressions):
-        forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + given_X.dot(XWf));
-        input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + given_X.dot(XWi));
-        candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + given_X.dot(XWc));
+        forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + previous_output.dot(XWf[sd:ed,:]));
+        input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + previous_output.dot(XWi[sd:ed,:]));
+        candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + previous_output.dot(XWc[sd:ed,:]));
         cell = forget_gate * previous_hidden_1 + input_gate * candidate_cell;
-        output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + given_X.dot(XWo));
+        output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + previous_output.dot(XWo[sd:ed,:]));
         hidden_1 = output_gate * cell;
         
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
@@ -661,7 +661,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             raise ValueError("n_max_digits too small! Increase to %d" % training_labels.shape[1]);
     
     def sgd(self, dataset, data, label, learning_rate, emptySamples=None, 
-            expressions=None, use_label_search=False,
+            expressions=None,
             interventionLocations=0, topcause=True,
             bothcause=False, nrSamples=None,
             abstractExpressions=None):
@@ -669,20 +669,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         The intervention location for finish expressions must be the same for 
         all samples in this batch.
         """
-        if (use_label_search):
-            return self.sgd_finish_expression(dataset, data, expressions, interventionLocations, learning_rate, nrSamples, topcause, bothcause)
-        else:
-            if (nrSamples is None):
-                nrSamples = self.minibatch_size;
-            if (abstractExpressions is None):
-                if (self.appendAbstract):
-                    abstractExpressions = np.zeros((self.minibatch_size, 13), dtype='float32');
-                else:
-                    abstractExpressions = np.zeros((self.minibatch_size, self.hidden_dim), dtype='float32');
-            
-            data = np.swapaxes(data, 0, 1);
-            label = np.swapaxes(label, 0, 1);
-            return self._sgd(data, label, interventionLocations, nrSamples, abstractExpressions);
+        if (nrSamples is None):
+            nrSamples = self.minibatch_size;
+        if (abstractExpressions is None):
+            if (self.appendAbstract):
+                abstractExpressions = np.zeros((self.minibatch_size, 13), dtype='float32');
+            else:
+                abstractExpressions = np.zeros((self.minibatch_size, self.hidden_dim), dtype='float32');
+        
+        data = np.swapaxes(data, 0, 1);
+        label = np.swapaxes(label, 0, 1);
+        return self._sgd(data, label, interventionLocations, nrSamples, abstractExpressions);
     
     def sgd_finish_expression(self, dataset, encoded_expressions, expressions,
                               interventionLocations, learning_rate, nrSamples, 

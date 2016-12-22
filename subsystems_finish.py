@@ -223,25 +223,9 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
         # Make intervention locations into matrix
         interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
         
-        # Create init hidden layers from abstract expressions
-        abstractExpressions = np.zeros((model.minibatch_size, model.hidden_dim), dtype='float32');
-        if (parameters['use_abstract']):
-            for i in range(model.minibatch_size):
-                # TODO: make this work with subsystems
-                abstractExpr = dataset.abstractExpression(test_expressions[i][0]);
-                abstractExpressions[i,:abstractExpr.shape[0]] = abstractExpr;
-        
-        # Append abstract to data dim
-        if (parameters['append_abstract']):
-            abstractExpressions = np.zeros((model.minibatch_size,13), dtype='float32');
-            for i in range(model.minibatch_size):
-                # TODO: make this work with subsystems
-                abstractExpressions[i] = dataset.abstractExpression(target_expressions[i][0]);
-        
         predictions, other = model.predict(test_data, test_targets, 
                                            interventionLocations=interventionLocations,
-                                           nrSamples=nrSamples,
-                                           abstractExpressions=abstractExpressions); 
+                                           nrSamples=nrSamples); 
         totalError += other['error'];
         
         if (parameters['only_cause_expression']):
@@ -423,8 +407,7 @@ if __name__ == '__main__':
             outputs = model.sgd(dataset, data, target, parameters['learning_rate'],
                                   nrSamples=model.minibatch_size, expressions=target_expressions,
                                   interventionLocations=interventionLocations,
-                                  topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause'],
-                                  use_label_search=parameters['use_label_search'], abstractExpressions=abstractExpressions);
+                                  topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
             total_error += outputs[0];
             profiler.stop('train sgd');
             
