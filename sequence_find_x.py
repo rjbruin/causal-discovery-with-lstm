@@ -113,7 +113,7 @@ def test(model, dataset, parameters, max_length, print_samples=False,
                 print(prefix + "Data          1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                    np.argmax(test_data[i],len(test_data.shape)-2)))));
                 print(prefix + "Prediction    1: %s" % dataset.findSymbol[predictions[i]]);
-                print(prefix + "Used label    1: %s" % test_labels[i]);
+                print(prefix + "Used label    1: %s" % dataset.findSymbol[test_labels[i]]);
             printed_samples = True;
 
         if (stats['prediction_size'] % printing_interval == 0):

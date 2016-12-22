@@ -124,7 +124,7 @@ def test(model, dataset, parameters, max_length, print_samples=False,
         # Print samples
         if (print_samples and not printed_samples):
             for i in range(nrSamples):
-                prefix = "# ";
+                prefix = "";
                 print(prefix + "Data          1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                    np.argmax(test_targets[i,:,:model.data_dim],len(test_data.shape)-2)))));
                 print(prefix + "Prediction    1: %s" % "".join(map(lambda x: dataset.findSymbol[x], predictions[i])));
