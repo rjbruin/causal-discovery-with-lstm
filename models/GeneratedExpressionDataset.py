@@ -102,9 +102,10 @@ class GeneratedExpressionDataset(Dataset):
         self.oneHot = {};
         for digit in range(self.digits):
             self.oneHot[str(digit)] = digit;
-        symbols = ['+','-','*','/'][:self.operators] + ['(',')','=','_','G'];
+        symbols = ['+','-','*','/'][:self.operators] + ['(',')','='];
         if (self.repairExpressions or self.find_x):
             symbols.append('x');
+        symbols.extend(['_','G']);
         i = max(self.oneHot.values())+1;
         for sym in symbols:
             self.oneHot[sym] = i;
@@ -452,13 +453,15 @@ class GeneratedExpressionDataset(Dataset):
         expression, expression_prime = line.strip().split(";");
         
         # Generate encodings for data and target
-        X = np.zeros((len(expression),self.data_dim));
+        X = np.zeros((len(expression)+1,self.data_dim));
         for i, literal in enumerate(expression):
             X[i,self.oneHot[literal]] = 1.0;
+        X[i+1,self.EOS_symbol_index] = 1.0;
         
-        target = np.zeros((len(expression_prime),self.data_dim));
+        target = np.zeros((len(expression_prime)+1,self.data_dim));
         for i, literal in enumerate(expression_prime):
             target[i,self.oneHot[literal]] = 1.0;
+        target[i+1,self.EOS_symbol_index] = 1.0;
         
         # Set training variables
         data.append(np.array(X));
@@ -598,6 +601,7 @@ class GeneratedExpressionDataset(Dataset):
         expression_embeddings = np.zeros((len(expression),self.data_dim));
         for i, literal in enumerate(expression):
             expression_embeddings[i,self.oneHot[literal]] = 1.0;
+        expression_embeddings[i+1,self.EOS_symbol_index] = 1.0;
         
         target_embedding = np.zeros((self.data_dim));
         target_embedding[self.oneHot[x]] = 1.;
