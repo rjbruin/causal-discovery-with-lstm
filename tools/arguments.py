@@ -85,7 +85,8 @@ argumentProcessors = {'name': processString,
                       'test_offset': processFloat,
                       'relu': processBool,
                       'answering': processBool,
-                      'sequence_repairing': processBool
+                      'sequence_repairing': processBool,
+                      'find_x': processBool
                       }
 defaults = {'output_name': "",
             'report_to_tracker': True,
@@ -141,7 +142,8 @@ defaults = {'output_name': "",
             'test_offset': 0.,
             'relu': False,
             'answering': False,
-            'sequence_repairing': False
+            'sequence_repairing': False,
+            'find_x': False
             }
 
 def processKeyValue(key,value):

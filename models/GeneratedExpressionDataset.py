@@ -24,7 +24,7 @@ class GeneratedExpressionDataset(Dataset):
                  max_training_size=False, max_testing_size=False,
                  sample_testing_size=False, 
                  use_GO_symbol=False, 
-                 finishExpressions=False, repairExpressions=False,
+                 finishExpressions=False, repairExpressions=False, find_x=False,
                  reverse=False, copyMultipleExpressions=False,
                  operators=4, digits=10, only_cause_expression=False,
                  dataset_type=0, bothcause=False, debug=False,
@@ -45,6 +45,7 @@ class GeneratedExpressionDataset(Dataset):
         
         self.finishExpressions = finishExpressions;
         self.repairExpressions = repairExpressions;
+        self.find_x = find_x;
         self.reverse = reverse;
         self.copyMultipleExpressions = copyMultipleExpressions;
         
@@ -56,6 +57,8 @@ class GeneratedExpressionDataset(Dataset):
             self.processor = self.processSampleCopyMultipleInputs;
         elif (self.repairExpressions):
             self.processor = self.processSampleRepairing;
+        elif (self.find_x):
+            self.processor = self.processSampleFindX;
         elif (self.finishExpressions):
             self.processor = self.processSampleCopyInput;
         else:
@@ -100,7 +103,7 @@ class GeneratedExpressionDataset(Dataset):
         for digit in range(self.digits):
             self.oneHot[str(digit)] = digit;
         symbols = ['+','-','*','/'][:self.operators] + ['(',')','=','_','G'];
-        if (self.repairExpressions):
+        if (self.repairExpressions or self.find_x):
             symbols.append('x');
         i = max(self.oneHot.values())+1;
         for sym in symbols:
@@ -133,7 +136,7 @@ class GeneratedExpressionDataset(Dataset):
         self.train_done = False;
         self.test_done = False;
         
-        if (self.finishExpressions or self.copyMultipleExpressions or self.repairExpressions):
+        if (self.finishExpressions or self.copyMultipleExpressions or self.repairExpressions or self.find_x):
             # We need to save all expressions by answer for the fast lookup of
             # nearest labels
             self.preload(onlyStoreByPrefix=True, test_size=test_size, test_offset=test_offset);
@@ -306,7 +309,7 @@ class GeneratedExpressionDataset(Dataset):
             max_length = max(map(lambda a: a.shape[axis-1], data));
         else:
             max_length = fixed_length;
-        if (not self.only_cause_expression and not self.repairExpressions):
+        if (not self.only_cause_expression and not self.repairExpressions and not self.find_x):
             nd_data = np.zeros((len(data), max_length, self.data_dim*2), dtype='float32');
         else:
             nd_data = np.zeros((len(data), max_length, self.data_dim), dtype='float32');
@@ -582,6 +585,28 @@ class GeneratedExpressionDataset(Dataset):
             expressions.append((expression, expression_prime));
         else:
             expressions.append((expression, ""));
+        
+        return data, targets, labels, expressions, 1;
+    
+    def processSampleFindX(self, line, data, targets, labels, expressions):
+        expression, _ = line.strip().split(";");
+        
+        x_position = np.random.randint(0,len(expression));
+        x = expression[x_position];
+        expression = expression[:x_position] + 'x' + expression[x_position+1:];
+        
+        expression_embeddings = np.zeros((len(expression),self.data_dim));
+        for i, literal in enumerate(expression):
+            expression_embeddings[i,self.oneHot[literal]] = 1.0;
+        
+        target_embedding = np.zeros((self.data_dim));
+        target_embedding[self.oneHot[x]] = 1.;
+        
+        # Append data
+        data.append(expression_embeddings);
+        labels.append(self.oneHot[x]);
+        targets.append(target_embedding);
+        expressions.append(expression);
         
         return data, targets, labels, expressions, 1;
     
