@@ -598,7 +598,7 @@ class GeneratedExpressionDataset(Dataset):
         x = expression[x_position];
         expression = expression[:x_position] + 'x' + expression[x_position+1:];
         
-        expression_embeddings = np.zeros((len(expression),self.data_dim));
+        expression_embeddings = np.zeros((len(expression)+1,self.data_dim));
         for i, literal in enumerate(expression):
             expression_embeddings[i,self.oneHot[literal]] = 1.0;
         expression_embeddings[i+1,self.EOS_symbol_index] = 1.0;
