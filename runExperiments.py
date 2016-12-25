@@ -88,18 +88,21 @@ if __name__ == '__main__':
         iterativeArgs = raw_input("(optional) Add one iterative parameter where values are separated by commas (e.g. '--key value1,value2,value3'): ").split(" ");
         explodedArgs = [];
         key = iterativeArgs[0];
-        for val in iterativeArgs[1].split(","):
+        suffices = [];
+        for k, val in enumerate(iterativeArgs[1].split(",")):
+            suffices.append(raw_input("Provide the suffix to the name for iteration %d: " % k));
             explodedArgs.append("%s %s" % (key, val));
-        iterative_args[i] = explodedArgs;
+        iterative_args[i] = (explodedArgs, suffices);
     
     # Run experiments
     trackerStack = [];
     for i,exp in enumerate(experiments):
         # Check for iterative args
         if (i not in iterative_args):
-            iterative_args[i] = [''];
+            iterative_args[i] = ([''],['']);
         
-        for j, it_args in enumerate(iterative_args[i]):
+        all_it_args, suffices = iterative_args[i];
+        for j, it_args in enumerate(all_it_args):
             print("Beginning experiment %s\n" % exp['name']);
             
             extraArgs = experiment_args[i];
@@ -121,12 +124,12 @@ if __name__ == '__main__':
                     print("WARNING! Experiment could not be posted to tracker!");
                 
             outputPath = experiment_outputPaths[i];
-            args = ['python',exp['script'],'--output_name',output_name];
+            args = ['python',exp['script'],'--output_name',exp['name'] + suffices[j]];
             for key,value in exp.items():
                 if (key not in ['script','name']):
                     args.append("--" + key);
                     args.append(str(value));
-            joined_args = " ".join(args + extraArgs + it_args);
+            joined_args = " ".join(args + extraArgs) + " " + it_args;
             if (gpu):
                 joined_args = "THEANO_FLAGS='device=gpu,floatX=float32' " + joined_args;
             print("Command string: %s" % (joined_args));
