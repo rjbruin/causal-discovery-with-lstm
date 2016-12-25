@@ -1202,6 +1202,14 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 stats['correct'] += 1.0;
                 stats['valid'] += 1.0;
                 stats['inDataset'] += 1.0;
+                
+                # Do local scoring for seq2ndmarkov
+                if (self.seq2ndmarkov):
+                    stats['localSize'] += float(len(causeExpressionPrediction)/3);
+                    stats['localValid'] += float(len(causeExpressionPrediction)/3);
+                    if (self.only_cause_expression is False):
+                        stats['localValidCause'] += float(len(causeExpressionPrediction)/3);
+                        stats['localValidEffect'] += float(len(effectExpressionPrediction)/3);
             else:
                 # Save sample correct
                 if (self.only_cause_expression is False):
@@ -1227,6 +1235,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     raise ValueError("Difference is 0 but sample is not correct! causeIndex: %d, cause: %s, effect: %s, difference1: %d, difference2: %d, cause matches label: %d, effect matches label: %d, effectMatch: %d" % 
                                      (causeIndex, causeExpressionPrediction, effectExpressionPrediction, difference1, difference2, int(causeMatchesLabel), int(effectMatchesLabel), int(effectMatch)));
                 stats['error_histogram'][difference1 + difference2] += 1;
+                
+                # Do local scoring for seq2ndmarkov
+                for j in range(2,len(causeExpressionPrediction),3):
+                    stats['localSize'] += 1.0;
+                    if (dataset.valid_checker(causeExpressionPrediction[j-2:j+2],dataset.digits,dataset.operators)):
+                        stats['localValid'] += 1.0;
+                        if (self.only_cause_expression is False):
+                            stats['localValidCause'] += 1.0;
+                    if (self.only_cause_expression is not False):
+                        if (dataset.valid_checker(effectExpressionPrediction[j-2:j+2],dataset.digits,dataset.operators)):
+                            stats['localValidEffect'] += 1.0;
             
             # Digit precision and prediction size computation
             i = 0;

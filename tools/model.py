@@ -102,6 +102,8 @@ def set_up_statistics(output_dim, n_max_digits):
             'structureValidCause': 0.0, 'structureValidEffect': 0.0,
             'structureCorrectTop': 0.0, 'structureCorrectBot': 0.0,
             'structureValidTop': 0.0, 'structureValidBot': 0.0, 
+            'localValidCause': 0.0, 'localValidEffect': 0.0,
+            'localValid': 0.0, 'localSize': 0,
             'structureCorrect': 0.0, 'effectCorrect': 0.0, 'noEffect': 0.0,
             'error_histogram': {k: 0 for k in range(1,50)},
             'prediction_1_size': 0, 

@@ -33,6 +33,9 @@ if __name__ == '__main__':
                    'Validity': 'Valid',
                    'Validity (c)': 'Structure valid cause',
                    'Validity (e)': 'Structure valid effect',
+                   'Local validity': 'Local valid',
+                   'Local validity (c)': 'Local valid cause',
+                   'Local validity (e)': 'Local valid effect',
                    'In dataset': 'In dataset',
                    'Skipped': 'Skipped because of zero prediction length',
                    'Unique predictions': 'Unique labels predicted'};
@@ -60,6 +63,7 @@ if __name__ == '__main__':
     # Check if values can be stored
     experiment_outputPaths = [];
     experiment_args = [];
+    iterative_args = {};
     for i, exp in enumerate(experiments):
         # Ask for name
         newName = raw_input("Experiment %d name (%s): " % (i+1,exp['name']));
@@ -80,61 +84,73 @@ if __name__ == '__main__':
         if ('--repetitions' in extraArgs):
             index = extraArgs.index('--repetitions');
             experiments[i]['repetitions'] = int(extraArgs[index+1]);
+        
+        iterativeArgs = raw_input("(optional) Add one iterative parameter where values are separated by commas (e.g. '--key value1,value2,value3'): ").split(" ");
+        explodedArgs = [];
+        key = iterativeArgs[0];
+        for val in iterativeArgs[1].split(","):
+            explodedArgs.append("%s %s" % (key, val));
+        iterative_args[i] = explodedArgs;
     
     # Run experiments
     trackerStack = [];
     for i,exp in enumerate(experiments):
-        print("Beginning experiment %s\n" % exp['name']);
+        # Check for iterative args
+        if (i not in iterative_args):
+            iterative_args[i] = [''];
         
-        extraArgs = experiment_args[i];
-        report = True;
-        if ('report_to_tracker' in exp):
-            report = exp['report_to_tracker'] == 'True';
-        if ('--report_to_tracker' in extraArgs):
-            index = extraArgs.index('--report_to_tracker');
-            report = extraArgs[index+1] == 'True';
-        if (report):
-            if ('multipart_dataset' in exp):
-                datasets = exp['multipart_dataset'];
-            else:
-                datasets = 1;
-            experimentId = trackerreporter.initExperiment(exp['name'], totalProgress=exp['repetitions'], 
-                                                totalDatasets=datasets, scoreTypes=score_types.keys(), 
-                                                scoreIdentifiers=score_types);
-            if (experimentId is False):
-                print("WARNING! Experiment could not be posted to tracker!");
+        for j, it_args in iterative_args[i]:
+            print("Beginning experiment %s\n" % exp['name']);
             
-        outputPath = experiment_outputPaths[i];
-        args = ['python',exp['script'],'--output_name',output_name];
-        for key,value in exp.items():
-            if (key not in ['script','name']):
-                args.append("--" + key);
-                args.append(str(value));
-        joined_args = " ".join(args + extraArgs);
-        if (gpu):
-            joined_args = "THEANO_FLAGS='device=gpu,floatX=float32' " + joined_args;
-        print("Command string: %s" % (joined_args));
-        p = subprocess.Popen(joined_args,stdout=PIPE,stderr=STDOUT,shell=True);
-        
-        currentBatch = 1;
-        currentIteration = 1;
-        currentDataset = 1;
-        while (p.poll() == None):
-            out = p.stdout.readline().strip();
-            if (len(out) > 0):
-                print(out);
-                if (out[:5] == 'Batch'):
-                    currentBatch = int(out.split(" ")[1]);
-                    currentIteration = int(out.split(" ")[3]);
-                    currentDataset = int(out.split(" ")[7]);
-                # Compose data object
-                if (report):
-                    trackerreporter.fromExperimentOutput(experimentId, out, 
-                        atProgress=currentIteration, atDataset=currentDataset);
-                        
-                if (out != '' and out[0] != '#'):
-                    # Write to file
-                    f = open(outputPath,'a');
-                    f.write(out.strip() + "\n");
-                    f.close();
+            extraArgs = experiment_args[i];
+            report = True;
+            if ('report_to_tracker' in exp):
+                report = exp['report_to_tracker'] == 'True';
+            if ('--report_to_tracker' in extraArgs):
+                index = extraArgs.index('--report_to_tracker');
+                report = extraArgs[index+1] == 'True';
+            if (report):
+                if ('multipart_dataset' in exp):
+                    datasets = exp['multipart_dataset'];
+                else:
+                    datasets = 1;
+                experimentId = trackerreporter.initExperiment(exp['name'], totalProgress=exp['repetitions'], 
+                                                    totalDatasets=datasets, scoreTypes=score_types.keys(), 
+                                                    scoreIdentifiers=score_types);
+                if (experimentId is False):
+                    print("WARNING! Experiment could not be posted to tracker!");
+                
+            outputPath = experiment_outputPaths[i];
+            args = ['python',exp['script'],'--output_name',output_name];
+            for key,value in exp.items():
+                if (key not in ['script','name']):
+                    args.append("--" + key);
+                    args.append(str(value));
+            joined_args = " ".join(args + extraArgs + it_args);
+            if (gpu):
+                joined_args = "THEANO_FLAGS='device=gpu,floatX=float32' " + joined_args;
+            print("Command string: %s" % (joined_args));
+            p = subprocess.Popen(joined_args,stdout=PIPE,stderr=STDOUT,shell=True);
+            
+            currentBatch = 1;
+            currentIteration = 1;
+            currentDataset = 1;
+            while (p.poll() == None):
+                out = p.stdout.readline().strip();
+                if (len(out) > 0):
+                    print(out);
+                    if (out[:5] == 'Batch'):
+                        currentBatch = int(out.split(" ")[1]);
+                        currentIteration = int(out.split(" ")[3]);
+                        currentDataset = int(out.split(" ")[7]);
+                    # Compose data object
+                    if (report):
+                        trackerreporter.fromExperimentOutput(experimentId, out, 
+                            atProgress=currentIteration, atDataset=currentDataset);
+                            
+                    if (out != '' and out[0] != '#'):
+                        # Write to file
+                        f = open(outputPath,'a');
+                        f.write(out.strip() + "\n");
+                        f.close();
                     

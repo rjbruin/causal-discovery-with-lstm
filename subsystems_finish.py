@@ -46,11 +46,14 @@ def print_stats(stats, parameters, prefix=''):
         output += prefix + "Effect score including no effect: %.2f percent\n" % (stats['allEffectScore']*100);
     
     output += prefix + "Valid: %.2f percent\n" % (stats['validScore']*100);
+    output += prefix + "Local valid: %.2f percent\n" % (stats['localValidScore']*100);
     if (not parameters['only_cause_expression']):
         output += prefix + "Structure valid cause: %.2f percent\n" % (stats['structureValidScoreCause']*100);
         output += prefix + "Structure valid effect: %.2f percent\n" % (stats['structureValidScoreEffect']*100);
         output += prefix + "Structure valid top: %.2f percent\n" % (stats['structureValidScoreTop']*100);
         output += prefix + "Structure valid bot: %.2f percent\n" % (stats['structureValidScoreBot']*100);
+        output += prefix + "Local valid cause: %.2f percent\n" % (stats['localValidScoreCause']*100);
+        output += prefix + "Local valid effect: %.2f percent\n" % (stats['localValidScoreEffect']*100);
     
     if (parameters['test_in_dataset']):
         output += prefix + "In dataset: %.2f percent\n" % (stats['inDatasetScore']*100);
