@@ -99,7 +99,7 @@ if __name__ == '__main__':
         if (i not in iterative_args):
             iterative_args[i] = [''];
         
-        for j, it_args in iterative_args[i]:
+        for j, it_args in enumerate(iterative_args[i]):
             print("Beginning experiment %s\n" % exp['name']);
             
             extraArgs = experiment_args[i];
