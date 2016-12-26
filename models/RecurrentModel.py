@@ -76,9 +76,6 @@ class RecurrentModel(object):
             stats['structureValidScoreEffect'] = stats['structureValidEffect'] / float(stats['prediction_size']);
             stats['structureValidScoreTop'] = stats['structureValidTop'] / float(stats['prediction_size']);
             stats['structureValidScoreBot'] = stats['structureValidBot'] / float(stats['prediction_size']);
-            stats['localValidScore'] = stats['localValid'] / float(stats['localSize']);
-            stats['localValidScoreCause'] = stats['localValidCause'] / float(stats['localSize'])
-            stats['localValidScoreEffect'] = stats['localValidEffect'] / float(stats['localSize']);
             stats['inDatasetScore'] = stats['inDataset'] / float(stats['prediction_size']);
         else:
             stats['score'] = 0.0;
@@ -94,11 +91,17 @@ class RecurrentModel(object):
             stats['structureValidScoreEffect'] = 0.0;
             stats['structureValidScoreTop'] = 0.0;
             stats['structureValidScoreBot'] = 0.0;
-            stats['localValidScore'] = 0.0;
-            stats['localValidScoreCause'] = 0.0;
-            stats['localValidScoreEffect'] = 0.0;
             stats['inDatasetScore'] = 0.0;
         
+		if (stats['localSize'] > 0):
+			stats['localValidScore'] = stats['localValid'] / float(stats['localSize']);
+            stats['localValidScoreCause'] = stats['localValidCause'] / float(stats['localSize'])
+            stats['localValidScoreEffect'] = stats['localValidEffect'] / float(stats['localSize']);
+		else:
+			stats['localValidScore'] = 0.0;
+            stats['localValidScoreCause'] = 0.0;
+            stats['localValidScoreEffect'] = 0.0;
+		
         if (stats['digit_prediction_size'] > 0):
             stats['digit_score'] = stats['digit_correct'] / float(stats['digit_prediction_size']);
         else:

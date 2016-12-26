@@ -1243,7 +1243,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         stats['localValid'] += 1.0;
                         if (self.only_cause_expression is False):
                             stats['localValidCause'] += 1.0;
-                    if (self.only_cause_expression is not False):
+                    if (self.only_cause_expression is False):
                         if (dataset.valid_checker(effectExpressionPrediction[j-2:j+2],dataset.digits,dataset.operators)):
                             stats['localValidEffect'] += 1.0;
             
