@@ -7,7 +7,7 @@ Created on 8 dec. 2016
 import numpy as np;
 from theano import tensor as T;
 import theano;
-import lasagne;
+import lasagne
 
 from CausalNode import *
 
@@ -28,15 +28,15 @@ def causalNeuralNetwork(data_dim, hidden_dim, output_dim):
     #prediction = output > 0.5;
     #hidden_prediction = hidden > 0.;
     
-    hidden = X.dot(XWh) + Xbh;
-    output = hidden.dot(hWY) + hbY;
+    hidden = T.tanh(X.dot(XWh) + Xbh);
+    output = T.tanh(hidden.dot(hWY) + hbY);
     prediction = output > 0.;
     hidden_prediction = hidden > 0.;
 
     #softOutput = T.minimum(T.ones_like(output) * 0.999999999999,output);
     #softOutput = T.maximum(T.ones_like(output) * 0.000000000001,softOutput);
     #loss = - T.sum(Y * T.log(softOutput) + (1. - Y) * (T.log(1. - softOutput)));
-    loss = T.sqr(Y - output);
+    loss = T.mean(T.sqr(Y - output));
     #loss += T.sum(T.ones_like(XWh) - T.sqr(XWh));
     
     var_list = [XWh, Xbh, hWY, hbY];
@@ -95,6 +95,12 @@ def randomNetworks(n, input_dim, hidden_dim, output_dim):
         
     return networks;
 
+def shiftToTanh(data):
+    return (data*2.) - 1.;
+
+def shiftFromTanh(data):
+    return (data+1.) / 2.;
+
 if __name__ == '__main__':
     # Theano settings
     theano.config.floatX = 'float32';
@@ -141,7 +147,7 @@ if __name__ == '__main__':
                         layers = getLayeredValues(network, vals, toFloat=True);
                         data_values.append(layers[0]);
                         label_values.append(layers[2]);
-                    loss = sgd(np.array(data_values).astype('float32'), np.array(label_values).astype('float32'));
+                    loss = sgd(np.array(data_values).astype('float32'), shiftToTanh(np.array(label_values).astype('float32')));
                 
                 # Testing
 #                 print("INPUT\t\t\t/\tOUTPUT\t\t\t=>\tRESULT\t/\tHIDDEN IN\t/\tHIDDEN OUT")

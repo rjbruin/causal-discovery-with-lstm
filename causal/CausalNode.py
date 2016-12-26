@@ -97,8 +97,8 @@ def strNetwork(network):
 def strLearnedNetwork(network, weights):
     repr = "";
     
-#     bins = [(-1.,"!"),(-0.6,"?"),(-0.2,"-"),(0.2,"~"),(0.6,"=")];
-    bins = [(-1.,"!"),(-0.25,"-"),(0.25,"=")];
+    bins = [(-1.,"!+"),(-0.6,"!~"),(-0.2,"--"),(0.2,"=~"),(0.6,"=+")];
+#     bins = [(-1.,"!"),(-0.25,"-"),(0.25,"=")];
     
     for i,layer in enumerate(network[1:]):
         for x,node in enumerate(layer):
