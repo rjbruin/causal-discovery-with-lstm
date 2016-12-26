@@ -93,15 +93,15 @@ class RecurrentModel(object):
             stats['structureValidScoreBot'] = 0.0;
             stats['inDatasetScore'] = 0.0;
         
-		if (stats['localSize'] > 0):
-			stats['localValidScore'] = stats['localValid'] / float(stats['localSize']);
+        if (stats['localSize'] > 0):
+            stats['localValidScore'] = stats['localValid'] / float(stats['localSize']);
             stats['localValidScoreCause'] = stats['localValidCause'] / float(stats['localSize'])
             stats['localValidScoreEffect'] = stats['localValidEffect'] / float(stats['localSize']);
-		else:
-			stats['localValidScore'] = 0.0;
+        else:
+            stats['localValidScore'] = 0.0;
             stats['localValidScoreCause'] = 0.0;
             stats['localValidScoreEffect'] = 0.0;
-		
+        
         if (stats['digit_prediction_size'] > 0):
             stats['digit_score'] = stats['digit_correct'] / float(stats['digit_prediction_size']);
         else:
