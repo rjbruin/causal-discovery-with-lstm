@@ -11,6 +11,9 @@ import lasagne;
 
 from CausalNode import *
 
+def softmax(data):
+    return np.exp(data) / np.exp(np.sum(data))
+
 def causalNeuralNetwork(data_dim, hidden_dim, output_dim):
     X = T.fmatrix('X');
     Y = T.fmatrix('Y');
@@ -20,15 +23,21 @@ def causalNeuralNetwork(data_dim, hidden_dim, output_dim):
     hWY = theano.shared(np.random.uniform(-np.sqrt(1./hidden_dim),np.sqrt(1./hidden_dim),(hidden_dim, output_dim)), name='hWY');
     hbY = theano.shared(np.random.uniform(-np.sqrt(1./output_dim),np.sqrt(1./output_dim),(output_dim)), name='hbY');
     
-    hidden = T.tanh(((X-.5)*2.).dot(XWh) + Xbh);
-    output = (T.tanh(hidden.dot(hWY) + hbY) / 2.) + .5;
-    prediction = output > 0.5;
+    #hidden = T.tanh(((X-.5)*2.).dot(XWh) + Xbh);
+    #output = (T.tanh(hidden.dot(hWY) + hbY) / 2.) + .5;
+    #prediction = output > 0.5;
+    #hidden_prediction = hidden > 0.;
+    
+    hidden = X.dot(XWh) + Xbh;
+    output = hidden.dot(hWY) + hbY;
+    prediction = output > 0.;
     hidden_prediction = hidden > 0.;
 
-    softOutput = T.minimum(T.ones_like(output) * 0.999999999999,output);
-    softOutput = T.maximum(T.ones_like(output) * 0.000000000001,softOutput);
-    loss = - T.sum(Y * T.log(softOutput) + (1. - Y) * (T.log(1. - softOutput)));
-    loss += T.sum(T.ones_like(XWh) - T.sqr(XWh));
+    #softOutput = T.minimum(T.ones_like(output) * 0.999999999999,output);
+    #softOutput = T.maximum(T.ones_like(output) * 0.000000000001,softOutput);
+    #loss = - T.sum(Y * T.log(softOutput) + (1. - Y) * (T.log(1. - softOutput)));
+    loss = T.sqr(Y - output);
+    #loss += T.sum(T.ones_like(XWh) - T.sqr(XWh));
     
     var_list = [XWh, Xbh, hWY, hbY];
     gradients = T.grad(loss, var_list);
