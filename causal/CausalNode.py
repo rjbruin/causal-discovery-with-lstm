@@ -7,31 +7,31 @@ Created on 10 dec. 2016
 import numpy as np;
 
 class CausalNode:
-    
+
     RELATION_IDENTITY = 0;
     RELATION_NOT = 1;
     RELATION_XOR = 2;
     RELATION_AND = 3;
-    
+
     RELATIONS = 2;
-    
+
     relationStrings = ["= ","! ","| ","& "];
     relations = [lambda x: x,
                  lambda x: not x,
                  lambda x, y: x or y and not (x and y),
-                 lambda x, y: x and y]; 
-    
+                 lambda x, y: x and y];
+
     def __init__(self, name=None, incomingRelation=None, incomingNodes=[]):
         """
         Provide outgoing as a list of nodes.
-        Name must be unique in the network. 
+        Name must be unique in the network.
         """
         self.name = name;
         if (name is None):
             self.name = "".join([str(i) for i in np.random.randint((5))]);
         self.incomingRelation = incomingRelation;
         self.incomingNodes = incomingNodes;
-    
+
     def simulate(self, values):
         """
         Computes own value. Assumes all required variables have been computed.
@@ -50,7 +50,7 @@ class CausalNode:
                 # No incoming nodes: choose a random value
                 value = np.random.randint(0,2) == 0;
                 values[self.name] = value;
-        
+
         return values;
 
 def simulate(layers, values):
@@ -60,7 +60,7 @@ def simulate(layers, values):
     for layer in layers:
         for node in layer:
             values = node.simulate(values);
-    
+
     return values;
 
 def getLayeredValues(layers, values, toInt=False, toFloat=False):
@@ -81,7 +81,7 @@ def getLayeredValues(layers, values, toInt=False, toFloat=False):
 
 def strNetwork(network):
     repr = "";
-    
+
     for layer in network[1:]:
         for node in layer:
             if (node.incomingRelation is not None):
@@ -91,15 +91,15 @@ def strNetwork(network):
                 names += CausalNode.relationStrings[node.incomingRelation].join(map(lambda x: x.name, node.incomingNodes));
                 repr += "(" + names + ")";
             repr += node.name + "\t";
-    
+
     return repr;
 
 def strLearnedNetwork(network, weights):
     repr = "";
-    
+
     bins = [(-1.,"!+"),(-0.6,"!~"),(-0.2,"--"),(0.2,"=~"),(0.6,"=+")];
-#     bins = [(-1.,"!"),(-0.25,"-"),(0.25,"=")];
-    
+    # bins = [(-1.,"!"),(-0.25,"-"),(0.25,"=")];
+
     for i,layer in enumerate(network[1:]):
         for x,node in enumerate(layer):
             names = [];
@@ -112,5 +112,5 @@ def strLearnedNetwork(network, weights):
                 name = "%s %s" % (symbol, latent.name);
                 names.append(name);
             repr += "(" + ", ".join(names) + ")" + node.name + "\t";
-    
+
     return repr;

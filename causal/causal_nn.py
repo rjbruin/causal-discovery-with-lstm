@@ -22,31 +22,35 @@ def causalNeuralNetwork(data_dim, hidden_dim, output_dim):
     Xbh = theano.shared(np.random.uniform(-np.sqrt(1./hidden_dim),np.sqrt(1./hidden_dim),(hidden_dim)), name='Xbh');
     hWY = theano.shared(np.random.uniform(-np.sqrt(1./hidden_dim),np.sqrt(1./hidden_dim),(hidden_dim, output_dim)), name='hWY');
     hbY = theano.shared(np.random.uniform(-np.sqrt(1./output_dim),np.sqrt(1./output_dim),(output_dim)), name='hbY');
-    
-    #hidden = T.tanh(((X-.5)*2.).dot(XWh) + Xbh);
-    #output = (T.tanh(hidden.dot(hWY) + hbY) / 2.) + .5;
-    #prediction = output > 0.5;
-    #hidden_prediction = hidden > 0.;
-    
-    hidden = T.tanh(X.dot(XWh) + Xbh);
-    output = T.tanh(hidden.dot(hWY) + hbY);
-    prediction = output > 0.;
+
+    hidden = T.tanh(((X-.5)*2.).dot(XWh) + Xbh);
+    output = (T.tanh(hidden.dot(hWY) + hbY) / 2.) + .5;
+    prediction = output > 0.5;
     hidden_prediction = hidden > 0.;
 
-    #softOutput = T.minimum(T.ones_like(output) * 0.999999999999,output);
-    #softOutput = T.maximum(T.ones_like(output) * 0.000000000001,softOutput);
-    #loss = - T.sum(Y * T.log(softOutput) + (1. - Y) * (T.log(1. - softOutput)));
-    loss = T.mean(T.sqr(Y - output));
-    #loss += T.sum(T.ones_like(XWh) - T.sqr(XWh));
-    
+    # hidden = T.tanh(X.dot(XWh) + Xbh);
+    # # hidden = T.nnet.relu(X.dot(XWh) + Xbh);
+    # output = hidden.dot(hWY) + hbY;
+    # prediction = output > 0.;
+    # hidden_prediction = hidden > 0.;
+
+    weights_sum = (T.sum(abs(XWh)) + T.sum(abs(Xbh)) + T.sum(abs(hWY)) + T.sum(abs(hbY)));
+
+    softOutput = T.minimum(T.ones_like(output) * 0.999999999999,output);
+    softOutput = T.maximum(T.ones_like(output) * 0.000000000001,softOutput);
+    loss = - T.sum(Y * T.log(softOutput) + (1. - Y) * (T.log(1. - softOutput)));
+
+    # loss = T.mean(T.sqr(Y - output));
+    # loss += weights_sum;
+
     var_list = [XWh, Xbh, hWY, hbY];
     gradients = T.grad(loss, var_list);
     updates = lasagne.updates.rmsprop(gradients, var_list);
 #     updates = lasagne.updates.sgd(gradients, var_list, 0.01);
-    
+
     sgd = theano.function([X, Y], [loss], updates=updates);
-    predict = theano.function([X], [prediction]);
-    graph = theano.function([X], [prediction, hidden_prediction, hidden]);
+    predict = theano.function([X], [prediction, weights_sum]);
+    graph = theano.function([X], [prediction, hidden_prediction, hidden, weights_sum]);
 
     return sgd, predict, graph;
 
@@ -64,7 +68,7 @@ def randomNetworks(n, input_dim, hidden_dim, output_dim):
         for l in range(input_dim):
             node = CausalNode(name=("X%d" % l));
             input_layer.append(node);
-        
+
         latent_layer = [];
         for l in range(hidden_dim):
             relation = np.random.randint(0,CausalNode.RELATIONS);
@@ -77,7 +81,7 @@ def randomNetworks(n, input_dim, hidden_dim, output_dim):
                 incomingNodes.append(cause2);
             node = CausalNode(name=("Z%d" % l), incomingRelation=relation, incomingNodes=incomingNodes);
             latent_layer.append(node);
-        
+
         output_layer = [];
         for l in range(output_dim):
             relation = np.random.randint(0,CausalNode.RELATIONS);
@@ -90,9 +94,9 @@ def randomNetworks(n, input_dim, hidden_dim, output_dim):
                 incomingNodes.append(cause2);
             node = CausalNode(name=("Y%d" % l), incomingRelation=relation, incomingNodes=incomingNodes);
             output_layer.append(node);
-        
+
         networks.append([input_layer, latent_layer, output_layer]);
-        
+
     return networks;
 
 def shiftToTanh(data):
@@ -104,7 +108,7 @@ def shiftFromTanh(data):
 if __name__ == '__main__':
     # Theano settings
     theano.config.floatX = 'float32';
-    
+
     # Settings
     input_dim = 3;
     hidden_dim = 2;
@@ -115,11 +119,11 @@ if __name__ == '__main__':
     msize = 1000;
     reset_after_iteration = False;
     verbose = False;
-    
+
     # Theano and networks definition
     sgd, predict, graph = causalNeuralNetwork(input_dim, hidden_dim, output_dim);
     networks = randomNetworks(n_networks, input_dim, hidden_dim, output_dim);
-    
+
     # Train
     network_successes = [];
     for i,network in enumerate(networks):
@@ -147,14 +151,16 @@ if __name__ == '__main__':
                         layers = getLayeredValues(network, vals, toFloat=True);
                         data_values.append(layers[0]);
                         label_values.append(layers[2]);
-                    loss = sgd(np.array(data_values).astype('float32'), shiftToTanh(np.array(label_values).astype('float32')));
-                
+                    # loss = sgd(np.array(data_values).astype('float32'), shiftToTanh(np.array(label_values).astype('float32')));
+                    loss = sgd(np.array(data_values).astype('float32'), np.array(label_values).astype('float32'));
+
                 # Testing
 #                 print("INPUT\t\t\t/\tOUTPUT\t\t\t=>\tRESULT\t/\tHIDDEN IN\t/\tHIDDEN OUT")
                 correctCount = 0;
                 samples = 1000;
                 samples_processed = 0;
                 hidden_equals = [];
+                weight_sums = [];
                 for i in range(0,samples,msize):
                     data_values = [];
                     label_values = [];
@@ -164,50 +170,51 @@ if __name__ == '__main__':
                         data_values.append(layers[0]);
                         label_values.append(layers[2]);
                     samples_processed += msize;
-                    prediction, hidden_prediction, hidden = graph(np.array(data_values).astype('float32'));
+                    prediction, hidden_prediction, hidden, weights_sum = graph(np.array(data_values).astype('float32'));
+                    weight_sums.append(weights_sum);
                     for j in range(msize):
                         correct = all(np.equal(label_values[j],prediction[j]));
                         if (correct):
                             correctCount += 1;
-#                         print("%s\t/\t%s\t=>\t%s\t/\t%s\t/\t%s\t%s" % (str(map(bool,dataLayer)), str(map(bool,prediction)), 
-#                                                                        str(correct), str(map(bool,floatLayeredValues[0])), 
+#                         print("%s\t/\t%s\t=>\t%s\t/\t%s\t/\t%s\t%s" % (str(map(bool,dataLayer)), str(map(bool,prediction)),
+#                                                                        str(correct), str(map(bool,floatLayeredValues[0])),
 #                                                                        str(map(bool,hidden_prediction)),
 #                                                                        str(hidden)));
                     # TODO: fix hidden_equals.append(map(lambda (x,y): x == y,zip(map(bool,floatLayeredValues[1]),map(bool,hidden_prediction))));
-                
+
                 # TODO: fix hidden_equals = np.sum(np.array(hidden_equals),axis=0);
                 precision = (correctCount / float(samples_processed)) * 100.;
-                
+
                 if (verbose):
                     print("Iteration %d: %.2f%% (%d samples)" % (it, precision, it*(train_samples / msize)));
                 it += 1;
-                
+
                 if (reset_after_iteration):
                     resetAutoencoder(input_dim, hidden_dim, output_dim);
-            
+
             if (precision == 100.):
                 successes += 1;
-            
+
             resetAutoencoder(input_dim, hidden_dim, output_dim);
-            
+
             global XWh
             learned_network_string = strLearnedNetwork(network, [XWh.get_value(), hWY.get_value()]);
             if (verbose):
                 print(learned_network_string);
-#                 print("Hidden node consistency: %s / %d" % (str(hidden_equals), samples_processed));  
+#                 print("Hidden node consistency: %s / %d" % (str(hidden_equals), samples_processed));
             if (learned_network_string not in learned_networks):
                 learned_networks[learned_network_string] = [];
             learned_networks[learned_network_string].append(precision);
 #             hidden_matches.append(hidden_equals);
 #         print(hidden_matches);
         success_percentage = (successes/float(network_tries))*100.;
-        
+
         for network, precisions in sorted(learned_networks.items(), key=lambda (c,n): c, reverse=False):
             print("%d: (%.2f%%)\t%s" % (len(precisions), np.mean(precisions), network));
-        
-        print("Successes: %.2f%% (%d/%d)" % (success_percentage, successes, network_tries));
-        
+
+        print("Successes: %.2f%% (%d/%d)\tMean weights sum: %.8f" % (success_percentage, successes, network_tries, np.mean(weight_sums)));
+
         network_successes.append(success_percentage);
-    
+
     print("DONE!");
     print("Average success rate: %.2f%%" % (np.mean(network_successes)));
