@@ -353,11 +353,8 @@ class FindXRecurrentNeuralNetwork(RecurrentModel):
             if (emptySamples is not None and j in emptySamples):
                 continue;
             
-            # Convert prediction to string expression
-            causeExpressionPrediction = dataset.findSymbol[prediction[j]];
-            
             # Check if cause sequence prediction is in dataset
-            if (causeExpressionPrediction == labels[j]):
+            if (prediction[j] == labels[j]):
                 stats['correct'] += 1.0;
        
             stats['prediction_1_histogram'][int(prediction[j])] += 1;

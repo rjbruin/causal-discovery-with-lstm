@@ -117,7 +117,7 @@ if __name__ == '__main__':
                     datasets = exp['multipart_dataset'];
                 else:
                     datasets = 1;
-                experimentId = trackerreporter.initExperiment(exp['name'], totalProgress=exp['repetitions'], 
+                experimentId = trackerreporter.initExperiment(exp['name'] + suffices[j], totalProgress=exp['repetitions'], 
                                                     totalDatasets=datasets, scoreTypes=score_types.keys(), 
                                                     scoreIdentifiers=score_types);
                 if (experimentId is False):
