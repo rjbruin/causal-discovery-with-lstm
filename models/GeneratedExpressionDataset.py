@@ -90,6 +90,9 @@ class GeneratedExpressionDataset(Dataset):
                         self.effect_matcher = self.effect_matcher_seq2ndmarkov_2;
                     elif (self.config[key] == 'seq2ndmarkov_both'):
                         self.effect_matcher = self.effect_matcher_seq2ndmarkov_both;
+                    elif (self.config[key] == 'seq2ndmarkov_both_2'):
+                        # TODO: implement effect matcher
+                        self.effect_matcher = self.effect_matcher_seq2ndmarkov_both;
                 elif (key == 'valid_checker'):
                     if (self.config[key] == 'expressions_simple'):
                         self.valid_checker = self.valid_expressions_simple;
