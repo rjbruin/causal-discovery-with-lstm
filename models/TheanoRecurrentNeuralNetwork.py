@@ -1233,11 +1233,14 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     difference2 = TheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, labels_to_use[j][effectIndex]);
                 else:
                     difference2 = 0;
-                if (difference1 + difference2 == 0):
+                difference = difference1 + difference2;
+                if (difference == 0):
                     if (not self.ignoreZeroDifference):
                         raise ValueError("Difference is 0 but sample is not correct! causeIndex: %d, cause: %s, effect: %s, difference1: %d, difference2: %d, cause matches label: %d, effect matches label: %d, effectMatch: %d" %
                                         (causeIndex, causeExpressionPrediction, effectExpressionPrediction, difference1, difference2, int(causeMatchesLabel), int(effectMatchesLabel), int(effectMatch)));
-                stats['error_histogram'][difference1 + difference2] += 1;
+                    else:
+                        difference = 4; # Random digit outside of error margin computation range
+                stats['error_histogram'][difference] += 1;
 
                 # Do local scoring for seq2ndmarkov
                 for j in range(2,len(causeExpressionPrediction),3):
