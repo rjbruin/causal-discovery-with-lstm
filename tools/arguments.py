@@ -86,7 +86,8 @@ argumentProcessors = {'name': processString,
                       'relu': processBool,
                       'answering': processBool,
                       'sequence_repairing': processBool,
-                      'find_x': processBool
+                      'find_x': processBool,
+                      'ignore_zero_difference': processBool
                       }
 defaults = {'output_name': "",
             'report_to_tracker': True,
@@ -143,7 +144,8 @@ defaults = {'output_name': "",
             'relu': False,
             'answering': False,
             'sequence_repairing': False,
-            'find_x': False
+            'find_x': False,
+            'ignore_zero_difference': False
             }
 
 def processKeyValue(key,value):
@@ -158,12 +160,12 @@ def processKeyValue(key,value):
 def processCommandLineArguments(arguments, parameters=None):
     if (parameters is None):
         parameters = copy.deepcopy(defaults);
-    
+
     if ('--params_from_experiment_header' in arguments):
         # If no arguments are provided, ask for parameters as raw input
         dictStr = raw_input("Please provide the extra arguments as dictionary: ");
         arguments.extend(parametersArguments(parametersFromDictStr(dictStr)));
-    
+
     key = None;
     for arg in arguments:
         if (arg[:2] == '--'):
@@ -178,7 +180,7 @@ def processCommandLineArguments(arguments, parameters=None):
                     raise ValueError("Invalid argument provided: %s" % key);
                 key = None;
                 val = None;
-    
+
     return parameters;
 
 def parametersFromDictStr(dictStr):
@@ -192,11 +194,11 @@ def parametersFromDictStr(dictStr):
             obj[key] = None;
     return obj;
 
-def parametersArguments(obj):    
+def parametersArguments(obj):
     # Print arguments
     args = [];
     for key in obj:
         args.append('--%s' % key);
         args.append('%s' % str(obj[key]));
-    
+
     return args;

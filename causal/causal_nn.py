@@ -31,13 +31,13 @@ def causalNeuralNetwork(data_dim, hidden_dim, output_dim):
     hWY = theano.shared(np.random.uniform(-np.sqrt(1./hidden_dim),np.sqrt(1./hidden_dim),(hidden_dim, output_dim)), name='hWY');
     hbY = theano.shared(np.random.uniform(-np.sqrt(1./output_dim),np.sqrt(1./output_dim),(output_dim)), name='hbY');
 
-    X = (X-.5) * 2.;
+    # X = (X-.5) * 2.;
 
-    hidden = T.tanh(X.dot(XWh));
+    hidden = T.tanh(X.dot(XWh) + Xbh);
     # ReLu doesn't work well with the intuition that negative values are also significant vs. interpretations as activations
     # hidden = T.maximum(T.zeros_like(X.dot(XWh)),X.dot(XWh) + Xbh);
 
-    output = (T.tanh(hidden.dot(hWY)) / 2.) + .5;
+    output = (T.tanh(hidden.dot(hWY) + hbY) / 2.) + .5;
     # output = ((hidden.dot(hWY) + hbY) / 2.) + .5;
 
     prediction = output > 0.5;
@@ -57,10 +57,10 @@ def causalNeuralNetwork(data_dim, hidden_dim, output_dim):
     # loss = T.mean(T.sqr(Y - output));
 
     # loss += weights_sum;
-    loss += causal;
+    # loss += causal;
 
-    # var_list = [XWh, Xbh, hWY, hbY];
-    var_list = [XWh, Xbh];
+    var_list = [XWh, Xbh, hWY, hbY];
+    # var_list = [XWh, Xbh];
     gradients = T.grad(loss, var_list);
     updates = lasagne.updates.rmsprop(gradients, var_list, learning_rate=learning_rate);
 #     updates = lasagne.updates.sgd(gradients, var_list, 0.01);
@@ -93,27 +93,33 @@ def randomNetworks(n, input_dim, hidden_dim, output_dim, addNegativeActivations=
                 input_layer.append(CausalNode(name=("x%d" % l), autofill=node));
 
         latent_layer = [];
+        draw_input = lambda: np.random.randint(0,len(input_layer));
+        if (addNegativeActivations):
+            draw_input = lambda: np.random.randint(0,len(input_layer)/2) * 2;
         for l in range(hidden_dim):
             relation = np.random.randint(0,CausalNode.RELATIONS);
-            cause1 = input_layer[np.random.randint(0,len(input_layer))];
+            cause1 = input_layer[draw_input()];
             incomingNodes = [cause1];
             if (relation >= 2):
-                cause2 = input_layer[np.random.randint(0,len(input_layer))];
+                cause2 = input_layer[draw_input()];
                 while (cause1 == cause2):
-                    cause2 = input_layer[np.random.randint(0,len(input_layer))];
+                    cause2 = input_layer[draw_input()];
                 incomingNodes.append(cause2);
             node = CausalNode(name=("Z%d" % l), incomingRelation=relation, incomingNodes=incomingNodes);
             latent_layer.append(node);
 
         output_layer = [];
+        draw_latent = lambda: np.random.randint(0,len(latent_layer));
+        if (addNegativeActivations):
+            draw_latent = lambda: np.random.randint(0,len(latent_layer)/2) * 2;
         for l in range(output_dim):
             relation = np.random.randint(0,CausalNode.RELATIONS);
-            cause1 = latent_layer[np.random.randint(0,len(latent_layer))];
+            cause1 = latent_layer[draw_latent()];
             incomingNodes = [cause1];
             if (relation >= 2):
-                cause2 = latent_layer[np.random.randint(0,len(latent_layer))];
+                cause2 = latent_layer[draw_latent()];
                 while (cause1 == cause2):
-                    cause2 = latent_layer[np.random.randint(0,len(latent_layer))];
+                    cause2 = latent_layer[draw_latent()];
                 incomingNodes.append(cause2);
             node = CausalNode(name=("Y%d" % l), incomingRelation=relation, incomingNodes=incomingNodes);
             output_layer.append(node);
@@ -138,7 +144,7 @@ if __name__ == '__main__':
     input_dim = 3;
     hidden_dim = 2;
     output_dim = 3;
-    limit = 20;
+    limit = 100;
     n_networks = 100;
     network_tries = 10;
     train_samples = 1000;
