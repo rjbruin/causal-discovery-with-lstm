@@ -92,9 +92,14 @@ def strNetwork(network):
     true_weights = [np.zeros((len(network[0]),len(network[1]))),
                     np.zeros((len(network[1]),len(network[2])))];
 
+    # TODO: fix true weights generated including negative activations
     for i, layer in enumerate(network[1:]):
         for j, node in enumerate(layer):
-            if (node.incomingRelation is not None):
+            if (node.autoFill is not None):
+                repr += "(!%s)" % (node.autoFill.name);
+                # Add true_weights as boolean inverse of autofill node weight
+                true_weights[i][]
+            elif (node.incomingRelation is not None):
                 names = "";
                 if (len(node.incomingNodes) == 1):
                     names += CausalNode.relationStrings[node.incomingRelation];
@@ -192,4 +197,17 @@ def scaleWeights(weights, axis):
             weights[i,:] = weights[i,:] / np.max(np.abs(weights[i,:]));
         elif (axis == 1):
             weights[:,i] = weights[:,i] / np.max(np.abs(weights[:,i]));
-    return weights;
+    return weights
+
+def dominantWeights(weights):
+    dominants = [];
+    for i in range(weights.shape[1]):
+        # Find max
+        argmaxval = np.argmax(weights[:,i]);
+        maxval = weights[argmaxval,i];
+        # Check if higher than others combined
+        if (maxval > (np.sum(weights[:,i] - maxval))):
+            dominants.append(argmaxval);
+        else:
+            dominants.append(None);
+    return dominants;

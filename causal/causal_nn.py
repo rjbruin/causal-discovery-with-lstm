@@ -144,7 +144,7 @@ if __name__ == '__main__':
     input_dim = 3;
     hidden_dim = 2;
     output_dim = 3;
-    limit = 100;
+    limit = 1;
     n_networks = 100;
     network_tries = 10;
     train_samples = 1000;
@@ -168,7 +168,7 @@ if __name__ == '__main__':
     for i,network in enumerate(networks):
         print
         network_string, true_weights = strNetwork(network)
-        print("NETWORK %d: %s" % (i+1, network_string));
+        print("NETWORK %d: %s\t%s" % (i+1, network_string, dominantWeights(true_weights[0])));
         hidden_matches = [];
         successes = 0;
         learned_networks = {};
