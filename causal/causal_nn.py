@@ -167,8 +167,8 @@ if __name__ == '__main__':
     network_successes = [];
     for i,network in enumerate(networks):
         print
-        network_string, true_weights = strNetwork(network)
-        print("NETWORK %d: %s\t%s" % (i+1, network_string, dominantWeights(true_weights[0])));
+        network_string, true_weights = strNetwork(network, addNegativeActivations);
+        print("NETWORK %d: %s\t%s" % (i+1, network_string, dominantWeights(true_weights)));
         hidden_matches = [];
         successes = 0;
         learned_networks = {};

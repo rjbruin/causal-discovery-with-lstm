@@ -87,28 +87,33 @@ def getLayeredValues(layers, values, toInt=False, toFloat=False):
         layersValues.append(layerValues);
     return layersValues;
 
-def strNetwork(network):
+def strNetwork(network, addNegativeActivations=False):
     repr = "";
     true_weights = [np.zeros((len(network[0]),len(network[1]))),
                     np.zeros((len(network[1]),len(network[2])))];
 
-    # TODO: fix true weights generated including negative activations
+    get_index = lambda x: x;
+    if (addNegativeActivations):
+        get_index = lambda x: x * 2;
+
     for i, layer in enumerate(network[1:]):
         for j, node in enumerate(layer):
-            if (node.autoFill is not None):
-                repr += "(!%s)" % (node.autoFill.name);
-                # Add true_weights as boolean inverse of autofill node weight
-                true_weights[i][]
-            elif (node.incomingRelation is not None):
+            if (node.incomingRelation is not None):
                 names = "";
                 if (len(node.incomingNodes) == 1):
                     names += CausalNode.relationStrings[node.incomingRelation];
                 names += CausalNode.relationStrings[node.incomingRelation].join(map(lambda x: x.name, node.incomingNodes));
                 repr += "(" + names + ")";
                 if (node.incomingRelation == CausalNode.RELATION_IDENTITY):
-                    true_weights[i][int(node.incomingNodes[0].name[-1]),j] = 1.;
+                    true_weights[i][get_index(int(node.incomingNodes[0].name[-1])),j] = 1.;
+                    if (addNegativeActivations):
+                        true_weights[i][get_index(int(node.incomingNodes[0].name[-1]))+1,j] = 0.;
                 else:
-                    true_weights[i][int(node.incomingNodes[0].name[-1]),j] = -1.;
+                    if (addNegativeActivations):
+                        true_weights[i][get_index(int(node.incomingNodes[0].name[-1])),j] = 0.;
+                        true_weights[i][get_index(int(node.incomingNodes[0].name[-1]))+1,j] = 1.;
+                    else:
+                        true_weights[i][get_index(int(node.incomingNodes[0].name[-1])),j] = -1.;
             repr += node.name + "\t";
 
     return repr, true_weights;
@@ -199,15 +204,18 @@ def scaleWeights(weights, axis):
             weights[:,i] = weights[:,i] / np.max(np.abs(weights[:,i]));
     return weights
 
-def dominantWeights(weights):
+def dominantWeights(bothweights):
     dominants = [];
-    for i in range(weights.shape[1]):
-        # Find max
-        argmaxval = np.argmax(weights[:,i]);
-        maxval = weights[argmaxval,i];
-        # Check if higher than others combined
-        if (maxval > (np.sum(weights[:,i] - maxval))):
-            dominants.append(argmaxval);
-        else:
-            dominants.append(None);
+    for weights in bothweights:
+        weightdominants = [];
+        for i in range(weights.shape[1]):
+            # Find max
+            argmaxval = np.argmax(weights[:,i]);
+            maxval = weights[argmaxval,i];
+            # Check if higher than others combined
+            if (maxval > (np.sum(weights[:,i] - maxval))):
+                weightdominants.append(argmaxval);
+            else:
+                weightdominants.append(None);
+        dominants.append(weightdominants);
     return dominants;

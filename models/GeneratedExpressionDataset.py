@@ -772,6 +772,54 @@ class GeneratedExpressionDataset(Dataset):
         
         return success;
     
+    def effect_matcher_seq2ndmarkov_both_2(self, top_expression_encoded, bot_expression_encoded, nr_digits, nr_operators, topcause):
+        """
+        Success = 0 (no match), 1 (match), 2 (no effect)
+        """
+        success = 2;
+        for i in range(2,min(len(top_expression_encoded),len(bot_expression_encoded)),3):
+            symbolIndex = bot_expression_encoded[i-2];
+            effectHere = False;
+            if (symbolIndex == 7):
+                success = int(top_expression_encoded[i] == 7);
+                effectHere = True;
+            if (symbolIndex == 2):
+                success = int(top_expression_encoded[i] == 2);
+                effectHere = True;
+            if (symbolIndex == 4):
+                success = int(top_expression_encoded[i] == 3);
+                effectHere = True;
+            if (symbolIndex == 1):
+                success = int(top_expression_encoded[i] == 7);
+                effectHere = True;
+            if (symbolIndex == 0):
+                success = int(top_expression_encoded[i] == 4);
+                effectHere = True;
+                
+            if (success == 0):
+                return success;
+            
+            if (effectHere == False):
+                # If no effect was found for bot to top, continue looking for
+                # an effect from top to bottom
+                # Stop otherwise because any relationship from top to bot
+                # might have been overwritten by a bot to top relationship
+                symbolIndex = top_expression_encoded[i-2];
+                if (symbolIndex == 6):
+                    success = int(bot_expression_encoded[i] == 6);
+                if (symbolIndex == 1):
+                    success = int(bot_expression_encoded[i] == 1);
+                if (symbolIndex == 3):
+                    success = int(bot_expression_encoded[i] == 5);
+                if (symbolIndex == 0):
+                    success = int(bot_expression_encoded[i] == 3);
+                if (symbolIndex == 2):
+                    success = int(bot_expression_encoded[i] == 0);
+                if (success == 0):
+                    return success;
+        
+        return success;
+    
     def effect_matcher_doubleoperator(self, cause_expression_encoded, predicted_effect_expression_encoded, nr_digits, nr_operators, topcause):
         OPERATORS = [lambda x, y, max: (x+y) % max,
                      lambda x, y, max: (x-y) % max,
