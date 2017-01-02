@@ -38,7 +38,17 @@ if __name__ == '__main__':
                    'Local validity (e)': 'Local valid effect',
                    'In dataset': 'In dataset',
                    'Skipped': 'Skipped because of zero prediction length',
-                   'Unique predictions': 'Unique labels predicted'};
+                   'Unique predictions': 'Unique labels predicted',
+                   'Mean success rate': 'Mean success rate',
+                   'Stddev success rate': 'Stddev success rate',
+                   'Mean convergence iteration': 'Mean convergence iteration',
+                   'Stddev convergence iteration': 'Stddev convergence iteration',
+                   'Mean non-convergence precision': 'Mean non-convergence precision',
+                   'Stddev non-convergence precision': 'Stddev non-convergence precision',
+                   'Mean dominance fails': 'Mean dominance fails',
+                   'Stddev dominance fails': 'Stddev dominance fails',
+                   'Mean weights difference': 'Mean weights difference',
+                   'Stddev weights difference': 'Stddev weights difference'};
     trackerreporter.init('http://rjbruin.nl/experimenttracker/api/',api_key);
     
     experiments_file = 'choose';
@@ -85,14 +95,16 @@ if __name__ == '__main__':
             index = extraArgs.index('--repetitions');
             experiments[i]['repetitions'] = int(extraArgs[index+1]);
         
-        iterativeArgs = raw_input("(optional) Add one iterative parameter where values are separated by commas (e.g. '--key value1,value2,value3'): ").split(" ");
-        explodedArgs = [];
-        key = iterativeArgs[0];
-        suffices = [];
-        for k, val in enumerate(iterativeArgs[1].split(",")):
-            suffices.append(raw_input("Provide the suffix to the name for iteration %d: " % k));
-            explodedArgs.append("%s %s" % (key, val));
-        iterative_args[i] = (explodedArgs, suffices);
+        iterativeArgs = raw_input("(optional) Add one iterative parameter where values are separated by commas (e.g. '--key value1,value2,value3'): ");
+        if (iterativeArgs != ""):
+            iterativeArgs = iterativeArgs.split(" ");
+            explodedArgs = [];
+            key = iterativeArgs[0];
+            suffices = [];
+            for k, val in enumerate(iterativeArgs[1].split(",")):
+                suffices.append(raw_input("Provide the suffix to the name for iteration %d: " % k));
+                explodedArgs.append("%s %s" % (key, val));
+            iterative_args[i] = (explodedArgs, suffices);
     
     # Run experiments
     trackerStack = [];

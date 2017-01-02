@@ -96,25 +96,37 @@ def strNetwork(network, addNegativeActivations=False):
     if (addNegativeActivations):
         get_index = lambda x: x * 2;
 
-    for i, layer in enumerate(network[1:]):
-        for j, node in enumerate(layer):
-            if (node.incomingRelation is not None):
-                names = "";
-                if (len(node.incomingNodes) == 1):
-                    names += CausalNode.relationStrings[node.incomingRelation];
-                names += CausalNode.relationStrings[node.incomingRelation].join(map(lambda x: x.name, node.incomingNodes));
-                repr += "(" + names + ")";
-                if (node.incomingRelation == CausalNode.RELATION_IDENTITY):
-                    true_weights[i][get_index(int(node.incomingNodes[0].name[-1])),j] = 1.;
-                    if (addNegativeActivations):
-                        true_weights[i][get_index(int(node.incomingNodes[0].name[-1]))+1,j] = 0.;
+    for j, node in enumerate(network[1]):
+        if (node.incomingRelation is not None):
+            names = "";
+            if (len(node.incomingNodes) == 1):
+                names += CausalNode.relationStrings[node.incomingRelation];
+            names += CausalNode.relationStrings[node.incomingRelation].join(map(lambda x: x.name, node.incomingNodes));
+            repr += "(" + names + ")";
+            if (node.incomingRelation == CausalNode.RELATION_IDENTITY):
+                true_weights[0][get_index(int(node.incomingNodes[0].name[-1])),j] = 1.;
+                if (addNegativeActivations):
+                    true_weights[0][get_index(int(node.incomingNodes[0].name[-1]))+1,j] = 0.;
+            else:
+                if (addNegativeActivations):
+                    true_weights[0][get_index(int(node.incomingNodes[0].name[-1])),j] = 0.;
+                    true_weights[0][get_index(int(node.incomingNodes[0].name[-1]))+1,j] = 1.;
                 else:
-                    if (addNegativeActivations):
-                        true_weights[i][get_index(int(node.incomingNodes[0].name[-1])),j] = 0.;
-                        true_weights[i][get_index(int(node.incomingNodes[0].name[-1]))+1,j] = 1.;
-                    else:
-                        true_weights[i][get_index(int(node.incomingNodes[0].name[-1])),j] = -1.;
-            repr += node.name + "\t";
+                    true_weights[0][get_index(int(node.incomingNodes[0].name[-1])),j] = -1.;
+        repr += node.name + "\t";
+    
+    for j, node in enumerate(network[2]):
+        if (node.incomingRelation is not None):
+            names = "";
+            if (len(node.incomingNodes) == 1):
+                names += CausalNode.relationStrings[node.incomingRelation];
+            names += CausalNode.relationStrings[node.incomingRelation].join(map(lambda x: x.name, node.incomingNodes));
+            repr += "(" + names + ")";
+            if (node.incomingRelation == CausalNode.RELATION_IDENTITY):
+                true_weights[1][get_index(int(node.incomingNodes[0].name[-1])),j] = 1.;
+            else:
+                true_weights[1][get_index(int(node.incomingNodes[0].name[-1])),j] = -1.;
+        repr += node.name + "\t";
 
     return repr, true_weights;
 
@@ -190,6 +202,32 @@ def findBestWeightsOrdering(data_weights, true_weights):
 
     return best_candidate, best_score, best_weights;
 
+def findBestWeightsOrderingByDominance(data_weights, true_weights_dominance):
+    data_XWh, data_hWY = data_weights;
+
+    latent_vars = range(2);
+    candidates = list(itertools.permutations(latent_vars));
+
+    best_candidate = None;
+    best_score = 1e12;
+    best_weights = [];
+    for candidate in candidates:
+        new_XWh = np.zeros_like(data_XWh);
+        new_hWY = np.zeros_like(data_hWY);
+        for i, column in enumerate(candidate):
+            new_XWh[:,column] = data_XWh[:,i];
+            new_hWY[column,:] = data_hWY[i,:];
+        new_XWh = scaleWeights(new_XWh, 1);
+        new_hWY = scaleWeights(new_hWY, 1);
+        dom_weights = dominantWeights([new_XWh, new_hWY]);
+        score, _ = matchDominantWeights(dom_weights, true_weights_dominance);
+        if (score < best_score):
+            best_candidate = candidate;
+            best_score = score;
+            best_weights = [new_XWh, new_hWY];
+
+    return best_candidate, best_score, best_weights;
+
 def weightsDifference(data_weights, true_weights):
     sum = 0.;
     for i in range(len(data_weights)):
@@ -219,3 +257,19 @@ def dominantWeights(bothweights):
                 weightdominants.append(None);
         dominants.append(weightdominants);
     return dominants;
+
+def matchDominantWeights(bothweights1, bothweights2):
+    fails = 0;
+    orderedFails = [];
+    for i in range(len(bothweights1)):
+        weightFails = []
+        weights1 = bothweights1[i];
+        weights2 = bothweights2[i];
+        for j in range(len(weights1)):
+            if (weights1[j] != weights2[j]):
+                fails += 1;
+                weightFails.append(0);
+            else:
+                weightFails.append(1);
+        orderedFails.append(weightFails);
+    return fails, orderedFails;

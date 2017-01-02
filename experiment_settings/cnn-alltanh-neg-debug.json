@@ -1,0 +1,16 @@
+[
+    {
+        "name": "cnn-hton-iosh-neg",
+        "script": "./causal/causal_nn.py",
+        "n_networks": "2",
+        "network_tries": "100",
+        "repetitions": "100",
+        "add_negative_activations": "True",
+        "use_bias": "False",
+        "hidden_activation": "1",
+        "output_activation": "0",
+        "input_shift_to_tanh": "True",
+        "output_shift_to_prob": "True",
+        "loss_function": "0"
+    }
+]
