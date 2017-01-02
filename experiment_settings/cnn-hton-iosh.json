@@ -5,12 +5,12 @@
         "n_networks": "100",
         "network_tries": "100",
         "repetitions": "200",
-        "add_negative_activations": "True",
+        "add_negative_activations": "False",
         "use_bias": "False",
         "hidden_activation": "1",
         "output_activation": "0",
-        "input_shift_to_tanh": "False",
-        "output_shift_to_prob": "False",
+        "input_shift_to_tanh": "True",
+        "output_shift_to_prob": "True",
         "loss_function": "0"
     }
 ]
