@@ -193,10 +193,12 @@ if __name__ == '__main__':
     nonconvergence_precisions = [];
     weights_differences = [];
     weights_dominance_fails = [];
+    uniqueDominantStructures = [];
     for i,network in enumerate(networks):
         print
         network_string, true_weights = strNetwork(network, parameters['add_negative_activations']);
         dominantTrueWeights = dominantWeights(true_weights);
+        dominantWeightsStorage = {};
         print("# NETWORK %d: %s" % (i+1, network_string));
         # To make the script compatible with runExperiments
         print("Batch 1 NETWORK %d _ _ _ 1 " % (i+1)); 
@@ -303,6 +305,13 @@ if __name__ == '__main__':
             weights_differences.append(dif_weights);
             bestLearnedNetwork, _ = strLearnedNetwork(network, bestWeights);
             bestDominantWeights = dominantWeights(bestWeights);
+            
+            for p in precisions:
+                if (p == 100.):
+                    if (str(bestDominantWeights) not in dominantWeightsStorage):
+                        dominantWeightsStorage[str(bestDominantWeights)] = 0;
+                    dominantWeightsStorage[str(bestDominantWeights)] += 1;
+            
             dominanceDifference, orderedDominanceDifference = matchDominantWeights(dominantTrueWeights, bestDominantWeights);
             weights_dominance_fails.append(dominanceDifference);
             if (verbose):
@@ -311,6 +320,7 @@ if __name__ == '__main__':
         print("# Successes: %.2f%% (%d/%d)\tMean weights sum: %.8f" % (success_percentage, successes, parameters['network_tries'], np.mean(weight_sums)));
 
         network_successes.append(success_percentage);
+        uniqueDominantStructures.append(len(dominantWeightsStorage.keys()));
 
     print("# DONE!");
     
@@ -326,3 +336,5 @@ if __name__ == '__main__':
     print("Stddev dominance fails: %.2f percent" % (np.std(weights_dominance_fails)));
     print("Mean weights difference: %.2f percent" % (np.mean(weights_differences)));
     print("Stddev weights difference: %.2f percent" % (np.std(weights_differences)));
+    print("Mean unique dominant structures: %.2f percent" % (np.mean(uniqueDominantStructures)));
+    print("Stddev unique dominant structures: %.2f percent" % (np.std(uniqueDominantStructures)));
