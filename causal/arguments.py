@@ -50,6 +50,7 @@ argumentProcessors = {'name': processString,
                       'loss_function': processInt,
                       'loss_weights_sum': processBool,
                       'loss_causal_linear': processBool,
+                      'rnn_timesteps': processInt
                       }
 defaults = {'name': "cnn",
             'output_name': '',
@@ -59,8 +60,8 @@ defaults = {'name': "cnn",
             'train_samples_per_iteration': 1000,
             'msize': 1000,
             'n_networks': 1,
-            'network_tries': 100,
-            'repetitions': 200,
+            'network_tries': 10,
+            'repetitions': 20,
             'add_negative_activations': True,
             'use_bias': False,
             'hidden_activation': 1, # 0 = None, 1 = TanH, 2 = ReLu
@@ -70,6 +71,7 @@ defaults = {'name': "cnn",
             'loss_function': 0, # 0 = prob, 1 = sqr/tanh
             'loss_weights_sum': False,
             'loss_causal_linear': False,
+            'rnn_timesteps': 10,
             }
 
 def processKeyValue(key,value):
