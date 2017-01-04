@@ -1243,14 +1243,14 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 stats['error_histogram'][difference] += 1;
 
                 # Do local scoring for seq2ndmarkov
-                for j in range(2,len(causeExpressionPrediction),3):
+                for k in range(2,len(causeExpressionPrediction),3):
                     stats['localSize'] += 1.0;
-                    if (dataset.valid_checker(causeExpressionPrediction[j-2:j+2],dataset.digits,dataset.operators)):
+                    if (dataset.valid_checker(causeExpressionPrediction[k-2:k+2],dataset.digits,dataset.operators)):
                         stats['localValid'] += 1.0;
                         if (self.only_cause_expression is False):
                             stats['localValidCause'] += 1.0;
                     if (self.only_cause_expression is False):
-                        if (dataset.valid_checker(effectExpressionPrediction[j-2:j+2],dataset.digits,dataset.operators)):
+                        if (dataset.valid_checker(effectExpressionPrediction[k-2:k+2],dataset.digits,dataset.operators)):
                             stats['localValidEffect'] += 1.0;
 
             # Digit precision and prediction size computation
