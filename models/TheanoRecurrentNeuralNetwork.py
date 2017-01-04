@@ -171,10 +171,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # weights or the decoding weights depending on the setting
         decode_parameters = [intervention_locations] + [self.vars[k[0]] for k in varSettings];
 
-        if (self.useAbstract):
-            hidden = [abstractExpressions];
-        else:
-            hidden = [T.zeros((self.minibatch_size,self.hidden_dim))];
+        hidden = [T.zeros((self.minibatch_size,self.hidden_dim))];
+        cell = [T.zeros((self.minibatch_size,self.hidden_dim))];
         if (self.doubleLayer or self.tripleLayer):
             hidden_2 = [T.zeros((self.minibatch_size,self.hidden_dim))];
         if (self.tripleLayer):
@@ -192,7 +190,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # DECODING PHASE
         if (self.crosslinks and not self.only_cause_expression):
             init_values = ({'initial': T.zeros((self.minibatch_size,actual_data_dim)), 'taps': [-1]},
-                           {'initial': hidden[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
+                           {'initial': hidden[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]},
+                           {'initial': cell[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
             if (self.doubleLayer):
                 init_values = ({'initial': T.zeros((self.minibatch_size,actual_data_dim)), 'taps': [-1]},
                                {'initial': hidden[-1], 'taps': [-1]},
@@ -210,7 +209,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             right_hand = outputs[0];
         else:
             init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
-                           {'initial': hidden_top[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
+                           {'initial': hidden_top[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]},
+                           {'initial': cell[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
             if (self.doubleLayer):
                 init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
                                {'initial': hidden_top[-1], 'taps': [-1]},
@@ -230,7 +230,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
             if (not self.only_cause_expression):
                 init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
-                               {'initial': hidden_bot[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
+                               {'initial': hidden_bot[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]},
+                               {'initial': cell[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
                 if (self.doubleLayer):
                     init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
                                    {'initial': hidden_bot[-1], 'taps': [-1]},
@@ -334,7 +335,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
     # PREDICTION FUNCTIONS
 
-    def lstm_predict_single(self, given_X, previous_output, previous_hidden, sentence_index, intervention_locations,
+    def lstm_predict_single(self, given_X, previous_output, previous_hidden, previous_cell, sentence_index, intervention_locations,
                             hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY, hbY, sd, ed, abstractExpressions):
         if (self.appendAbstract):
             previous_output = T.concatenate([previous_output, abstractExpressions], 1);
@@ -342,9 +343,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + previous_output.dot(XWf[sd:ed,:]));
         input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + previous_output.dot(XWi[sd:ed,:]));
         candidate_cell = T.tanh(previous_hidden.dot(hWc) + previous_output.dot(XWc[sd:ed,:]));
-        cell = forget_gate * previous_hidden + input_gate * candidate_cell;
+        cell = forget_gate * previous_cell + input_gate * candidate_cell;
         output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + previous_output.dot(XWo[sd:ed,:]));
-        hidden = output_gate * cell;
+        hidden = output_gate * T.tanh(cell);
 
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
         if (self.dropoutProb > 0.):
@@ -371,17 +372,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         new_sentence_index = sentence_index + 1.;
 
-        return Y_output, hidden, new_sentence_index;
+        return Y_output, hidden, cell, new_sentence_index;
 
-    def lstm_predict_single_no_output(self, current_X, previous_hidden, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, sd, ed):
-        forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + current_X.dot(XWf));
-        input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + current_X.dot(XWi));
-        candidate_cell = T.tanh(previous_hidden.dot(hWc) + current_X.dot(XWc));
-        cell = forget_gate * previous_hidden + input_gate * candidate_cell;
-        output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + current_X.dot(XWo));
-        hidden = output_gate * cell;
+    def lstm_predict_single_no_output(self, current_X, previous_hidden, previous_cell, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, sd, ed):
+        forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + current_X.dot(XWf[sd:ed,:]));
+        input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + current_X.dot(XWi[sd:ed,:]));
+        candidate_cell = T.tanh(previous_hidden.dot(hWc) + current_X.dot(XWc[sd:ed,:]));
+        cell = forget_gate * previous_cell + input_gate * candidate_cell;
+        output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + current_X.dot(XWo[sd:ed,:]));
+        hidden = output_gate * T.tanh(cell);
 
-        return hidden;
+        return hidden, cell;
 
     def lstm_predict_double(self, given_X, previous_output, previous_hidden_1,
                             previous_hidden_2, sentence_index, intervention_locations,
