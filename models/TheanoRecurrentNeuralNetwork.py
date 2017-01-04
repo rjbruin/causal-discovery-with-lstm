@@ -190,8 +190,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # DECODING PHASE
         if (self.crosslinks and not self.only_cause_expression):
             init_values = ({'initial': T.zeros((self.minibatch_size,actual_data_dim)), 'taps': [-1]},
-                           {'initial': hidden[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]},
-                           {'initial': cell[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
+                           {'initial': hidden[-1], 'taps': [-1]}, 
+                           {'initial': cell[-1], 'taps': [-1]}, 
+                           {'initial': 0., 'taps': [-1]});
             if (self.doubleLayer):
                 init_values = ({'initial': T.zeros((self.minibatch_size,actual_data_dim)), 'taps': [-1]},
                                {'initial': hidden[-1], 'taps': [-1]},
@@ -209,8 +210,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             right_hand = outputs[0];
         else:
             init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
-                           {'initial': hidden_top[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]},
-                           {'initial': cell[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
+                           {'initial': hidden_top[-1], 'taps': [-1]}, 
+                           {'initial': cell[-1], 'taps': [-1]},
+                           {'initial': 0., 'taps': [-1]});
             if (self.doubleLayer):
                 init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
                                {'initial': hidden_top[-1], 'taps': [-1]},
