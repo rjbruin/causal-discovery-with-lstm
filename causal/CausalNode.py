@@ -163,6 +163,9 @@ def strNetwork(network, addNegativeActivations=False, rnn=False):
         repr += node.name + "\t";
     
     for j, node in enumerate(network[2]):
+        weights_index = 0;
+        get_index = lambda x: x;
+        
         if (node.incomingRelation is not None):
             names = "";
             if (len(node.incomingNodes) == 1):
@@ -179,6 +182,7 @@ def strNetwork(network, addNegativeActivations=False, rnn=False):
 
 def strLearnedNetwork(network, weights, latentOrdering=[0,1], rnn=False):
     repr = "";
+    latentOrdering = range(100); # Overriding unused var
 
     bins = [(-1.,"!+"),(-0.6,"!~"),(-0.2,"--"),(0.2,"=~"),(0.6,"=+")];
     countedbins = [0,0,0,0,0]
@@ -286,7 +290,7 @@ def findBestWeightsOrderingByDominance(data_weights, true_weights_dominance, rnn
     else:
         data_XWh, data_hWY = data_weights;
 
-    latent_vars = range(2);
+    latent_vars = range(data_XWh.shape[1]);
     candidates = list(itertools.permutations(latent_vars));
 
     best_candidate = None;

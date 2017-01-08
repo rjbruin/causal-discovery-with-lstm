@@ -167,8 +167,6 @@ def randomNetworks(n, input_dim, hidden_dim, output_dim, addNegativeActivations=
 
         output_layer = [];
         draw_latent = lambda: np.random.randint(0,len(latent_layer));
-        if (addNegativeActivations):
-            draw_latent = lambda: np.random.randint(0,len(latent_layer)/2) * 2;
         for l in range(output_dim):
             relation = np.random.randint(0,CausalNode.RELATIONS);
             cause1 = latent_layer[draw_latent()];

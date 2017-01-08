@@ -50,27 +50,29 @@ argumentProcessors = {'name': processString,
                       'loss_function': processInt,
                       'loss_weights_sum': processBool,
                       'loss_causal_linear': processBool,
+                      'loss_causal_threshold': processBool,
                       'rnn_timesteps': processInt
                       }
 defaults = {'name': "cnn",
             'output_name': '',
-            'input_dim': 3,
-            'hidden_dim': 2,
-            'output_dim': 3,
+            'input_dim': 1,
+            'hidden_dim': 1,
+            'output_dim': 1,
             'train_samples_per_iteration': 1000,
             'msize': 1000,
             'n_networks': 10,
-            'network_tries': 100,
+            'network_tries': 10,
             'repetitions': 200,
             'add_negative_activations': True,
             'use_bias': False,
             'hidden_activation': 1, # 0 = None, 1 = TanH, 2 = ReLu
-            'output_activation': 0, # 0 = None, 1 = TanH
-            'input_shift_to_tanh': False,
-            'output_shift_to_prob': False,
-            'loss_function': 0, # 0 = prob, 1 = sqr/tanh
+            'output_activation': 1, # 0 = None, 1 = TanH
+            'input_shift_to_tanh': True,
+            'output_shift_to_prob': True,
+            'loss_function': 0, # 0 = prob, 1 = sqr/tanh, 2 = mean prob
             'loss_weights_sum': False,
             'loss_causal_linear': False,
+            'loss_causal_threshold': False,
             'rnn_timesteps': 10,
             }
 
