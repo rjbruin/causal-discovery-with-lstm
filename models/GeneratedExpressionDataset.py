@@ -848,7 +848,7 @@ class GeneratedExpressionDataset(Dataset):
         if (expression_encoded[0] >= nr_digits):
             return False;
         result = expression_encoded[0];
-        i = 1;
+        i = 0;
         while ((i+2) < len(expression_encoded)):
             if (expression_encoded[i] - nr_digits >= nr_operators or \
                 expression_encoded[i] - nr_digits < 0):
