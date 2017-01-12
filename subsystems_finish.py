@@ -36,6 +36,11 @@ def print_stats(stats, parameters, prefix=''):
     # Print statistics
     output += prefix + "Score: %.2f percent\n" % (stats['score']*100);
     
+    if (parameters['g_causality']):
+        output += prefix + "f-subs prediction score: %.2f percent\n" % (stats['subsPredictionScore']*100);
+        output += prefix + "f-subs prediction cause score: %.2f percent\n" % (stats['subsPredictionCauseScore']*100);
+        output += prefix + "f-subs prediction effect score: %.2f percent\n" % (stats['subsPredictionEffectScore']*100);
+    
     if (not parameters['only_cause_expression']):
         output += prefix + "Structure score cause: %.2f percent\n" % (stats['structureScoreCause']*100);
         output += prefix + "Structure score effect: %.2f percent\n" % (stats['structureScoreEffect']*100);
@@ -202,6 +207,11 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
     
     # Set up statistics
     stats = set_up_statistics(dataset.output_dim, model.n_max_digits);
+    if (parameters['g_causality']):
+        stats['subsPredictionSize'] = 0;
+        stats['subsPredictionCorrect'] = 0;
+        stats['subsPredictionCauseCorrect'] = 0;
+        stats['subsPredictionEffectCorrect'] = 0;
     total_labels_used = {k: 0 for k in range(30)};
     
     # Predict

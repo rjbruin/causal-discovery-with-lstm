@@ -15,7 +15,7 @@ import lasagne;
 
 from profiler import profiler;
 
-class TheanoRecurrentNeuralNetwork(RecurrentModel):
+class SubsystemsTheanoRecurrentNeuralNetwork(RecurrentModel):
     '''
     Recurrent neural network model with one hidden layer. Models single class
     prediction based on regular recurrent model or LSTM model.
@@ -63,6 +63,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 #         if (not self.lstm):
 #             raise ValueError("Feature LSTM = False is no longer supported!");
 
+        if (self.doubleLayer or self.tripleLayer):
+            raise ValueError("NOT SUPPORTED!");
+        
         self.EOS_symbol_index = EOS_symbol_index;
         self.GO_symbol_index = GO_symbol_index;
 
@@ -153,9 +156,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         X = T.ftensor3('X');
         # label is 3-dimensional: 1) index in sentence, 2) datapoint, 3) dimensionality of data
         label = T.ftensor3('label');
-        intervention_locations = T.imatrix();
         nrSamples = T.iscalar();
-        abstractExpressions = T.fmatrix();
 
         # Set the RNN cell to use for encoding and decoding
         decode_function = self.lstm_predict_single if self.lstm else self.rnn_predict_single;
@@ -169,7 +170,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         # Set the prediction parameters to be either the prediction
         # weights or the decoding weights depending on the setting
-        decode_parameters = [intervention_locations] + [self.vars[k[0]] for k in varSettings];
+        decode_parameters = [self.vars[k[0]] for k in varSettings];
 
         hidden = [T.zeros((self.minibatch_size,self.hidden_dim))];
         cell = [T.zeros((self.minibatch_size,self.hidden_dim))];
@@ -197,85 +198,77 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         # DECODING PHASE
         if (self.crosslinks and not self.only_cause_expression):
-            init_values = ({'initial': T.zeros((self.minibatch_size,actual_data_dim)), 'taps': [-1]},
+            init_values = (None,
                            {'initial': hidden[-1], 'taps': [-1]}, 
-                           {'initial': cell[-1], 'taps': [-1]}, 
-                           {'initial': 0., 'taps': [-1]});
+                           {'initial': cell[-1], 'taps': [-1]});
             if (self.doubleLayer):
-                init_values = ({'initial': T.zeros((self.minibatch_size,actual_data_dim)), 'taps': [-1]},
+                init_values = (None,
                                {'initial': hidden[-1], 'taps': [-1]},
                                {'initial': hidden_2[-1], 'taps': [-1]},
                                {'initial': cell[-1], 'taps': [-1]}, 
-                               {'initial': cell_2[-1], 'taps': [-1]}, 
-                               {'initial': 0., 'taps': [-1]});
+                               {'initial': cell_2[-1], 'taps': [-1]});
             if (self.tripleLayer):
-                init_values = ({'initial': T.zeros((self.minibatch_size,actual_data_dim)), 'taps': [-1]},
+                init_values = (None,
                                {'initial': hidden[-1], 'taps': [-1]},
                                {'initial': hidden_2[-1], 'taps': [-1]},
                                {'initial': hidden_3[-1], 'taps': [-1]},
                                {'initial': cell[-1], 'taps': [-1]}, 
                                {'initial': cell_2[-1], 'taps': [-1]}, 
-                               {'initial': cell_3[-1], 'taps': [-1]},
-                               {'initial': 0., 'taps': [-1]});
+                               {'initial': cell_3[-1], 'taps': [-1]});
             outputs, _ = theano.scan(fn=decode_function,
                                      sequences=label,
                                      outputs_info=init_values,
-                                     non_sequences=decode_parameters + [0,actual_data_dim,abstractExpressions],
+                                     non_sequences=decode_parameters + [0,actual_data_dim],
                                      name='decode_scan_1')
             right_hand = outputs[0];
         else:
-            init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
+            init_values = (None,
                            {'initial': hidden_top[-1], 'taps': [-1]}, 
-                           {'initial': cell[-1], 'taps': [-1]},
-                           {'initial': 0., 'taps': [-1]});
+                           {'initial': cell[-1], 'taps': [-1]});
             if (self.doubleLayer):
-                init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
+                init_values = (None,
                                {'initial': hidden_top[-1], 'taps': [-1]},
                                {'initial': hidden_2_top[-1], 'taps': [-1]},
                                {'initial': cell_top[-1], 'taps': [-1]},
-                               {'initial': cell_2_top[-1], 'taps': [-1]},
-                               {'initial': 0., 'taps': [-1]});
+                               {'initial': cell_2_top[-1], 'taps': [-1]});
             if (self.tripleLayer):
-                init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
+                init_values = (None,
                                {'initial': hidden[-1], 'taps': [-1]},
                                {'initial': hidden_2_top[-1], 'taps': [-1]},
                                {'initial': hidden_3_top[-1], 'taps': [-1]},
                                {'initial': cell[-1], 'taps': [-1]}, 
                                {'initial': cell_2_top[-1], 'taps': [-1]}, 
-                               {'initial': cell_3_top[-1], 'taps': [-1]},
-                               {'initial': 0., 'taps': [-1]});
+                               {'initial': cell_3_top[-1], 'taps': [-1]});
             outputs_1, _ = theano.scan(fn=decode_function,
                                      sequences=label,
                                      outputs_info=init_values,
-                                     non_sequences=decode_parameters + [0,per_expression_dim,abstractExpressions],
+                                     non_sequences=decode_parameters + [0,per_expression_dim],
                                      name='decode_scan_1')
 
             right_hand_1 = outputs_1[0];
 
             if (not self.only_cause_expression):
-                init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
-                               {'initial': hidden_bot[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]},
-                               {'initial': cell[-1], 'taps': [-1]}, {'initial': 0., 'taps': [-1]});
+                init_values = (None,
+                               {'initial': hidden_bot[-1], 'taps': [-1]},
+                               {'initial': cell[-1], 'taps': [-1]});
                 if (self.doubleLayer):
-                    init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
+                    init_values = (None,
                                    {'initial': hidden_bot[-1], 'taps': [-1]},
                                    {'initial': hidden_2_bot[-1], 'taps': [-1]},
                                    {'initial': cell_bot[-1], 'taps': [-1]},
-                                   {'initial': cell_2_bot[-1], 'taps': [-1]},
-                                   {'initial': 0., 'taps': [-1]});
+                                   {'initial': cell_2_bot[-1], 'taps': [-1]});
                 if (self.tripleLayer):
-                    init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
+                    init_values = (None,
                                    {'initial': hidden_bot[-1], 'taps': [-1]},
                                    {'initial': hidden_2_bot[-1], 'taps': [-1]},
                                    {'initial': hidden_3_bot[-1], 'taps': [-1]},
                                    {'initial': cell_bot[-1], 'taps': [-1]},
                                    {'initial': cell_2_bot[-1], 'taps': [-1]},
-                                   {'initial': cell_3_bot[-1], 'taps': [-1]},
-                                   {'initial': 0., 'taps': [-1]});
+                                   {'initial': cell_3_bot[-1], 'taps': [-1]});
                 outputs_2, _ = theano.scan(fn=decode_function,
                                          sequences=label,
                                          outputs_info=init_values,
-                                         non_sequences=decode_parameters + [per_expression_dim,per_expression_dim*2,abstractExpressions],
+                                         non_sequences=decode_parameters + [per_expression_dim,per_expression_dim*2],
                                          name='decode_scan_2')
 
                 right_hand_2 = outputs_2[0];
@@ -294,17 +287,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # ERROR COMPUTATION AND PROPAGATION
         coding_dist = right_hand[:label.shape[0]]
         cat_cross = -T.sum(label * T.log(coding_dist), axis=coding_dist.ndim-1);
-        mean_cross_per_sample = T.sum(cat_cross, axis=0) / (self.n_max_digits - (intervention_locations + 1.));
+        mean_cross_per_sample = T.mean(cat_cross, axis=0);
         error = T.mean(mean_cross_per_sample[:nrSamples]);
 
         # Defining prediction function
         if (not self.only_cause_expression):
-            self._predict = theano.function([X, label, intervention_locations, nrSamples, abstractExpressions], [prediction_1,
+            self._predict = theano.function([X, label, nrSamples], [prediction_1,
                                                                                 prediction_2,
                                                                                 right_hand,
                                                                                 error], on_unused_input='ignore');
         else:
-            self._predict = theano.function([X, label, intervention_locations, nrSamples, abstractExpressions], [prediction_1,
+            self._predict = theano.function([X, label, nrSamples], [prediction_1,
                                                                                 right_hand,
                                                                                 error], on_unused_input='ignore');
 
@@ -325,13 +318,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
 
         # Defining SGD functuin
-        self._sgd = theano.function([X, label, intervention_locations, nrSamples, abstractExpressions],
+        self._sgd = theano.function([X, label, nrSamples],
                                         [error],
                                     updates=updates,
                                     allow_input_downcast=True,
                                     on_unused_input='ignore')
 
-        super(TheanoRecurrentNeuralNetwork, self).__init__();
+        super(SubsystemsTheanoRecurrentNeuralNetwork, self).__init__();
 
     def loadVars(self, variables, floats=False):
         """
@@ -364,25 +357,18 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
     # PREDICTION FUNCTIONS
 
-    def lstm_predict_single(self, given_X, previous_output, previous_hidden, previous_cell, sentence_index, intervention_locations,
-                            hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY, hbY, sd, ed, abstractExpressions):
-        if (self.appendAbstract):
-            previous_output = T.concatenate([previous_output, abstractExpressions], 1);
-
-        forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + previous_output.dot(XWf[sd:ed,:]));
-        input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + previous_output.dot(XWi[sd:ed,:]));
-        candidate_cell = T.tanh(previous_hidden.dot(hWc) + previous_output.dot(XWc[sd:ed,:]));
+    def lstm_predict_single(self, given_X, previous_hidden, previous_cell,
+                            hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY, hbY, sd, ed):
+        forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + given_X.dot(XWf[sd:ed,:]));
+        input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + given_X.dot(XWi[sd:ed,:]));
+        candidate_cell = T.tanh(previous_hidden.dot(hWc) + given_X.dot(XWc[sd:ed,:]));
         cell = forget_gate * previous_cell + input_gate * candidate_cell;
-        output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + previous_output.dot(XWo[sd:ed,:]));
+        output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + given_X.dot(XWo[sd:ed,:]));
         hidden = output_gate * T.tanh(cell);
 
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
         if (self.dropoutProb > 0.):
             hidden = lasagne.layers.dropout((self.minibatch_size, self.hidden_dim), self.dropoutProb).get_output_for(hidden);
-
-        # Use given intervention locations to determine whether to use label
-        # or previous prediction. This should allow for flexible minibatching
-        comparison = T.le(sentence_index,intervention_locations).reshape((T.constant(2), T.constant(self.minibatch_size), T.constant(1)), ndim=3);
 
         if (self.outputBias):
             Y_output = T.nnet.softmax(hidden.dot(hWY) + hbY);
@@ -393,15 +379,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (self.dropoutProb > 0.):
             Y_output = lasagne.layers.dropout((self.minibatch_size, self.decoding_output_dim), self.dropoutProb).get_output_for(Y_output);
 
-        # Filter for intervention location
-        if (not self.only_cause_expression):
-            Y_output = T.concatenate([T.switch(comparison[0],given_X[:,:self.data_dim],Y_output[:,:self.data_dim]), T.switch(comparison[1],given_X[:,self.data_dim:],Y_output[:,self.data_dim:])], axis=1)[:,sd:ed];
-        else:
-            Y_output = T.switch(comparison[0],given_X,Y_output)[:,sd:ed];
-
-        new_sentence_index = sentence_index + 1.;
-
-        return Y_output, hidden, cell, new_sentence_index;
+        return Y_output, hidden, cell;
 
     def lstm_predict_single_no_output(self, current_X, previous_hidden, previous_cell, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, sd, ed):
         forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + current_X.dot(XWf[sd:ed,:]));
@@ -701,15 +679,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         """
         if (nrSamples is None):
             nrSamples = self.minibatch_size;
-        if (abstractExpressions is None):
-            if (self.appendAbstract):
-                abstractExpressions = np.zeros((self.minibatch_size, 13), dtype='float32');
-            else:
-                abstractExpressions = np.zeros((self.minibatch_size, self.hidden_dim), dtype='float32');
-
+        
         data = np.swapaxes(data, 0, 1);
         label = np.swapaxes(label, 0, 1);
-        return self._sgd(data, label, interventionLocations, nrSamples, abstractExpressions);
+        return self._sgd(data, label, nrSamples);
 
     def sgd_finish_expression(self, dataset, encoded_expressions, expressions,
                               interventionLocations, learning_rate, nrSamples,
@@ -1049,9 +1022,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         # Compute string difference
                         score = 0;
                         if (checkWhich == -1 or checkWhich == 0):
-                            score += TheanoRecurrentNeuralNetwork.string_difference(top_string_prediction[interventionLocations[0,i]+1:], topLabel[interventionLocations[0,i]+1:]);
+                            score += SubsystemsTheanoRecurrentNeuralNetwork.string_difference(top_string_prediction[interventionLocations[0,i]+1:], topLabel[interventionLocations[0,i]+1:]);
                         if (checkWhich == -1 or checkWhich == 1):
-                            score += TheanoRecurrentNeuralNetwork.string_difference(bot_string_prediction[interventionLocations[1,i]+1:], botLabel[interventionLocations[1,i]+1:]);
+                            score += SubsystemsTheanoRecurrentNeuralNetwork.string_difference(bot_string_prediction[interventionLocations[1,i]+1:], botLabel[interventionLocations[1,i]+1:]);
                         if (score < nearestScore):
                             nearest = i_near;
                             nearestScore = score;
@@ -1080,22 +1053,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         """
         if (nrSamples is None):
             nrSamples = self.minibatch_size;
-        if (abstractExpressions is None):
-            if (self.appendAbstract):
-                abstractExpressions = np.zeros((self.minibatch_size, 13), dtype='float32');
-            else:
-                abstractExpressions = np.zeros((self.minibatch_size, self.hidden_dim), dtype='float32');
-
+        
         # Swap axes of index in sentence and datapoint for Theano purposes
         encoding_label = np.swapaxes(encoding_label, 0, 1);
         prediction_label = np.swapaxes(prediction_label, 0, 1);
 
         if (not self.only_cause_expression):
             prediction_1, prediction_2, right_hand, error = \
-                    self._predict(encoding_label, prediction_label, interventionLocations, nrSamples, abstractExpressions);
+                    self._predict(encoding_label, prediction_label, nrSamples);
         else:
             prediction_1, right_hand, error = \
-                    self._predict(encoding_label, prediction_label, interventionLocations, nrSamples, abstractExpressions);
+                    self._predict(encoding_label, prediction_label, nrSamples);
 
         # Swap sentence index and datapoints back
         prediction_1 = np.swapaxes(prediction_1, 0, 1);
@@ -1165,6 +1133,16 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             # Prepare vars to save correct samples
             topCorrect = False;
             botCorrect = False;
+            
+            # New precision checker for f-subs-s2mb2
+            for k in range(2,len(labels_to_use[j][causeIndex]),3):
+                stats['subsPredictionSize'] += 2;
+                if (k < len(causeExpressionPrediction) and causeExpressionPrediction[k] == labels_to_use[j][causeIndex][k]):
+                    stats['subsPredictionCorrect'] += 1;
+                    stats['subsPredictionCauseCorrect'] += 1;
+                if (k < len(effectExpressionPrediction) and effectExpressionPrediction[k] == labels_to_use[j][effectIndex][k]):
+                    stats['subsPredictionCorrect'] += 1;
+                    stats['subsPredictionEffectCorrect'] += 1;
 
             # Check if cause sequence prediction is in dataset
             causeMatchesLabel = False;
@@ -1180,7 +1158,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
             causeValid = False;
             # Check if cause sequence prediction is valid
-            if (dataset.valid_checker(causeExpressionPrediction,dataset.digits,dataset.operators)):
+            if (dataset.valid_checker(prediction[causeIndex][j],dataset.digits,dataset.operators)):
                 causeValid = True;
                 stats['structureValidCause'] += 1.0;
                 if (topcause):
@@ -1203,7 +1181,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     effectMatchesLabel = True;
 
                 # Check if effect sequence prediction is valid
-                if (dataset.valid_checker(effectExpressionPrediction,dataset.digits,dataset.operators)):
+                if (dataset.valid_checker(prediction[effectIndex][j],dataset.digits,dataset.operators)):
                     effectValid = True;
                     stats['structureValidEffect'] += 1.0;
                     if (topcause):
@@ -1256,9 +1234,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     elif (dataset.expressionsByPrefix.exists(causeExpressionPrediction, prime=primeToUse)):
                         stats['inDataset'] += 1.0;
 
-                difference1 = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][causeIndex]);
+                difference1 = SubsystemsTheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][causeIndex]);
                 if (not self.only_cause_expression):
-                    difference2 = TheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, labels_to_use[j][effectIndex]);
+                    difference2 = SubsystemsTheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, labels_to_use[j][effectIndex]);
                 else:
                     difference2 = 0;
                 difference = difference1 + difference2;
@@ -1271,15 +1249,22 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 stats['error_histogram'][difference] += 1;
 
                 # Do local scoring for seq2ndmarkov
-                for k in range(2,len(causeExpressionPrediction),3):
+                for k in range(2,len(labels_to_use[j][causeIndex]),3):
                     stats['localSize'] += 1.0;
-                    if (dataset.valid_checker(causeExpressionPrediction[k-2:k+2],dataset.digits,dataset.operators)):
-                        stats['localValid'] += 1.0;
+                    localValidCause = False;
+                    localValidEffect = False;
+                    if (k+1 < len(causeExpressionPrediction) and dataset.valid_checker(prediction[causeIndex][j][k-2:k+2],dataset.digits,dataset.operators)):
                         if (self.only_cause_expression is False):
+                            localValidCause = True;
                             stats['localValidCause'] += 1.0;
+                        else:
+                            stats['localValid'] += 1.0;
                     if (self.only_cause_expression is False):
-                        if (dataset.valid_checker(effectExpressionPrediction[k-2:k+2],dataset.digits,dataset.operators)):
+                        if (k+1 < len(effectExpressionPrediction) and dataset.valid_checker(prediction[effectIndex][j][k-2:k+2],dataset.digits,dataset.operators)):
+                            localValidEffect = True;
                             stats['localValidEffect'] += 1.0;
+                    if (self.only_cause_expression is False and localValidCause and localValidEffect):
+                        stats['localValid'] += 1.0;
 
             # Digit precision and prediction size computation
             i = 0;

@@ -108,6 +108,16 @@ class RecurrentModel(object):
             stats['digit_score'] = 0.0;
         stats['effectScore'] = stats['allEffectScore'] - stats['noEffectScore'];
         
+        if ('subsPredictionSize' in stats):
+            if (stats['subsPredictionSize'] > 0):
+                stats['subsPredictionScore'] = stats['subsPredictionCorrect'] / float(stats['subsPredictionSize']);
+                stats['subsPredictionCauseScore'] = stats['subsPredictionCauseCorrect'] / float(stats['subsPredictionSize']/2.);
+                stats['subsPredictionEffectScore'] = stats['subsPredictionEffectCorrect'] / float(stats['subsPredictionSize']/2.);
+            else:
+                stats['subsPredictionScore'] = 0.;
+                stats['subsPredictionCauseScore'] = 0.;
+                stats['subsPredictionEffectScore'] = 0.;
+        
         stats['error_1_score'] = 0.0;
         stats['error_2_score'] = 0.0;
         stats['error_3_score'] = 0.0;

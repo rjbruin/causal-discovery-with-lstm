@@ -48,7 +48,10 @@ if __name__ == '__main__':
                    'Mean dominance fails': 'Mean dominance fails',
                    'Stddev dominance fails': 'Stddev dominance fails',
                    'Mean weights difference': 'Mean weights difference',
-                   'Stddev weights difference': 'Stddev weights difference'};
+                   'Stddev weights difference': 'Stddev weights difference',
+                   'f-subs prediction score': 'f-subs prediction score',
+                   'f-subs prediction cause score': 'f-subs prediction score (c)',
+                   'f-subs prediction effect score': 'f-subs prediction score (e)'};
     trackerreporter.init('http://rjbruin.nl/experimenttracker/api/',api_key);
     
     experiments_file = 'choose';

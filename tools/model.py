@@ -10,6 +10,7 @@ from models.GeneratedExpressionDataset import GeneratedExpressionDataset;
 from models.TheanoRecurrentNeuralNetwork import TheanoRecurrentNeuralNetwork;
 from models.SequenceRepairingRecurrentNeuralNetwork import SequenceRepairingRecurrentNeuralNetwork;
 from models.FindXRecurrentNeuralNetwork import FindXRecurrentNeuralNetwork;
+from models.SubsystemsTheanoRecurrentNeuralNetwork import SubsystemsTheanoRecurrentNeuralNetwork;
 
 
 def constructModels(parameters, seed, verboseOutputter, noModel=False):
@@ -55,6 +56,21 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False):
                                          GO_symbol_index=dataset.GO_symbol_index);
     elif (parameters['find_x']):
         rnn = FindXRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim,
+                                         minibatch_size=parameters['minibatch_size'],
+                                         n_max_digits=parameters['n_max_digits'],
+                                         verboseOutputter=verboseOutputter,
+                                         optimizer=parameters['optimizer'],
+                                         learning_rate=parameters['learning_rate'],
+                                         operators=parameters['operators'],
+                                         digits=parameters['digits'],
+                                         seq2ndmarkov=parameters['dataset_type'] == 1,
+                                         doubleLayer=parameters['double_layer'],
+                                         tripleLayer=parameters['triple_layer'],
+                                         dropoutProb=parameters['dropout_prob'],
+                                         outputBias=parameters['output_bias'],
+                                         GO_symbol_index=dataset.GO_symbol_index);
+    elif (parameters['g_causality']):
+        rnn = SubsystemsTheanoRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim,
                                          minibatch_size=parameters['minibatch_size'],
                                          n_max_digits=parameters['n_max_digits'],
                                          verboseOutputter=verboseOutputter,

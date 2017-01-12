@@ -91,8 +91,7 @@ class GeneratedExpressionDataset(Dataset):
                     elif (self.config[key] == 'seq2ndmarkov_both'):
                         self.effect_matcher = self.effect_matcher_seq2ndmarkov_both;
                     elif (self.config[key] == 'seq2ndmarkov_both_2'):
-                        # TODO: implement effect matcher
-                        self.effect_matcher = self.effect_matcher_seq2ndmarkov_both;
+                        self.effect_matcher = self.effect_matcher_seq2ndmarkov_both_2;
                 elif (key == 'valid_checker'):
                     if (self.config[key] == 'expressions_simple'):
                         self.valid_checker = self.valid_expressions_simple;
@@ -568,9 +567,9 @@ class GeneratedExpressionDataset(Dataset):
         # We concatenate the expressions on the data_dim axis
         # Both expressions are of the same length, so no checks needed here
         if (not self.only_cause_expression):
-            expression_embeddings = np.zeros((max(len(expression),len(expression_prime))+1,self.data_dim*2), dtype='float32');
+            expression_embeddings = np.zeros((max(len(expression),len(expression_prime)),self.data_dim*2), dtype='float32');
         else:
-            expression_embeddings = np.zeros((max(len(expression),len(expression_prime))+1,self.data_dim), dtype='float32');
+            expression_embeddings = np.zeros((max(len(expression),len(expression_prime)),self.data_dim), dtype='float32');
             
         for i, literal in enumerate(expression):
             expression_embeddings[i,self.oneHot[literal]] = 1.0;
@@ -579,9 +578,9 @@ class GeneratedExpressionDataset(Dataset):
                 expression_embeddings[j,self.data_dim + self.oneHot[literal]] = 1.0;
         
         # Add EOS's
-        expression_embeddings[-1,self.EOS_symbol_index] = 1.0;
-        if (not self.only_cause_expression):
-            expression_embeddings[-1,self.data_dim + self.EOS_symbol_index] = 1.0;
+        #expression_embeddings[-1,self.EOS_symbol_index] = 1.0;
+        #if (not self.only_cause_expression):
+        #    expression_embeddings[-1,self.data_dim + self.EOS_symbol_index] = 1.0;
         
         # Append data
         data.append(expression_embeddings);
@@ -850,8 +849,8 @@ class GeneratedExpressionDataset(Dataset):
         result = expression_encoded[0];
         i = 0;
         while ((i+2) < len(expression_encoded)):
-            if (expression_encoded[i] - nr_digits >= nr_operators or \
-                expression_encoded[i] - nr_digits < 0):
+            if (nr_digits - expression_encoded[i] >= nr_operators or \
+                nr_digits - expression_encoded[i] < 0):
                 if (self.findSymbol[expression_encoded[i]] == "_" and i > 1):
                     return True;
                 return False;
