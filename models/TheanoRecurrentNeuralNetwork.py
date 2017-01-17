@@ -555,7 +555,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         return Y_output, hidden_1, hidden_2, hidden_3, cell, cell_2, cell_3, new_sentence_index;
 
-    def rnn_predict_single(self, given_X, previous_output, previous_hidden, sentence_index, intervention_locations,
+    def rnn_predict_single(self, given_X, previous_output, previous_hidden, previous_cell, sentence_index, intervention_locations,
                             XWh, Xbh, hWh, hbh, hWY, hbY, sd, ed, abstractExpressions):
         if (self.appendAbstract):
             previous_output = T.concatenate([previous_output, abstractExpressions], 1);
@@ -589,17 +589,19 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         new_sentence_index = sentence_index + 1.;
 
-        return Y_output, hidden, new_sentence_index;
+        return Y_output, hidden, previous_cell, new_sentence_index;
 
-    def rnn_predict_double(self, given_X, previous_output, previous_hidden, previous_hidden_2, sentence_index, intervention_locations,
-                            XWh, Xbh, hWh, hbh,
-                            XWh2, Xbh2, hWh2, hbh2,
-                            hWY, hbY,
-                            sd, ed, abstractExpressions):
+    def rnn_predict_double(self, given_X, previous_output, previous_hidden_1,
+                           previous_hidden_2, previous_cell_1, previous_cell_2, 
+                           sentence_index, intervention_locations,
+                           XWh, Xbh, hWh, hbh,
+                           XWh2, Xbh2, hWh2, hbh2,
+                           hWY, hbY,
+                           sd, ed, abstractExpressions):
         if (self.appendAbstract):
             previous_output = T.concatenate([previous_output, abstractExpressions], 1);
 
-        hidden = T.tanh(previous_output.dot(XWh) + Xbh + previous_hidden.dot(hWh) + hbh);
+        hidden = T.tanh(previous_output.dot(XWh) + Xbh + previous_hidden_1.dot(hWh) + hbh);
 
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
         if (self.dropoutProb > 0.):
@@ -630,9 +632,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         new_sentence_index = sentence_index + 1.;
 
-        return Y_output, hidden, hidden_2, new_sentence_index;
+        return Y_output, hidden, hidden_2, previous_cell_1, previous_cell_2, new_sentence_index;
 
-    def rnn_predict_triple(self, given_X, previous_output, previous_hidden, previous_hidden_2, previous_hidden_3, sentence_index, intervention_locations,
+    def rnn_predict_triple(self, given_X, previous_output, previous_hidden, previous_hidden_2, previous_hidden_3, previous_cell_1, previous_cell_2, previous_cell_3, sentence_index, intervention_locations,
                             XWh, Xbh, hWh, hbh,
                             XWh2, Xbh2, hWh2, hbh2,
                             XWh3, Xbh3, hWh3, hbh3,
@@ -678,7 +680,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         new_sentence_index = sentence_index + 1.;
 
-        return Y_output, hidden, hidden_2, hidden_3, new_sentence_index;
+        return Y_output, hidden, hidden_2, hidden_3, previous_cell_1, previous_cell_2, previous_cell_3, new_sentence_index;
 
     # END OF INITIALIZATION
 
