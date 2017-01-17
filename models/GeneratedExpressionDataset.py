@@ -28,7 +28,7 @@ class GeneratedExpressionDataset(Dataset):
                  reverse=False, copyMultipleExpressions=False,
                  operators=4, digits=10, only_cause_expression=False,
                  dataset_type=0, bothcause=False, debug=False,
-                 test_size=0.1, test_offset=0.):
+                 test_size=0.1, test_offset=0., linearProcess=False):
         self.sources = [trainSource, testSource];
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
@@ -39,6 +39,7 @@ class GeneratedExpressionDataset(Dataset):
         self.dataset_type = dataset_type;
         self.bothcause = bothcause;
         self.debug = debug;
+        self.linearProcess = linearProcess;
         
         self.operators = operators;
         self.digits = digits;
@@ -51,7 +52,9 @@ class GeneratedExpressionDataset(Dataset):
         
         # Set the method that should process the lines of the dataset
         self.processor = self.processSample;
-        if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV):
+        if (self.linearProcess):
+            self.processor = self.processSampleLinearProcess;
+        elif (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV):
             self.processor = self.processSeq2ndMarkov;
         elif (self.copyMultipleExpressions):
             self.processor = self.processSampleCopyMultipleInputs;
@@ -590,6 +593,29 @@ class GeneratedExpressionDataset(Dataset):
             expressions.append((expression, expression_prime));
         else:
             expressions.append((expression, ""));
+        
+        return data, targets, labels, expressions, 1;
+    
+    def processSampleLinearProcess(self, line, data, targets, labels, expressions):
+        """
+        Data is ndarray of size (nr lines, sequence length, nr input vars).
+        Targets is same as data.
+        Labels is same as data.
+        Expressions is string representation.
+        """
+        
+        _, samplesStr = line.split("|");
+        samples = samplesStr.split(";");
+        encoding = np.zeros((len(samples), len(samples[0].split(","))), dtype='float32');
+        
+        for i in range(len(samples)):
+            vals = samples[i].split(",");
+            for j in range(len(vals)):
+                encoding[i,j] = float(vals[j]);
+        data.append(encoding);
+        targets.append(encoding);
+        labels.append(encoding);
+        expressions.append(line);
         
         return data, targets, labels, expressions, 1;
     

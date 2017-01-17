@@ -15,7 +15,7 @@ import lasagne;
 
 from profiler import profiler;
 
-class SubsystemsTheanoRecurrentNeuralNetwork(RecurrentModel):
+class LinearSubsystemsTheanoRecurrentNeuralNetwork(RecurrentModel):
     '''
     Recurrent neural network model with one hidden layer. Models single class
     prediction based on regular recurrent model or LSTM model.
@@ -324,7 +324,7 @@ class SubsystemsTheanoRecurrentNeuralNetwork(RecurrentModel):
                                     allow_input_downcast=True,
                                     on_unused_input='ignore')
 
-        super(SubsystemsTheanoRecurrentNeuralNetwork, self).__init__();
+        super(LinearSubsystemsTheanoRecurrentNeuralNetwork, self).__init__();
 
     def loadVars(self, variables, floats=False):
         """
@@ -988,9 +988,9 @@ class SubsystemsTheanoRecurrentNeuralNetwork(RecurrentModel):
                         # Compute string difference
                         score = 0;
                         if (checkWhich == -1 or checkWhich == 0):
-                            score += SubsystemsTheanoRecurrentNeuralNetwork.string_difference(top_string_prediction[interventionLocations[0,i]+1:], topLabel[interventionLocations[0,i]+1:]);
+                            score += LinearSubsystemsTheanoRecurrentNeuralNetwork.string_difference(top_string_prediction[interventionLocations[0,i]+1:], topLabel[interventionLocations[0,i]+1:]);
                         if (checkWhich == -1 or checkWhich == 1):
-                            score += SubsystemsTheanoRecurrentNeuralNetwork.string_difference(bot_string_prediction[interventionLocations[1,i]+1:], botLabel[interventionLocations[1,i]+1:]);
+                            score += LinearSubsystemsTheanoRecurrentNeuralNetwork.string_difference(bot_string_prediction[interventionLocations[1,i]+1:], botLabel[interventionLocations[1,i]+1:]);
                         if (score < nearestScore):
                             nearest = i_near;
                             nearestScore = score;
@@ -1200,9 +1200,9 @@ class SubsystemsTheanoRecurrentNeuralNetwork(RecurrentModel):
                     elif (dataset.expressionsByPrefix.exists(causeExpressionPrediction, prime=primeToUse)):
                         stats['inDataset'] += 1.0;
 
-                difference1 = SubsystemsTheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][causeIndex]);
+                difference1 = LinearSubsystemsTheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][causeIndex]);
                 if (not self.only_cause_expression):
-                    difference2 = SubsystemsTheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, labels_to_use[j][effectIndex]);
+                    difference2 = LinearSubsystemsTheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, labels_to_use[j][effectIndex]);
                 else:
                     difference2 = 0;
                 difference = difference1 + difference2;

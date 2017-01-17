@@ -13,31 +13,33 @@ from models.FindXRecurrentNeuralNetwork import FindXRecurrentNeuralNetwork;
 from models.SubsystemsTheanoRecurrentNeuralNetwork import SubsystemsTheanoRecurrentNeuralNetwork;
 
 
-def constructModels(parameters, seed, verboseOutputter, noModel=False):
+def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset=False):
     train_path = "%s/all.txt" % (parameters['dataset']);
     test_path = "%s/test.txt" % (parameters['dataset']);
     config_path = "%s/config.json" % (parameters['dataset']);
 
-    dataset = GeneratedExpressionDataset(train_path, test_path, config_path,
-                                         test_batch_size=parameters['test_batch_size'],
-                                         train_batch_size=parameters['train_batch_size'],
-                                         max_training_size=parameters['max_training_size'],
-                                         max_testing_size=parameters['max_testing_size'],
-                                         sample_testing_size=parameters['sample_testing_size'],
-                                         use_GO_symbol=parameters['decoder'],
-                                         finishExpressions=parameters['finish_expressions'],
-                                         reverse=parameters['reverse'],
-                                         copyMultipleExpressions=parameters['finish_subsystems'],
-                                         operators=parameters['operators'],
-                                         digits=parameters['digits'],
-                                         only_cause_expression=parameters['only_cause_expression'],
-                                         dataset_type=parameters['dataset_type'],
-                                         bothcause=parameters['bothcause'],
-                                         debug=parameters['debug'],
-                                         test_size=parameters['test_size'],
-                                         test_offset=parameters['test_offset'],
-                                         repairExpressions=parameters['sequence_repairing'],
-                                         find_x=parameters['find_x']);
+    dataset = None;
+    if (not noDataset):
+        dataset = GeneratedExpressionDataset(train_path, test_path, config_path,
+                                             test_batch_size=parameters['test_batch_size'],
+                                             train_batch_size=parameters['train_batch_size'],
+                                             max_training_size=parameters['max_training_size'],
+                                             max_testing_size=parameters['max_testing_size'],
+                                             sample_testing_size=parameters['sample_testing_size'],
+                                             use_GO_symbol=parameters['decoder'],
+                                             finishExpressions=parameters['finish_expressions'],
+                                             reverse=parameters['reverse'],
+                                             copyMultipleExpressions=parameters['finish_subsystems'],
+                                             operators=parameters['operators'],
+                                             digits=parameters['digits'],
+                                             only_cause_expression=parameters['only_cause_expression'],
+                                             dataset_type=parameters['dataset_type'],
+                                             bothcause=parameters['bothcause'],
+                                             debug=parameters['debug'],
+                                             test_size=parameters['test_size'],
+                                             test_offset=parameters['test_offset'],
+                                             repairExpressions=parameters['sequence_repairing'],
+                                             find_x=parameters['find_x']);
 
     if (parameters['sequence_repairing']):
         rnn = SequenceRepairingRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim,
