@@ -319,7 +319,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             updates = [(var,var-self.learning_rate*der) for (var,der) in zip(var_list,derivatives)];
         elif (self.optimizer == self.RMS_OPTIMIZER):
             derivatives = T.grad(error, var_list);
-            updates = lasagne.updates.rmsprop(derivatives,var_list).items();
+            updates = lasagne.updates.rmsprop(derivatives,var_list,learning_rate=0.001).items();
         else:
             derivatives = T.grad(error, var_list);
             updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
