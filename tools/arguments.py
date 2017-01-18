@@ -88,7 +88,9 @@ argumentProcessors = {'name': processString,
                       'sequence_repairing': processBool,
                       'find_x': processBool,
                       'ignore_zero_difference': processBool,
-                      'g_causality': processBool
+                      'g_causality': processBool,
+                      'peepholes': processBool,
+                      'lstm_biases': processBool
                       }
 defaults = {'output_name': "",
             'report_to_tracker': True,
@@ -147,7 +149,9 @@ defaults = {'output_name': "",
             'sequence_repairing': False,
             'find_x': False,
             'ignore_zero_difference': False,
-            'g_causality': False
+            'g_causality': False,
+            'peepholes': True,
+            'lstm_biases': True
             }
 
 def processKeyValue(key,value):

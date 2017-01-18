@@ -85,7 +85,9 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset
                                          tripleLayer=parameters['triple_layer'],
                                          dropoutProb=parameters['dropout_prob'],
                                          outputBias=parameters['output_bias'],
-                                         GO_symbol_index=dataset.GO_symbol_index);
+                                         GO_symbol_index=dataset.GO_symbol_index,
+                                         peepholes=parameters['peepholes'],
+                                         lstm_biases=parameters['lstm_biases']);
     elif (not noModel):
         rnn = TheanoRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim,
                                          lstm=parameters['lstm'],
@@ -109,7 +111,9 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset
                                          useAbstract=parameters['use_abstract'],
                                          appendAbstract=parameters['append_abstract'],
                                          relu=parameters['relu'],
-                                         ignoreZeroDifference=parameters['ignore_zero_difference']);
+                                         ignoreZeroDifference=parameters['ignore_zero_difference'],
+                                         peepholes=parameters['peepholes'],
+                                         lstm_biases=parameters['lstm_biases']);
     else:
         rnn = None;
 

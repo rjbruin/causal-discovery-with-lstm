@@ -33,7 +33,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
                  doubleLayer=False, tripleLayer=False, dropoutProb=0., outputBias=False,
                  crosslinks=True, appendAbstract=False, useAbstract=False, relu=False,
-                 ignoreZeroDifference=False):
+                 ignoreZeroDifference=False, peepholes=False, lstm_biases=False):
         '''
         Initialize all Theano models.
         '''
@@ -59,6 +59,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.appendAbstract = appendAbstract;
         self.relu = relu;
         self.ignoreZeroDifference = ignoreZeroDifference;
+        self.peepholes = peepholes;
+        self.lstm_biases = lstm_biases;
 
 #         if (not self.lstm):
 #             raise ValueError("Feature LSTM = False is no longer supported!");
@@ -96,6 +98,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             varSettings.append(('XWc',actual_data_dim,self.hidden_dim));
             varSettings.append(('hWo',self.hidden_dim,self.hidden_dim));
             varSettings.append(('XWo',actual_data_dim,self.hidden_dim));
+            if (self.peepholes):
+                # Peephole connections for forget, input and output gate
+                varSettings.append(('Pf',False,self.hidden_dim));
+                varSettings.append(('Pi',False,self.hidden_dim));
+                varSettings.append(('Po',False,self.hidden_dim));
         else:
             varSettings.append(('XWh',actual_data_dim,self.hidden_dim));
             varSettings.append(('Xbh',False,self.hidden_dim));
@@ -112,6 +119,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 varSettings.append(('XWc2',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('hWo2',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('XWo2',self.hidden_dim,self.hidden_dim));
+                if (self.peepholes):
+                    # Peephole connections for forget, input and output gate
+                    varSettings.append(('Pf2',False,self.hidden_dim));
+                    varSettings.append(('Pi2',False,self.hidden_dim));
+                    varSettings.append(('Po2',False,self.hidden_dim));
             else:
                 varSettings.append(('XWh2',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('Xbh2',False,self.hidden_dim));
@@ -127,6 +139,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 varSettings.append(('XWc3',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('hWo3',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('XWo3',self.hidden_dim,self.hidden_dim));
+                if (self.peepholes):
+                    # Peephole connections for forget, input and output gate
+                    varSettings.append(('Pf3',False,self.hidden_dim));
+                    varSettings.append(('Pi3',False,self.hidden_dim));
+                    varSettings.append(('Po3',False,self.hidden_dim));
             else:
                 varSettings.append(('XWh3',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('Xbh3',False,self.hidden_dim));
@@ -365,15 +382,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     # PREDICTION FUNCTIONS
 
     def lstm_predict_single(self, given_X, previous_output, previous_hidden, previous_cell, sentence_index, intervention_locations,
-                            hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY, hbY, sd, ed, abstractExpressions):
+                            hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, Pf, Pi, Po, hWY, hbY, sd, ed, abstractExpressions):
         if (self.appendAbstract):
             previous_output = T.concatenate([previous_output, abstractExpressions], 1);
 
-        forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + previous_output.dot(XWf[sd:ed,:]));
-        input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + previous_output.dot(XWi[sd:ed,:]));
+        forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + previous_output.dot(XWf[sd:ed,:]) + previous_cell * Pf);
+        input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + previous_output.dot(XWi[sd:ed,:]) + previous_cell * Pi);
         candidate_cell = T.tanh(previous_hidden.dot(hWc) + previous_output.dot(XWc[sd:ed,:]));
         cell = forget_gate * previous_cell + input_gate * candidate_cell;
-        output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + previous_output.dot(XWo[sd:ed,:]));
+        output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + previous_output.dot(XWo[sd:ed,:]) + previous_cell * Po);
         hidden = output_gate * T.tanh(cell);
 
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
@@ -403,12 +420,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         return Y_output, hidden, cell, new_sentence_index;
 
-    def lstm_predict_single_no_output(self, current_X, previous_hidden, previous_cell, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, sd, ed):
-        forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + current_X.dot(XWf[sd:ed,:]));
-        input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + current_X.dot(XWi[sd:ed,:]));
+    def lstm_predict_single_no_output(self, current_X, previous_hidden, previous_cell, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, Pf, Pi, Po, sd, ed):
+        forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + current_X.dot(XWf[sd:ed,:]) + previous_cell * Pf);
+        input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + current_X.dot(XWi[sd:ed,:]) + previous_cell * Pi);
         candidate_cell = T.tanh(previous_hidden.dot(hWc) + current_X.dot(XWc[sd:ed,:]));
         cell = forget_gate * previous_cell + input_gate * candidate_cell;
-        output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + current_X.dot(XWo[sd:ed,:]));
+        output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + current_X.dot(XWo[sd:ed,:]) + previous_cell * Po);
         hidden = output_gate * T.tanh(cell);
 
         return hidden, cell;
