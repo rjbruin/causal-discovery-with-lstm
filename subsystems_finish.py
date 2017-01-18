@@ -433,9 +433,11 @@ if __name__ == '__main__':
         
         # Intermediate testing if this was not the last iteration of training
         # and we have passed the testing threshold
-        #if (r != repetition_size-1):
+        sampleSize = parameters['sample_testing_size'];
+        if (r == parameters['repetitions'] - 1):
+            sampleSize = False;
         test(model, dataset, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
-             sample_size=parameters['sample_testing_size'], homogeneous=parameters['homogeneous']);
+             sample_size=sampleSize, homogeneous=parameters['homogeneous']);
         
         # Save weights to pickles
         if (saveModels):
