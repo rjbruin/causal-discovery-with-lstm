@@ -91,7 +91,9 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False):
                                          useAbstract=parameters['use_abstract'],
                                          appendAbstract=parameters['append_abstract'],
                                          relu=parameters['relu'],
-                                         ignoreZeroDifference=parameters['ignore_zero_difference']);
+                                         ignoreZeroDifference=parameters['ignore_zero_difference'],
+                                         peepholes=parameters['peepholes'],
+                                         lstm_biases=parameters['lstm_biases']);
     else:
         rnn = None;
 

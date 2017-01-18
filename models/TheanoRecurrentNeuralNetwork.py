@@ -33,7 +33,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
                  doubleLayer=False, tripleLayer=False, dropoutProb=0., outputBias=False,
                  crosslinks=True, appendAbstract=False, useAbstract=False, relu=False,
-                 ignoreZeroDifference=False):
+                 ignoreZeroDifference=False, peepholes=False, lstm_biases=False):
         '''
         Initialize all Theano models.
         '''
@@ -59,6 +59,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.appendAbstract = appendAbstract;
         self.relu = relu;
         self.ignoreZeroDifference = ignoreZeroDifference;
+#         self.peepholes = peepholes;
+#         self.lstm_biases = lstm_biases;
+        self.peepholes = True;
+        self.lstm_biases = True;
+        print("WARNING! Peepholes and LSTM biases are fixed to be on!");
 
 #         if (not self.lstm):
 #             raise ValueError("Feature LSTM = False is no longer supported!");
@@ -96,6 +101,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             varSettings.append(('XWc',actual_data_dim,self.hidden_dim));
             varSettings.append(('hWo',self.hidden_dim,self.hidden_dim));
             varSettings.append(('XWo',actual_data_dim,self.hidden_dim));
+            if (self.peepholes):
+                varSettings.append(('Pf',False,self.hidden_dim));
+                varSettings.append(('Pi',False,self.hidden_dim));
+                varSettings.append(('Po',False,self.hidden_dim));
+            if (self.lstm_biases):
+                varSettings.append(('bc',False,self.hidden_dim));
+                varSettings.append(('bf',False,self.hidden_dim));
+                varSettings.append(('bi',False,self.hidden_dim));
+                varSettings.append(('bo',False,self.hidden_dim));
         else:
             varSettings.append(('XWh',actual_data_dim,self.hidden_dim));
             varSettings.append(('Xbh',False,self.hidden_dim));
@@ -112,6 +126,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 varSettings.append(('XWc2',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('hWo2',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('XWo2',self.hidden_dim,self.hidden_dim));
+                if (self.peepholes):
+                    varSettings.append(('Pf2',False,self.hidden_dim));
+                    varSettings.append(('Pi2',False,self.hidden_dim));
+                    varSettings.append(('Po2',False,self.hidden_dim));
+                if (self.lstm_biases):     
+                    varSettings.append(('bc2',False,self.hidden_dim));
+                    varSettings.append(('bf2',False,self.hidden_dim));
+                    varSettings.append(('bi2',False,self.hidden_dim));
+                    varSettings.append(('bo2',False,self.hidden_dim));
             else:
                 varSettings.append(('XWh2',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('Xbh2',False,self.hidden_dim));
@@ -127,6 +150,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 varSettings.append(('XWc3',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('hWo3',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('XWo3',self.hidden_dim,self.hidden_dim));
+                if (self.peepholes):
+                    varSettings.append(('Pf3',False,self.hidden_dim));
+                    varSettings.append(('Pi3',False,self.hidden_dim));
+                    varSettings.append(('Po3',False,self.hidden_dim));
+                if (self.lstm_biases):     
+                    varSettings.append(('bc3',False,self.hidden_dim));
+                    varSettings.append(('bf3',False,self.hidden_dim));
+                    varSettings.append(('bi3',False,self.hidden_dim));
+                    varSettings.append(('bo3',False,self.hidden_dim));
             else:
                 varSettings.append(('XWh3',self.hidden_dim,self.hidden_dim));
                 varSettings.append(('Xbh3',False,self.hidden_dim));
@@ -365,15 +397,16 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     # PREDICTION FUNCTIONS
 
     def lstm_predict_single(self, given_X, previous_output, previous_hidden, previous_cell, sentence_index, intervention_locations,
-                            hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, hWY, hbY, sd, ed, abstractExpressions):
+                            hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, Pf, Pi, Po, bc, bf, bi, bo, 
+                            hWY, hbY, sd, ed, abstractExpressions):
         if (self.appendAbstract):
             previous_output = T.concatenate([previous_output, abstractExpressions], 1);
 
-        forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + previous_output.dot(XWf[sd:ed,:]));
-        input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + previous_output.dot(XWi[sd:ed,:]));
-        candidate_cell = T.tanh(previous_hidden.dot(hWc) + previous_output.dot(XWc[sd:ed,:]));
+        forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + previous_output.dot(XWf[sd:ed,:]) + previous_cell * Pf + bf);
+        input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + previous_output.dot(XWi[sd:ed,:]) + previous_cell * Pi + bi);
+        candidate_cell = T.tanh(previous_hidden.dot(hWc) + previous_output.dot(XWc[sd:ed,:]) + bc);
         cell = forget_gate * previous_cell + input_gate * candidate_cell;
-        output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + previous_output.dot(XWo[sd:ed,:]));
+        output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + previous_output.dot(XWo[sd:ed,:]) + previous_cell * Po + bo);
         hidden = output_gate * T.tanh(cell);
 
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
@@ -403,37 +436,37 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         return Y_output, hidden, cell, new_sentence_index;
 
-    def lstm_predict_single_no_output(self, current_X, previous_hidden, previous_cell, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, sd, ed):
-        forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + current_X.dot(XWf[sd:ed,:]));
-        input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + current_X.dot(XWi[sd:ed,:]));
-        candidate_cell = T.tanh(previous_hidden.dot(hWc) + current_X.dot(XWc[sd:ed,:]));
+    def lstm_predict_single_no_output(self, current_X, previous_hidden, previous_cell, hWf, XWf, hWi, XWi, hWc, XWc, Pf, Pi, Po, bc, bf, bi, bo, hWo, XWo, sd, ed):
+        forget_gate = T.nnet.sigmoid(previous_hidden.dot(hWf) + current_X.dot(XWf[sd:ed,:]) + previous_cell * Pf + bf);
+        input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + current_X.dot(XWi[sd:ed,:]) + previous_cell * Pi + bi);
+        candidate_cell = T.tanh(previous_hidden.dot(hWc) + current_X.dot(XWc[sd:ed,:]) + bc);
         cell = forget_gate * previous_cell + input_gate * candidate_cell;
-        output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + current_X.dot(XWo[sd:ed,:]));
+        output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + current_X.dot(XWo[sd:ed,:]) + previous_cell * Po + bo);
         hidden = output_gate * T.tanh(cell);
-
         return hidden, cell;
 
     def lstm_predict_double(self, given_X, previous_output, previous_hidden_1,
                             previous_hidden_2, previous_cell_1, previous_cell_2, 
                             sentence_index, intervention_locations,
-                            hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo,
-                            hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, hWY, hbY, sd, ed, abstractExpressions):
-        forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + previous_output.dot(XWf));
-        input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + previous_output.dot(XWi));
-        candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + previous_output.dot(XWc));
+                            hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, Pf, Pi, Po, bc, bf, bi, bo,
+                            hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2, 
+                            hWY, hbY, sd, ed, abstractExpressions):
+        forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + previous_output.dot(XWf[sd:ed,:]) + previous_cell_1 * Pf + bf);
+        input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + previous_output.dot(XWi[sd:ed,:]) + previous_cell_1 * Pi + bi);
+        candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + previous_output.dot(XWc[sd:ed,:]) + bc);
         cell = forget_gate * previous_cell_1 + input_gate * candidate_cell;
-        output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + previous_output.dot(XWo));
+        output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + previous_output.dot(XWo[sd:ed,:]) + previous_cell_1 * Po + bo);
         hidden_1 = output_gate * T.tanh(cell);
 
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
         if (self.dropoutProb > 0.):
             hidden_1 = lasagne.layers.dropout((self.minibatch_size, self.hidden_dim), self.dropoutProb).get_output_for(hidden_1);
 
-        forget_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWf2) + hidden_1.dot(XWf2));
-        input_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWi2) + hidden_1.dot(XWi2));
-        candidate_cell_2 = T.tanh(previous_hidden_2.dot(hWc2) + hidden_1.dot(XWc2));
+        forget_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWf2) + hidden_1.dot(XWf2) + previous_cell_2 * Pf2 + bf2);
+        input_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWi2) + hidden_1.dot(XWi2) + previous_cell_2 * Pi2 + bi2);
+        candidate_cell_2 = T.tanh(previous_hidden_2.dot(hWc2) + hidden_1.dot(XWc2) + bc2);
         cell_2 = forget_gate_2 * previous_cell_2 + input_gate_2 * candidate_cell_2;
-        output_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWo2) + hidden_1.dot(XWo2));
+        output_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWo2) + hidden_1.dot(XWo2) + previous_cell_1 * Po2 + bo2);
         hidden_2 = output_gate_2 * T.tanh(cell_2);
 
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
@@ -469,20 +502,21 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
     def lstm_predict_double_no_output(self, current_X, previous_hidden_1, previous_hidden_2,
                                       previous_cell_1, previous_cell_2,
-                                      hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo,
-                                      hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, sd, ed):
-        forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + current_X.dot(XWf[sd:ed,:]));
-        input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + current_X.dot(XWi[sd:ed,:]));
-        candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + current_X.dot(XWc[sd:ed,:]));
+                                      hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, Pf, Pi, Po, bc, bf, bi, bo,
+                                      hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2, 
+                                      sd, ed):
+        forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + current_X.dot(XWf[sd:ed,:]) + previous_cell_1 * Pf + bf);
+        input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + current_X.dot(XWi[sd:ed,:]) + previous_cell_1 * Pi + bi);
+        candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + current_X.dot(XWc[sd:ed,:]) + bc);
         cell = forget_gate * previous_cell_1 + input_gate * candidate_cell;
-        output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + current_X.dot(XWo[sd:ed,:]));
+        output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + current_X.dot(XWo[sd:ed,:]) + previous_cell_1 * Po + bo);
         hidden_1 = output_gate * T.tanh(cell);
 
-        forget_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWf2) + hidden_1.dot(XWf2));
-        input_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWi2) + hidden_1.dot(XWi2));
-        candidate_cell_2 = T.tanh(previous_hidden_2.dot(hWc2) + hidden_1.dot(XWc2));
+        forget_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWf2) + hidden_1.dot(XWf2) + previous_cell_2 * Pf2 + bf2);
+        input_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWi2) + hidden_1.dot(XWi2) + previous_cell_2 * Pi2 + bi2);
+        candidate_cell_2 = T.tanh(previous_hidden_2.dot(hWc2) + hidden_1.dot(XWc2) + bc2);
         cell_2 = forget_gate_2 * previous_cell_2 + input_gate_2 * candidate_cell_2;
-        output_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWo2) + hidden_1.dot(XWo2));
+        output_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWo2) + hidden_1.dot(XWo2) + previous_cell_1 * Po2 + bo2);
         hidden_2 = output_gate_2 * T.tanh(cell_2);
 
         return hidden_1, hidden_2, cell, cell_2;
@@ -491,37 +525,37 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             previous_hidden_2, previous_hidden_3, 
                             previous_cell_1, previous_cell_2, previous_cell_3, 
                             sentence_index, intervention_locations,
-                            hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo,
-                            hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2,
-                            hWf3, XWf3, hWi3, XWi3, hWc3, XWc3, hWo3, XWo3,
+                            hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, Pf, Pi, Po, bc, bf, bi, bo,
+                            hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2,
+                            hWf3, XWf3, hWi3, XWi3, hWc3, XWc3, hWo3, XWo3, Pf3, Pi3, Po3, bc3, bf3, bi3, bo3,
                             hWY, hbY, sd, ed, abstractExpressions):
-        forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + previous_output.dot(XWf[sd:ed,:]));
-        input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + previous_output.dot(XWi[sd:ed,:]));
-        candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + previous_output.dot(XWc[sd:ed,:]));
+        forget_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWf) + previous_output.dot(XWf[sd:ed,:]) + previous_cell_1 * Pf + bf);
+        input_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWi) + previous_output.dot(XWi[sd:ed,:]) + previous_cell_1 * Pi + bi);
+        candidate_cell = T.tanh(previous_hidden_1.dot(hWc) + previous_output.dot(XWc[sd:ed,:]) + bc);
         cell = forget_gate * previous_cell_1 + input_gate * candidate_cell;
-        output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + previous_output.dot(XWo[sd:ed,:]));
+        output_gate = T.nnet.sigmoid(previous_hidden_1.dot(hWo) + previous_output.dot(XWo[sd:ed,:]) + previous_cell_1 * Po + bo);
         hidden_1 = output_gate * T.tanh(cell);
 
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
         if (self.dropoutProb > 0.):
             hidden_1 = lasagne.layers.dropout((self.minibatch_size, self.hidden_dim), self.dropoutProb).get_output_for(hidden_1);
 
-        forget_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWf2) + hidden_1.dot(XWf2));
-        input_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWi2) + hidden_1.dot(XWi2));
-        candidate_cell_2 = T.tanh(previous_hidden_2.dot(hWc2) + hidden_1.dot(XWc2));
+        forget_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWf2) + hidden_1.dot(XWf2) + previous_cell_2 * Pf2 + bf2);
+        input_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWi2) + hidden_1.dot(XWi2) + previous_cell_2 * Pi2 + bi2);
+        candidate_cell_2 = T.tanh(previous_hidden_2.dot(hWc2) + hidden_1.dot(XWc2) + bc2);
         cell_2 = forget_gate_2 * previous_cell_2 + input_gate_2 * candidate_cell_2;
-        output_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWo2) + hidden_1.dot(XWo2));
+        output_gate_2 = T.nnet.sigmoid(previous_hidden_2.dot(hWo2) + hidden_1.dot(XWo2) + previous_cell_1 * Po2 + bo2);
         hidden_2 = output_gate_2 * T.tanh(cell_2);
 
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
         if (self.dropoutProb > 0.):
             hidden_2 = lasagne.layers.dropout((self.minibatch_size, self.hidden_dim), self.dropoutProb).get_output_for(hidden_2);
 
-        forget_gate_3 = T.nnet.sigmoid(previous_hidden_3.dot(hWf3) + hidden_2.dot(XWf3));
-        input_gate_3 = T.nnet.sigmoid(previous_hidden_3.dot(hWi3) + hidden_2.dot(XWi3));
-        candidate_cell_3 = T.tanh(previous_hidden_3.dot(hWc3) + hidden_2.dot(XWc3));
+        forget_gate_3 = T.nnet.sigmoid(previous_hidden_3.dot(hWf3) + hidden_2.dot(XWf3) + previous_cell_3 * Pf3 + bf3);
+        input_gate_3 = T.nnet.sigmoid(previous_hidden_3.dot(hWi3) + hidden_2.dot(XWi3) + previous_cell_3 * Pi3 + bi3);
+        candidate_cell_3 = T.tanh(previous_hidden_3.dot(hWc3) + hidden_2.dot(XWc3) + bc3);
         cell_3 = forget_gate_3 * previous_cell_3 + input_gate_3 * candidate_cell_3;
-        output_gate_3 = T.nnet.sigmoid(previous_hidden_3.dot(hWo3) + hidden_2.dot(XWo3));
+        output_gate_3 = T.nnet.sigmoid(previous_hidden_3.dot(hWo3) + hidden_2.dot(XWo3) + previous_cell_3 * Po2 + bo3);
         hidden_3 = output_gate_3 * T.tanh(cell_3);
 
         # Apply dropout (p = 1 - p because p  is chance of dropout and 1 is keep unit)
