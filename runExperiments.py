@@ -49,6 +49,8 @@ if __name__ == '__main__':
                    'Stddev dominance fails': 'Stddev dominance fails',
                    'Mean weights difference': 'Mean weights difference',
                    'Stddev weights difference': 'Stddev weights difference'};
+    for size in range(20):
+        score_types['Size %d' % size] = 'Score by prediction size = %d:' % size;
     trackerreporter.init('http://rjbruin.nl/experimenttracker/api/',api_key);
     
     experiments_file = 'choose';
