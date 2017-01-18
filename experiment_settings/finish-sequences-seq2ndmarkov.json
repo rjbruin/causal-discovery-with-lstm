@@ -13,7 +13,6 @@
         "learning_rate": "0.005",
         "hidden_dim": "128",
         "minibatch_size": "64",
-        "triple_layer": "True",
         "dataset_type": "1",
         "operators": "3",
         "digits": "10",
