@@ -52,6 +52,8 @@ if __name__ == '__main__':
                    'f-subs prediction score': 'f-subs prediction score',
                    'f-subs prediction cause score': 'f-subs prediction score (c)',
                    'f-subs prediction effect score': 'f-subs prediction score (e)'};
+    for size in range(20):
+        score_types['Size %d' % size] = 'Score by prediction size = %d:' % size;
     trackerreporter.init('http://rjbruin.nl/experimenttracker/api/',api_key);
     
     experiments_file = 'choose';

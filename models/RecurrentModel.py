@@ -48,7 +48,7 @@ class RecurrentModel(object):
         Adds general statistics to the statistics generated per batch.
         """
         stats['prediction_histogram'] = RecurrentModel.addDicts(stats['prediction_1_histogram'], stats['prediction_2_histogram']);
-        stats['prediction_size_histogram'] = RecurrentModel.addDicts(stats['prediction_1_size_histogram'], stats['prediction_2_size_histogram']);
+#         stats['prediction_size_histogram'] = RecurrentModel.addDicts(stats['prediction_1_size_histogram'], stats['prediction_2_size_histogram']);
         
         stats['digit_correct'] = stats['digit_1_correct'] + stats['digit_2_correct'];
         stats['digit_prediction_size'] = stats['digit_1_prediction_size'] + stats['digit_2_prediction_size'];
@@ -77,6 +77,12 @@ class RecurrentModel(object):
             stats['structureValidScoreTop'] = stats['structureValidTop'] / float(stats['prediction_size']);
             stats['structureValidScoreBot'] = stats['structureValidBot'] / float(stats['prediction_size']);
             stats['inDatasetScore'] = stats['inDataset'] / float(stats['prediction_size']);
+            stats['prediction_size_score'] = {};
+            for size, val in stats['prediction_size_correct'].items():
+                if (stats['prediction_sizes'][size] > 0):
+                    stats['prediction_size_score'][size] = val / float(stats['prediction_sizes'][size]);
+                else:
+                    stats['prediction_size_score'][size] = 0.
         else:
             stats['score'] = 0.0;
             stats['structureScoreCause'] = 0.0;

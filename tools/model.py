@@ -142,4 +142,6 @@ def set_up_statistics(output_dim, n_max_digits):
             'prediction_2_size_histogram': {k: 0 for k in range(60)},
             'intervention_locations': {k: 0 for k in range(n_max_digits)},
             'skipped_because_intervention_location': 0,
-            'samplesCorrect': []};
+            'samplesCorrect': [],
+            'prediction_sizes': {k: 0 for k in range(20)},
+            'prediction_size_correct': {k: 0. for k in range(20)}};

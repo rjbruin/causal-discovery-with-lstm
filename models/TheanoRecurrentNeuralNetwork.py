@@ -319,7 +319,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             updates = [(var,var-self.learning_rate*der) for (var,der) in zip(var_list,derivatives)];
         elif (self.optimizer == self.RMS_OPTIMIZER):
             derivatives = T.grad(error, var_list);
-            updates = lasagne.updates.rmsprop(derivatives,var_list).items();
+            updates = lasagne.updates.rmsprop(derivatives,var_list,learning_rate=self.learning_rate).items();
         else:
             derivatives = T.grad(error, var_list);
             updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
@@ -1234,6 +1234,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 stats['correct'] += 1.0;
                 stats['valid'] += 1.0;
                 stats['inDataset'] += 1.0;
+                stats['prediction_size_correct'][len(labels_to_use[j][causeIndex]) - intervention_locations[0,j]] += 1.0;
 
                 # Do local scoring for seq2ndmarkov
                 if (self.seq2ndmarkov):
@@ -1302,16 +1303,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 stats['digit_2_prediction_size'] += len_to_use - (intervention_locations[effectIndex,j]+1);
 
 
-            stats['prediction_1_size_histogram'][int(eos_location)] += 1;
+#             stats['prediction_1_size_histogram'][int(eos_location)] += 1;
             for digit_prediction in prediction[causeIndex][j][intervention_locations[causeIndex,j]+1:len(causeExpressionPrediction)]:
                 stats['prediction_1_histogram'][int(digit_prediction)] += 1;
-
+# 
             if (not self.only_cause_expression):
-                stats['prediction_2_size_histogram'][int(eos_location)] += 1;
+#                 stats['prediction_2_size_histogram'][int(eos_location)] += 1;
                 for digit_prediction in prediction[effectIndex][j][intervention_locations[effectIndex,j]+1:len(effectExpressionPrediction)]:
                     stats['prediction_2_histogram'][int(digit_prediction)] += 1;
 
             stats['prediction_size'] += 1;
+            stats['prediction_sizes'][len(labels_to_use[j][causeIndex]) - intervention_locations[0,j]] += 1;
 
         return stats, labels_to_use;
 

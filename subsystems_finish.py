@@ -75,8 +75,12 @@ def print_stats(stats, parameters, prefix=''):
         output += prefix + "Digit (2) histogram:   %s\n" % (str(stats['prediction_2_histogram']));
         
     output += prefix + "Digit-based score: %.2f percent\n" % (stats['digit_score']*100);
-    output += prefix + "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
+#     output += prefix + "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
     output += prefix + "Digit histogram:   %s\n" % (str(stats['prediction_histogram']));
+    
+    output += prefix + "Prediction sizes: %s" % (str(stats['prediction_sizes']));
+    for size in stats['prediction_size_score'].keys():
+        output += prefix + "Score by prediction size = %d: %.2f percent\n" % (size, stats['prediction_size_score'][size]);
     
     output += prefix + "Error margin 1 score: %.2f percent\n" % (stats['error_1_score']*100.);
     output += prefix + "Error margin 2 score: %.2f percent\n" % (stats['error_2_score']*100.);
@@ -439,9 +443,11 @@ if __name__ == '__main__':
         
         # Intermediate testing if this was not the last iteration of training
         # and we have passed the testing threshold
-        #if (r != repetition_size-1):
+        sampleSize = parameters['sample_testing_size'];
+        if (r == parameters['repetitions'] - 1):
+            sampleSize = False;
         test(model, dataset, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
-             sample_size=parameters['sample_testing_size'], homogeneous=parameters['homogeneous']);
+             sample_size=sampleSize, homogeneous=parameters['homogeneous']);
         
         # Save weights to pickles
         if (saveModels):
