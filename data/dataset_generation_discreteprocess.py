@@ -65,8 +65,8 @@ if __name__ == '__main__':
     progressPrintInterval = 10000;
     
     # DEBUG
-    n = 1000;
-    progressPrintInterval = 10;
+#     n = 1000;
+#     progressPrintInterval = 10;
     
     if (weightsrange[1] - weightsrange[0] == 1 and np.power(len(range(inputrange[0], inputrange[1])),max_lag) < n):
         # Weights are fixed so unique samples amount is limited
