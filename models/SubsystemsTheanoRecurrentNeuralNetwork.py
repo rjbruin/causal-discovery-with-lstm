@@ -425,8 +425,8 @@ class SubsystemsTheanoRecurrentNeuralNetwork(RecurrentModel):
             prediction_2 = T.argmax(right_hand[:,:,self.data_dim:], axis=2);
 
         # ERROR COMPUTATION AND PROPAGATION
-        coding_dist = right_hand[:label.shape[0]]
-        cat_cross = -T.sum(label * T.log(coding_dist), axis=coding_dist.ndim-1);
+        coding_dist = right_hand[lag:]
+        cat_cross = -T.sum(label[lag:] * T.log(coding_dist), axis=coding_dist.ndim-1);
         mean_cross_per_sample = T.mean(cat_cross, axis=0);
         error = T.mean(mean_cross_per_sample[:nrSamples]);
 
@@ -452,7 +452,7 @@ class SubsystemsTheanoRecurrentNeuralNetwork(RecurrentModel):
             updates = [(var,var-self.learning_rate*der) for (var,der) in zip(var_list,derivatives)];
         elif (self.optimizer == self.RMS_OPTIMIZER):
             derivatives = T.grad(error, var_list);
-            updates = lasagne.updates.rmsprop(derivatives,var_list).items();
+            updates = lasagne.updates.rmsprop(derivatives,var_list,learning_rate=self.learning_rate).items();
         else:
             derivatives = T.grad(error, var_list);
             updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
