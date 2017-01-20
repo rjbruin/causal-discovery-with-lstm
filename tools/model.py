@@ -20,7 +20,7 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset
 
     dataset = None;
     if (not noDataset):
-        dataset = GeneratedExpressionDataset(train_path, test_path, config_path,
+        dataset = GeneratedExpressionDataset(train_path, config_path,
                                              test_batch_size=parameters['test_batch_size'],
                                              train_batch_size=parameters['train_batch_size'],
                                              max_training_size=parameters['max_training_size'],
@@ -87,7 +87,8 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset
                                          outputBias=parameters['output_bias'],
                                          GO_symbol_index=dataset.GO_symbol_index,
                                          peepholes=parameters['peepholes'],
-                                         lstm_biases=parameters['lstm_biases']);
+                                         lstm_biases=parameters['lstm_biases'],
+                                         lag=parameters['lag']);
     elif (not noModel):
         rnn = TheanoRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim,
                                          lstm=parameters['lstm'],

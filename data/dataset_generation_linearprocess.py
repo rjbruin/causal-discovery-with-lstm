@@ -48,6 +48,8 @@ def generateSample(length, max_lag, inputrange, weightsrange, crosslinks=True):
     return weightsStr + ";".join(sample);
 
 if __name__ == '__main__':
+    raise ValueError("THIS SCRIPT GENERATES NEW WEIGHTS FOR EACH SAMPLE! SHOULD BE ONE SET OF WEIGHTS FOR ENTIRE DATASET. LOOK AT DISCRETE PROCESS FOR EXAMPLE CODE.")
+    
     # Define dataset settings
     n = 1000000;
     length = 20;

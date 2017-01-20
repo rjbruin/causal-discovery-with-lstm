@@ -17,8 +17,9 @@ class GeneratedExpressionDataset(Dataset):
     DATASET_EXPRESSIONS = 0;
     DATASET_SEQ2NDMARKOV = 1;
     DATASET_DOUBLEOPERATOR = 2;
+    DATASET_DISCRETEPROCESS = 3;
     
-    def __init__(self, trainSource, testSource, configSource, 
+    def __init__(self, source, configSource, 
                  preload=True,
                  test_batch_size=10000, train_batch_size=10000,
                  max_training_size=False, max_testing_size=False,
@@ -29,7 +30,7 @@ class GeneratedExpressionDataset(Dataset):
                  operators=4, digits=10, only_cause_expression=False,
                  dataset_type=0, bothcause=False, debug=False,
                  test_size=0.1, test_offset=0., linearProcess=False):
-        self.sources = [trainSource, testSource];
+        self.source = source;
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
         self.max_training_size = max_training_size;
@@ -54,6 +55,8 @@ class GeneratedExpressionDataset(Dataset):
         self.processor = self.processSample;
         if (self.linearProcess):
             self.processor = self.processSampleLinearProcess;
+        elif (self.dataset_type == GeneratedExpressionDataset.DATASET_DISCRETEPROCESS):
+            self.processor = self.processSampleDiscreteProcess;
         elif (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV):
             self.processor = self.processSeq2ndMarkov;
         elif (self.copyMultipleExpressions):
@@ -107,20 +110,21 @@ class GeneratedExpressionDataset(Dataset):
         self.oneHot = {};
         for digit in range(self.digits):
             self.oneHot[str(digit)] = digit;
-        symbols = ['+','-','*','/'][:self.operators] + ['(',')','='];
-        if (self.repairExpressions or self.find_x):
-            symbols.append('x');
-        symbols.extend(['_','G']);
-        i = max(self.oneHot.values())+1;
-        for sym in symbols:
-            self.oneHot[sym] = i;
-            i += 1;
+        if (self.dataset_type is not GeneratedExpressionDataset.DATASET_DISCRETEPROCESS):
+            symbols = ['+','-','*','/'][:self.operators] + ['(',')','='];
+            if (self.repairExpressions or self.find_x):
+                symbols.append('x');
+                symbols.extend(['_','G']);
+            i = max(self.oneHot.values())+1;
+            for sym in symbols:
+                self.oneHot[sym] = i;
+                i += 1;
         
         self.findSymbol = {v: k for (k,v) in self.oneHot.items()};
         self.key_indices = {k: i for (i,k) in enumerate(self.oneHot.keys())};
         
         # Data dimension = number of symbols
-        self.data_dim = self.digits + len(symbols);
+        self.data_dim = len(self.oneHot.keys());
         self.EOS_symbol_index = self.data_dim-2;
         self.GO_symbol_index = self.data_dim-1;
         # We predict the same symbols as we have as input, so input and data
@@ -128,12 +132,14 @@ class GeneratedExpressionDataset(Dataset):
         self.output_dim = self.data_dim;
         
         # Store locations and sizes for both train and testing
-        self.locations = [0, 0];
-        train_length, train_data_length, train_target_length = self.filemeta(self.sources[self.TRAIN], self.max_training_size);
-        test_length, test_data_length, test_target_length = self.filemeta(self.sources[self.TEST], self.max_testing_size);
-        self.data_length = max(train_data_length, test_data_length);
-        self.target_length = max(train_target_length, test_target_length);
-        self.lengths = [train_length, test_length];
+#         self.locations = [0, 0];
+#         train_length, train_data_length, train_target_length = self.filemeta(self.sources[self.TRAIN], self.max_training_size);
+#         test_length, test_data_length, test_target_length = self.filemeta(self.sources[self.TEST], self.max_testing_size);
+#         self.data_length = max(train_data_length, test_data_length);
+#         self.target_length = max(train_target_length, test_target_length);
+        
+        data_length, _, _ = self.filemeta(self.source, self.max_training_size);
+        self.lengths = [data_length * (1. - test_size), data_length * test_size];
         if (self.max_training_size is not False):
             self.lengths[self.TRAIN] = self.max_training_size;
         if (self.max_testing_size is not False):
@@ -173,7 +179,7 @@ class GeneratedExpressionDataset(Dataset):
             if (not self.only_cause_expression): 
                 self.testExpressionsByPrefixBot = SequencesByPrefix();
             
-            f = open(self.sources[self.TRAIN],'r');
+            f = open(self.source,'r');
             line = f.readline().strip();
             n = 0;
             
@@ -616,6 +622,29 @@ class GeneratedExpressionDataset(Dataset):
         targets.append(encoding);
         labels.append(encoding);
         expressions.append(line);
+        
+        return data, targets, labels, expressions, 1;
+    
+    def processSampleDiscreteProcess(self, line, data, targets, labels, expressions):
+        """
+        Data is ndarray of size (nr lines, sequence length, nr input vars).
+        Targets is same as data.
+        Labels is same as data.
+        Expressions is string representation.
+        """
+        sample1, sample2 = line.split(";");
+        encoding = np.zeros((len(sample1), self.data_dim*2), dtype='float32');
+        
+        for i in range(len(sample1)):
+            encoding[i,self.oneHot[sample1[i]]] = 1.0;
+        
+        for i in range(len(sample2)):
+            encoding[i,self.oneHot[sample2[i]]+self.data_dim] = 1.0;
+        
+        data.append(encoding);
+        targets.append(encoding);
+        labels.append(encoding);
+        expressions.append((sample1, sample2));
         
         return data, targets, labels, expressions, 1;
     

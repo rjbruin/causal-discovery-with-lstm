@@ -36,11 +36,6 @@ def print_stats(stats, parameters, prefix=''):
     # Print statistics
     output += prefix + "Score: %.2f percent\n" % (stats['score']*100);
     
-    if (parameters['g_causality']):
-        output += prefix + "f-subs prediction score: %.2f percent\n" % (stats['subsPredictionScore']*100);
-        output += prefix + "f-subs prediction cause score: %.2f percent\n" % (stats['subsPredictionCauseScore']*100);
-        output += prefix + "f-subs prediction effect score: %.2f percent\n" % (stats['subsPredictionEffectScore']*100);
-    
     if (not parameters['only_cause_expression']):
         output += prefix + "Structure score cause: %.2f percent\n" % (stats['structureScoreCause']*100);
         output += prefix + "Structure score effect: %.2f percent\n" % (stats['structureScoreEffect']*100);
@@ -211,11 +206,6 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
     
     # Set up statistics
     stats = set_up_statistics(dataset.output_dim, model.n_max_digits);
-    if (parameters['g_causality']):
-        stats['subsPredictionSize'] = 0;
-        stats['subsPredictionCorrect'] = 0;
-        stats['subsPredictionCauseCorrect'] = 0;
-        stats['subsPredictionEffectCorrect'] = 0;
     total_labels_used = {k: 0 for k in range(30)};
     
     # Predict
@@ -403,21 +393,6 @@ if __name__ == '__main__':
             
             # Make intervention locations into matrix
             interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
-            
-            # Create init hidden layers from abstract expressions
-            abstractExpressions = np.zeros((model.minibatch_size, model.hidden_dim), dtype='float32');
-            if (parameters['use_abstract']):
-                for i in range(model.minibatch_size):
-                    # TODO: make this work with subsystems
-                    abstractExpr = dataset.abstractExpression(target_expressions[i][0]);
-                    abstractExpressions[i,:abstractExpr.shape[0]] = abstractExpr;
-            
-            # Append abstract to data dim
-            if (parameters['append_abstract']):
-                abstractExpressions = np.zeros((model.minibatch_size,13), dtype='float32');
-                for i in range(model.minibatch_size):
-                    # TODO: make this work with subsystems
-                    abstractExpressions[i] = dataset.abstractExpression(target_expressions[i][0]);
             
             # Run training
             profiler.start('train sgd');

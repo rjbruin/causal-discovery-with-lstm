@@ -90,7 +90,8 @@ argumentProcessors = {'name': processString,
                       'ignore_zero_difference': processBool,
                       'g_causality': processBool,
                       'peepholes': processBool,
-                      'lstm_biases': processBool
+                      'lstm_biases': processBool,
+                      'lag': processInt
                       }
 defaults = {'output_name': "",
             'report_to_tracker': True,
@@ -151,7 +152,8 @@ defaults = {'output_name': "",
             'ignore_zero_difference': False,
             'g_causality': False,
             'peepholes': True,
-            'lstm_biases': True
+            'lstm_biases': True,
+            'lag': 8
             }
 
 def processKeyValue(key,value):
