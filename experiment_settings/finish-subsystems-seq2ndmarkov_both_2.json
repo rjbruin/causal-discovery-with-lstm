@@ -9,7 +9,7 @@
         "n_max_digits": "17",
         "intervention_base_offset": "1",
         "intervention_range": "16",
-        "optimizer": "2",
+        "optimizer": "1",
         "dataset_type": "1",
         "operators": "2",
         "digits": "8",

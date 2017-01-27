@@ -72,7 +72,6 @@ argumentProcessors = {'name': processString,
                       'test_in_dataset': processBool,
                       'bothcause': processBool,
                       'double_layer': processBool,
-                      'triple_layer': processBool,
                       'dropout_prob': processFloat,
                       'output_bias': processBool,
                       'subbatch_size': processInt,
@@ -88,8 +87,10 @@ argumentProcessors = {'name': processString,
                       'sequence_repairing': processBool,
                       'find_x': processBool,
                       'ignore_zero_difference': processBool,
+                      'rnn_version': processInt,
                       'peepholes': processBool,
-                      'lstm_biases': processBool
+                      'lstm_biases': processBool,
+                      'lag': processInt
                       }
 defaults = {'output_name': "",
             'report_to_tracker': True,
@@ -131,7 +132,6 @@ defaults = {'output_name': "",
             'test_in_dataset': True,
             'bothcause': False,
             'double_layer': False,
-            'triple_layer': False,
             'dropout_prob': 0.,
             'use_encoder': False,
             'output_bias': False,
@@ -148,8 +148,10 @@ defaults = {'output_name': "",
             'sequence_repairing': False,
             'find_x': False,
             'ignore_zero_difference': False,
+            'rnn_version': 0,
             'peepholes': True,
-            'lstm_biases': True
+            'lstm_biases': True,
+            'lag': 8
             }
 
 def processKeyValue(key,value):

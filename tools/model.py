@@ -10,33 +10,36 @@ from models.GeneratedExpressionDataset import GeneratedExpressionDataset;
 from models.TheanoRecurrentNeuralNetwork import TheanoRecurrentNeuralNetwork;
 from models.SequenceRepairingRecurrentNeuralNetwork import SequenceRepairingRecurrentNeuralNetwork;
 from models.FindXRecurrentNeuralNetwork import FindXRecurrentNeuralNetwork;
+from models.SubsystemsTheanoRecurrentNeuralNetwork import SubsystemsTheanoRecurrentNeuralNetwork;
 
 
-def constructModels(parameters, seed, verboseOutputter, noModel=False):
+def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset=False):
     train_path = "%s/all.txt" % (parameters['dataset']);
     test_path = "%s/test.txt" % (parameters['dataset']);
     config_path = "%s/config.json" % (parameters['dataset']);
 
-    dataset = GeneratedExpressionDataset(train_path, test_path, config_path,
-                                         test_batch_size=parameters['test_batch_size'],
-                                         train_batch_size=parameters['train_batch_size'],
-                                         max_training_size=parameters['max_training_size'],
-                                         max_testing_size=parameters['max_testing_size'],
-                                         sample_testing_size=parameters['sample_testing_size'],
-                                         use_GO_symbol=parameters['decoder'],
-                                         finishExpressions=parameters['finish_expressions'],
-                                         reverse=parameters['reverse'],
-                                         copyMultipleExpressions=parameters['finish_subsystems'],
-                                         operators=parameters['operators'],
-                                         digits=parameters['digits'],
-                                         only_cause_expression=parameters['only_cause_expression'],
-                                         dataset_type=parameters['dataset_type'],
-                                         bothcause=parameters['bothcause'],
-                                         debug=parameters['debug'],
-                                         test_size=parameters['test_size'],
-                                         test_offset=parameters['test_offset'],
-                                         repairExpressions=parameters['sequence_repairing'],
-                                         find_x=parameters['find_x']);
+    dataset = None;
+    if (not noDataset):
+        dataset = GeneratedExpressionDataset(train_path, config_path,
+                                             test_batch_size=parameters['test_batch_size'],
+                                             train_batch_size=parameters['train_batch_size'],
+                                             max_training_size=parameters['max_training_size'],
+                                             max_testing_size=parameters['max_testing_size'],
+                                             sample_testing_size=parameters['sample_testing_size'],
+                                             use_GO_symbol=parameters['decoder'],
+                                             finishExpressions=parameters['finish_expressions'],
+                                             reverse=parameters['reverse'],
+                                             copyMultipleExpressions=parameters['finish_subsystems'],
+                                             operators=parameters['operators'],
+                                             digits=parameters['digits'],
+                                             only_cause_expression=parameters['only_cause_expression'],
+                                             dataset_type=parameters['dataset_type'],
+                                             bothcause=parameters['bothcause'],
+                                             debug=parameters['debug'],
+                                             test_size=parameters['test_size'],
+                                             test_offset=parameters['test_offset'],
+                                             repairExpressions=parameters['sequence_repairing'],
+                                             find_x=parameters['find_x']);
 
     if (parameters['sequence_repairing']):
         rnn = SequenceRepairingRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim,
@@ -49,7 +52,6 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False):
                                          digits=parameters['digits'],
                                          seq2ndmarkov=parameters['dataset_type'] == 1,
                                          doubleLayer=parameters['double_layer'],
-                                         tripleLayer=parameters['triple_layer'],
                                          dropoutProb=parameters['dropout_prob'],
                                          outputBias=parameters['output_bias'],
                                          GO_symbol_index=dataset.GO_symbol_index);
@@ -64,7 +66,6 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False):
                                          digits=parameters['digits'],
                                          seq2ndmarkov=parameters['dataset_type'] == 1,
                                          doubleLayer=parameters['double_layer'],
-                                         tripleLayer=parameters['triple_layer'],
                                          dropoutProb=parameters['dropout_prob'],
                                          outputBias=parameters['output_bias'],
                                          GO_symbol_index=dataset.GO_symbol_index);
@@ -84,7 +85,6 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False):
                                          only_cause_expression=parameters['only_cause_expression'],
                                          seq2ndmarkov=parameters['dataset_type'] == 1,
                                          doubleLayer=parameters['double_layer'],
-                                         tripleLayer=parameters['triple_layer'],
                                          dropoutProb=parameters['dropout_prob'],
                                          outputBias=parameters['output_bias'],
                                          crosslinks=parameters['crosslinks'],
@@ -93,7 +93,9 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False):
                                          relu=parameters['relu'],
                                          ignoreZeroDifference=parameters['ignore_zero_difference'],
                                          peepholes=parameters['peepholes'],
-                                         lstm_biases=parameters['lstm_biases']);
+                                         lstm_biases=parameters['lstm_biases'],
+                                         lag=parameters['lag'],
+                                         rnn_version=parameters['rnn_version']);
     else:
         rnn = None;
 
