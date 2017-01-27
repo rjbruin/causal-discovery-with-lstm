@@ -114,7 +114,7 @@ class GeneratedExpressionDataset(Dataset):
             symbols = ['+','-','*','/'][:self.operators] + ['(',')','='];
             if (self.repairExpressions or self.find_x):
                 symbols.append('x');
-                symbols.extend(['_','G']);
+            symbols.extend(['_','G']);
             i = max(self.oneHot.values())+1;
             for sym in symbols:
                 self.oneHot[sym] = i;
@@ -131,13 +131,6 @@ class GeneratedExpressionDataset(Dataset):
         # dimension are equal
         self.output_dim = self.data_dim;
         
-        # Store locations and sizes for both train and testing
-#         self.locations = [0, 0];
-#         train_length, train_data_length, train_target_length = self.filemeta(self.sources[self.TRAIN], self.max_training_size);
-#         test_length, test_data_length, test_target_length = self.filemeta(self.sources[self.TEST], self.max_testing_size);
-#         self.data_length = max(train_data_length, test_data_length);
-#         self.target_length = max(train_target_length, test_target_length);
-        
         data_length, _, _ = self.filemeta(self.source, self.max_training_size);
         self.lengths = [data_length * (1. - test_size), data_length * test_size];
         if (self.max_training_size is not False):
@@ -148,109 +141,70 @@ class GeneratedExpressionDataset(Dataset):
         self.train_done = False;
         self.test_done = False;
         
-        if (self.finishExpressions or self.copyMultipleExpressions or self.repairExpressions or self.find_x):
-            # We need to save all expressions by answer for the fast lookup of
-            # nearest labels
-            self.preload(onlyStoreByPrefix=True, test_size=test_size, test_offset=test_offset);
-        else:
-            self.outputByInput = None;
-         
-            if (preload):
-                self.preloaded = self.preload(test_size=test_size, test_offset=test_offset);
-                if (not self.preloaded):
-                    print("WARNING! PRELOADING DATASET WAS ATTEMPTED BUT FAILED!");
+        self.expressionLengths = Counter();
+        self.expressionsByPrefix = SequencesByPrefix();
+        if (not self.only_cause_expression): 
+            self.expressionsByPrefixBot = SequencesByPrefix();
+        self.testExpressionLengths = Counter();
+        self.testExpressionsByPrefix = SequencesByPrefix();
+        if (not self.only_cause_expression): 
+            self.testExpressionsByPrefixBot = SequencesByPrefix();
+        
+        f = open(self.source,'r');
+        line = f.readline().strip();
+        n = 0;
+        
+        append_to_train = True;
+        test_set_done = False;
+        if (test_offset == 0.):
+            append_to_train = False;
+        # Check for n is to make the code work with max_training_size
+        while (line != "" and n < self.lengths[self.TRAIN]):
+            result = line.split(";");
+            if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV and not self.bothcause):
+                expression, expression_prime, topcause = result;
             else:
-                self.preloaded = False;
-    
-    def preload(self, onlyStoreByPrefix=False, test_size=0.1, test_offset=0.):
-        """
-        Preloads the dataset into memory. If onlyStoreLookupByInput is True,
-        the data is not stored but only saved into the dictionary outputByInput
-        which can be used to lookup all outputs for a given unique input. In
-        this case only the training data is stored.
-        """
-        if (onlyStoreByPrefix):
-            self.expressionLengths = Counter();
-            self.expressionsByPrefix = SequencesByPrefix();
-            if (not self.only_cause_expression): 
-                self.expressionsByPrefixBot = SequencesByPrefix();
-            self.testExpressionLengths = Counter();
-            self.testExpressionsByPrefix = SequencesByPrefix();
-            if (not self.only_cause_expression): 
-                self.testExpressionsByPrefixBot = SequencesByPrefix();
+                expression, expression_prime = result;
+                topcause = '1';
             
-            f = open(self.source,'r');
+            if (self.only_cause_expression == 1):
+                expression_prime = "";
+            elif (self.only_cause_expression == 2):
+                expression = expression_prime;
+                expression_prime = "";
+            
+            if (append_to_train):
+                if (not self.only_cause_expression and \
+                        (topcause == '0' or \
+                        self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
+                        self.bothcause)):
+                    self.expressionsByPrefixBot.add(expression_prime, expression);
+                if (topcause == '1'):
+                    self.expressionsByPrefix.add(expression, expression_prime);
+                self.expressionLengths[len(expression)] += 1;
+            else:
+                if (not self.only_cause_expression and \
+                        (topcause == '0' or \
+                        self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
+                        self.bothcause)):
+                    self.testExpressionsByPrefixBot.add(expression_prime, expression);
+                if (topcause == '1'):
+                    self.testExpressionsByPrefix.add(expression, expression_prime);
+                self.testExpressionLengths[len(expression)] += 1;
+            
             line = f.readline().strip();
-            n = 0;
+            n += 1;
             
-            append_to_train = True;
-            test_set_done = False;
-            if (test_offset == 0.):
-                append_to_train = False;
-            # Check for n is to make the code work with max_training_size
-            while (line != "" and n < self.lengths[self.TRAIN]):
-                result = line.split(";");
-                if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV and not self.bothcause):
-                    expression, expression_prime, topcause = result;
-                else:
-                    expression, expression_prime = result;
-                    topcause = '1';
-                
-                if (self.only_cause_expression == 1):
-                    expression_prime = "";
-                elif (self.only_cause_expression == 2):
-                    expression = expression_prime;
-                    expression_prime = "";
-                
+            # Reassess whether to switch target dataset part
+            if (not test_set_done):
                 if (append_to_train):
-                    if (not self.only_cause_expression and \
-                            (topcause == '0' or \
-                            self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
-                            self.bothcause)):
-                        self.expressionsByPrefixBot.add(expression_prime, expression);
-                    if (topcause == '1'):
-                        self.expressionsByPrefix.add(expression, expression_prime);
-                    self.expressionLengths[len(expression)] += 1;
+                    if (n / float(self.lengths[self.TRAIN]) >= test_offset and test_size > 0.):
+                        append_to_train = False;
                 else:
-                    if (not self.only_cause_expression and \
-                            (topcause == '0' or \
-                            self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
-                            self.bothcause)):
-                        self.testExpressionsByPrefixBot.add(expression_prime, expression);
-                    if (topcause == '1'):
-                        self.testExpressionsByPrefix.add(expression, expression_prime);
-                    self.testExpressionLengths[len(expression)] += 1;
-                
-                line = f.readline().strip();
-                n += 1;
-                
-                # Reassess whether to switch target dataset part
-                if (not test_set_done):
-                    if (append_to_train):
-                        if (n / float(self.lengths[self.TRAIN]) >= test_offset and test_size > 0.):
-                            append_to_train = False;
-                    else:
-                        if (n / float(self.lengths[self.TRAIN]) >= test_offset + test_size):
-                            test_set_done = True;
-                            append_to_train = True;
-            f.close();
-        else:
-            train, train_targets, train_labels, train_expressions = \
-                self.loadFile(self.sources[self.TRAIN], 
-                              location_index=self.TRAIN, 
-                              file_length=self.lengths[self.TRAIN]);
-            test, test_targets, test_labels, test_expressions = \
-                self.loadFile(self.sources[self.TEST], 
-                              location_index=self.TEST, 
-                              file_length=self.lengths[self.TEST]);
-            
-            self.train, self.train_targets, self.train_labels, self.train_expressions =\
-                train, train_targets, train_labels, train_expressions;
-            self.test, self.test_targets, self.test_labels, self.test_expressions =\
-                test, test_targets, test_labels, test_expressions;
-        
-        
-        return True;
+                    if (n / float(self.lengths[self.TRAIN]) >= test_offset + test_size):
+                        test_set_done = True;
+                        append_to_train = True;
+        f.close();
     
     def filemeta(self, source, max_length=False):
         f = open(source, 'r');
@@ -270,47 +224,7 @@ class GeneratedExpressionDataset(Dataset):
                 target_length = target[0].shape[0];
             line = f.readline();
         
-        return length, data_length, target_length;
-    
-    def load(self, source, size, location):
-        f = open(source,'r');
-        
-        # Prepare data storage 
-        data = [];
-        targets = [];
-        labels = [];
-        expressions = [];
-        
-        # Skip all lines until start of batch
-        for j in range(location+1):
-            line = f.readline();
-        
-        # Read in lines until we match the size asked for
-        i = 0;
-        # Keep track of how many lines we process to update the location
-        line_number = j;
-        while i < size:
-            data, targets, labels, expressions, count = self.processor(line, data, targets, labels, expressions);
-            i += count;
-            
-            line = f.readline();
-            line_number += 1;
-            # Skip empty lines and restart file at the end (if the end of file
-            # is not also end of reading
-            if (line.strip() == ""):
-                # http://stackoverflow.com/questions/3906137/why-cant-i-call-read-twice-on-an-open-file
-                f.seek(0);
-                line = f.readline();
-                line_number = 0;
-        
-        f.close();
-        
-        # Convert list of ndarrays to a proper ndarray so minibatching will work later
-        data = self.fill_ndarray(data, 1);
-        targets = self.fill_ndarray(targets, 1);
-        
-        # Return (data, new location)
-        return (data, targets, np.array(labels), np.array(expressions)), line_number;
+        return length, data_length, target_length;    
     
     def fill_ndarray(self, data, axis, fixed_length=None):
         if (axis <= 0):
@@ -330,114 +244,6 @@ class GeneratedExpressionDataset(Dataset):
                 raise ValueError("n_max_digits too small! Increase from %d to %d" % (max_length, datapoint.shape[0]));
             nd_data[i,:datapoint.shape[0]] = datapoint;
         return nd_data;
-    
-    def loadFile(self, source, location_index=0, file_length=None):
-        if (file_length is None):
-            file_length = self.filelength(source);
-        data, loc = self.load(source, file_length, self.locations[location_index]);
-        self.locations[location_index] = loc;
-        return data;
-    
-    def get_train_batch(self, size):
-        """
-        Loads and returns the next training batch based on the size indicated 
-        by the caller of the method. On overflow the dataset wraps around.
-        """
-        if (self.train_done):
-            self.train_done = False;
-            self.locations[self.TRAIN] = 0;
-            return False;
-        if (self.preloaded):
-            # Determine the range of dataset to use for this iteration
-            if (self.locations[self.TRAIN] + size > self.lengths[self.TRAIN]):
-                # If this iteration will overflow make it resume from the beginning of the dataset
-                indices = range(self.locations[self.TRAIN],self.lengths[self.TRAIN]) + range(0,size - (self.lengths[self.TRAIN] - self.locations[self.TRAIN]));
-            else:
-                indices = range(self.locations[self.TRAIN],self.locations[self.TRAIN]+size);
-            # Update the location of the pointer of the dataset
-            self.locations[self.TRAIN] = (self.locations[self.TRAIN] + size) % self.lengths[self.TRAIN];
-            self.train_done = True;
-            return self.train[indices], self.train_targets[indices], self.train_labels[indices], self.train_expressions[indices];
-        else:
-            # Truncate the batch to be maximally the remaining part of the repetition
-            if (self.locations[self.TRAIN] + size > self.lengths[self.TRAIN]):
-                size -= (self.locations[self.TRAIN] + size) - self.lengths[self.TRAIN];
-            
-            data, loc = self.load(self.sources[self.TRAIN], size, self.locations[self.TRAIN]);
-            self.locations[self.TRAIN] = loc;
-            if (self.locations[self.TRAIN] >= self.lengths[self.TRAIN] or self.locations[self.TRAIN] == 0):
-                self.train_done = True;
-            return data;
-    
-    def get_test_batch(self, no_sampling=False):
-        """
-        Computes, loads and returns the next training batch. On overflow the
-        dataset returns the final batch which may be smaller than the regular
-        batch size. After this, calling the method returns False and the 
-        dataset prepares itself for a new testing iteration.
-        """
-        length = self.lengths[self.TEST];
-        
-        # Terminate this batching iteration if the test is marked as done
-        if (self.test_done):
-            # If we have marked this test iteration as being completed, return
-            # False and reset internal pointers for test batching
-            self.test_done = False;
-            self.locations[self.TEST] = 0;
-            return False;
-        
-        # Set up batching range
-        if (not no_sampling and self.sample_testing_size is not False):
-            batch_size = self.sample_testing_size;
-            if (length - batch_size <= 0):
-                batch_size = length;
-                startingIndex = 0;
-            else:
-                startingIndex = np.random.randint(0,length-batch_size);            
-            testingRange = (startingIndex,startingIndex+batch_size);
-        else:
-            testingRange = (0,length);
-         
-        # Load batch
-        if (self.preloaded):
-            # If we have preloaded the test data, return the test data and mark
-            # this iteration immediately as done
-            self.test_done = True;
-            return self.test[testingRange[0]:testingRange[1]], \
-                    self.test_targets[testingRange[0]:testingRange[1]], \
-                    self.test_labels[testingRange[0]:testingRange[1]], \
-                    self.test_expressions[testingRange[0]:testingRange[1]];
-        else:
-            if (not no_sampling and self.sample_testing_size is not False):
-                # Load in the relevant part and return
-                results, _ = self.load(self.sources[self.TEST], self.sample_testing_size, testingRange[0]);
-                self.test_done = True;
-            else:
-                # Else, compute the batch size. Truncate the batch to be maximally 
-                # the remaining part of the dataset  
-                batch_size = self.test_batch_size;
-                if (self.locations[self.TEST]+batch_size > length):
-                    batch_size = length % self.test_batch_size;
-                
-                # Load the relevant part of the dataset
-                results, loc = self.load(self.sources[self.TEST], batch_size, self.locations[self.TEST]);
-                self.locations[self.TEST] = loc;
-                
-                # Updating location manually is not necessary as that is already 
-                # done by load()
-                if (self.locations[self.TEST] >= length or self.locations[self.TEST] == 0):
-                    # If the location of the pointer is end the end of file or at 
-                    # the beginning (indicating overflow has taken place) mark this
-                    # test as done
-                    self.test_done = True;
-            
-            return results;
-    
-    def get_train_all(self):
-        """
-        Returns all preloaded test data.
-        """
-        return self.train, self.train_targets, self.train_labels, self.train_expressions;
     
     def processSample(self, line, data, targets, labels, expressions):
         # Get expression from line
