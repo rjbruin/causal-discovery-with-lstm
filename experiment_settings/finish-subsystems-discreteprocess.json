@@ -9,7 +9,7 @@
         "n_max_digits": "20",
         "intervention_base_offset": "18",
         "intervention_range": "1",
-        "optimizer": "2",
+        "optimizer": "1",
         "dataset_type": "3",
         "bothcause": "True",
         "learning_rate": "0.005",
