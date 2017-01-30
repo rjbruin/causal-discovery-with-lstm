@@ -11,11 +11,11 @@
         "intervention_range": "1",
         "optimizer": "1",
         "dataset_type": "3",
-        "bothcause": "True",
         "learning_rate": "0.005",
         "hidden_dim": "128",
         "minibatch_size": "64",
-        "g_causality": "True",
-        "lag": "8"
+        "rnn_version": "1",
+        "lag": "8",
+        "sample_data_loading": "True"
     }
 ]

@@ -112,15 +112,16 @@ class GeneratedExpressionDataset(object):
         self.oneHot = {};
         for digit in range(self.digits):
             self.oneHot[str(digit)] = digit;
+        symbols = [];
         if (self.dataset_type is not GeneratedExpressionDataset.DATASET_DISCRETEPROCESS):
             symbols = ['+','-','*','/'][:self.operators] + ['(',')','='];
             if (self.repairExpressions or self.find_x):
                 symbols.append('x');
-            symbols.extend(['_','G']);
-            i = max(self.oneHot.values())+1;
-            for sym in symbols:
-                self.oneHot[sym] = i;
-                i += 1;
+        symbols.extend(['_','G']);
+        i = max(self.oneHot.values())+1;
+        for sym in symbols:
+            self.oneHot[sym] = i;
+            i += 1;
         
         self.findSymbol = {v: k for (k,v) in self.oneHot.items()};
         self.key_indices = {k: i for (i,k) in enumerate(self.oneHot.keys())};
@@ -764,10 +765,10 @@ class GeneratedExpressionDataset(object):
         """
         return ExpressionNode.fromStr(expression);
     
-    def indicesToStr(self, prediction):
+    def indicesToStr(self, prediction, ignoreEOS=False):
         expression = "";
         for index in prediction:
-            if (index == self.EOS_symbol_index):
+            if (index == self.EOS_symbol_index and not ignoreEOS):
                 break;
             expression += self.findSymbol[index];
         return expression;

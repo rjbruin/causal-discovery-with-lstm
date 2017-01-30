@@ -90,7 +90,8 @@ argumentProcessors = {'name': processString,
                       'peepholes': processBool,
                       'lstm_biases': processBool,
                       'lag': processInt,
-                      'simple_data_loading': processBool
+                      'simple_data_loading': processBool,
+                      'nocrosslinks_hidden_factor': processFloat
                       }
 defaults = {'output_name': "",
             'report_to_tracker': True,
@@ -151,7 +152,8 @@ defaults = {'output_name': "",
             'peepholes': True,
             'lstm_biases': True,
             'lag': 8,
-            'simple_data_loading': False
+            'simple_data_loading': False,
+            'nocrosslinks_hidden_factor': 1.
             }
 
 def processKeyValue(key,value):

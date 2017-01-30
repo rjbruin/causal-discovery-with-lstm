@@ -37,45 +37,49 @@ def print_stats(stats, parameters, prefix=''):
     output += prefix + "Score: %.2f percent\n" % (stats['score']*100);
     
     if (not parameters['only_cause_expression']):
-        output += prefix + "Structure score cause: %.2f percent\n" % (stats['structureScoreCause']*100);
-        output += prefix + "Structure score effect: %.2f percent\n" % (stats['structureScoreEffect']*100);
+        if (parameters['dataset_type'] != 3):
+            output += prefix + "Structure score cause: %.2f percent\n" % (stats['structureScoreCause']*100);
+            output += prefix + "Structure score effect: %.2f percent\n" % (stats['structureScoreEffect']*100);
         output += prefix + "Structure score top: %.2f percent\n" % (stats['structureScoreTop']*100);
         output += prefix + "Structure score bot: %.2f percent\n" % (stats['structureScoreBot']*100);
-        output += prefix + "Structure score: %.2f percent\n" % (stats['structureScore']*100);
-        output += prefix + "Effect score: %.2f percent\n" % (stats['effectScore']*100);
-        output += prefix + "Effect score including no effect: %.2f percent\n" % (stats['allEffectScore']*100);
+        if (parameters['dataset_type'] != 3):
+            output += prefix + "Structure score: %.2f percent\n" % (stats['structureScore']*100);
+            output += prefix + "Effect score: %.2f percent\n" % (stats['effectScore']*100);
+            output += prefix + "Effect score including no effect: %.2f percent\n" % (stats['allEffectScore']*100);
     
-    output += prefix + "Valid: %.2f percent\n" % (stats['validScore']*100);
-    output += prefix + "Local valid: %.2f percent\n" % (stats['localValidScore']*100);
-    if (not parameters['only_cause_expression']):
-        output += prefix + "Structure valid cause: %.2f percent\n" % (stats['structureValidScoreCause']*100);
-        output += prefix + "Structure valid effect: %.2f percent\n" % (stats['structureValidScoreEffect']*100);
-        output += prefix + "Structure valid top: %.2f percent\n" % (stats['structureValidScoreTop']*100);
-        output += prefix + "Structure valid bot: %.2f percent\n" % (stats['structureValidScoreBot']*100);
-        output += prefix + "Local valid cause: %.2f percent\n" % (stats['localValidScoreCause']*100);
-        output += prefix + "Local valid effect: %.2f percent\n" % (stats['localValidScoreEffect']*100);
-    
-    if (parameters['test_in_dataset']):
-        output += prefix + "In dataset: %.2f percent\n" % (stats['inDatasetScore']*100);
-    
-    output += prefix + "Intervention locations:   %s\n" % (str(stats['intervention_locations']));
+    if (parameters['dataset_type'] != 3):
+        output += prefix + "Valid: %.2f percent\n" % (stats['validScore']*100);
+        output += prefix + "Local valid: %.2f percent\n" % (stats['localValidScore']*100);
+        if (not parameters['only_cause_expression']):
+            output += prefix + "Structure valid cause: %.2f percent\n" % (stats['structureValidScoreCause']*100);
+            output += prefix + "Structure valid effect: %.2f percent\n" % (stats['structureValidScoreEffect']*100);
+            output += prefix + "Structure valid top: %.2f percent\n" % (stats['structureValidScoreTop']*100);
+            output += prefix + "Structure valid bot: %.2f percent\n" % (stats['structureValidScoreBot']*100);
+            output += prefix + "Local valid cause: %.2f percent\n" % (stats['localValidScoreCause']*100);
+            output += prefix + "Local valid effect: %.2f percent\n" % (stats['localValidScoreEffect']*100);
+        output += prefix + "Intervention locations:   %s\n" % (str(stats['intervention_locations']));
+        if (parameters['test_in_dataset']):
+            output += prefix + "In dataset: %.2f percent\n" % (stats['inDatasetScore']*100);
 
     if (not parameters['only_cause_expression']):
         output += prefix + "Digit-based (1) score: %.2f percent\n" % (stats['digit_1_score']*100);
-        output += prefix + "Prediction size (1) histogram:   %s\n" % (str(stats['prediction_1_size_histogram']));
+        if (parameters['dataset_type'] != 3):
+            output += prefix + "Prediction size (1) histogram:   %s\n" % (str(stats['prediction_1_size_histogram']));
         output += prefix + "Digit (1) histogram:   %s\n" % (str(stats['prediction_1_histogram']));
         
         output += prefix + "Digit-based (2) score: %.2f percent\n" % (stats['digit_2_score']*100);
-        output += prefix + "Prediction size (2) histogram:   %s\n" % (str(stats['prediction_2_size_histogram']));
+        if (parameters['dataset_type'] != 3):
+            output += prefix + "Prediction size (2) histogram:   %s\n" % (str(stats['prediction_2_size_histogram']));
         output += prefix + "Digit (2) histogram:   %s\n" % (str(stats['prediction_2_histogram']));
         
     output += prefix + "Digit-based score: %.2f percent\n" % (stats['digit_score']*100);
 #     output += prefix + "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
     output += prefix + "Digit histogram:   %s\n" % (str(stats['prediction_histogram']));
     
-    output += prefix + "Prediction sizes: %s" % (str(stats['prediction_sizes']));
-    for size in stats['prediction_size_score'].keys():
-        output += prefix + "Score by prediction size = %d: %.2f percent\n" % (size, stats['prediction_size_score'][size]);
+    if (parameters['dataset_type'] != 3):
+        output += prefix + "Prediction sizes: %s" % (str(stats['prediction_sizes']));
+        for size in stats['prediction_size_score'].keys():
+            output += prefix + "Score by prediction size = %d: %.2f percent\n" % (size, stats['prediction_size_score'][size]);
     
     output += prefix + "Error margin 1 score: %.2f percent\n" % (stats['error_1_score']*100.);
     output += prefix + "Error margin 2 score: %.2f percent\n" % (stats['error_2_score']*100.);
@@ -83,8 +87,9 @@ def print_stats(stats, parameters, prefix=''):
     
     output += prefix + "All error margins: %s\n" % str(stats['error_histogram']);
     
-    output += prefix + "Unique labels predicted: %d\n" % stats['unique_labels_predicted'];
-    output += prefix + "Skipped because of zero prediction length: %d\n" % stats['skipped_because_intervention_location'];
+    if (parameters['dataset_type'] != 3):
+        output += prefix + "Unique labels predicted: %d\n" % stats['unique_labels_predicted'];
+        output += prefix + "Skipped because of zero prediction length: %d\n" % stats['skipped_because_intervention_location'];
     
 #     output += prefix + "! Samples correct: %s" % str(map(lambda (x,y): "%d,%d" % (int(x), int(y)),stats['samplesCorrect']));
     
@@ -113,19 +118,23 @@ def load_data(parameters, processor, dataset_model):
     f = open(os.path.join(parameters['dataset'],'all.txt'));
     
     dataset_data = {};
+    label_index = {};
+    i = 0;
     for line in f:
         data, labels = processor(line.strip(), dataset_model.data_dim, dataset_model.oneHot);
 #         dataset_data.append((data, labels));
         dataset_data[line.strip()] = (data, labels);
+        label_index[i] = line.strip();
+        i += 1;
     
-    return dataset_data;
+    return dataset_data, label_index;
 
-def get_batch_unprefixed(isTrain, dataset_data, parameters):    
+def get_batch_unprefixed(isTrain, dataset_data, label_index, parameters):    
     # Reseed the random generator to prevent generating identical batches
     np.random.seed();
     
     # Set range to sample from
-    dataset_size = len(dataset_data.keys());
+    dataset_size = len(label_index.keys());
     test_sample_range = [parameters['test_offset']*dataset_size,parameters['test_offset']*dataset_size+parameters['test_size']*dataset_size];
     
     data = [];
@@ -137,7 +146,7 @@ def get_batch_unprefixed(isTrain, dataset_data, parameters):
                (not isTrain and sampleIndex < test_sample_range[0] and sampleIndex >= test_sample_range[1])):
             sampleIndex = np.random.randint(0,dataset_size);
         # Append to data
-        encoded, sampleLabels = dataset_data[dataset_data.keys()[sampleIndex]];
+        encoded, sampleLabels = dataset_data[label_index[sampleIndex]];
         data.append(encoded);
         labels.append(sampleLabels);
     
@@ -246,18 +255,18 @@ def get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length,
     
     return data, targets, labels, expressions, interventionLocations, topcause, nrSamples;
 
-def get_batch(isTrain, dataset, model, intervention_range, max_length, parameters, dataset_data, 
+def get_batch(isTrain, dataset, model, intervention_range, max_length, parameters, dataset_data, label_index,
               debug=False, base_offset=12, 
               seq2ndmarkov=False, bothcause=False, homogeneous=False,
               answering=False):    
     if (parameters['simple_data_loading']):
-        data, expressions = get_batch_unprefixed(isTrain, dataset_data, parameters);
+        data, expressions = get_batch_unprefixed(isTrain, dataset_data, label_index, parameters);
         return data, data, data, expressions, np.zeros((data.shape[0])), True, parameters['minibatch_size'];
     else:
         return get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length, debug, 
                                   base_offset, seq2ndmarkov, bothcause, homogeneous, answering);
 
-def test(model, dataset, dataset_data, parameters, max_length, base_offset, intervention_range, print_samples=False, 
+def test(model, dataset, dataset_data, label_index, parameters, max_length, base_offset, intervention_range, print_samples=False, 
          sample_size=False, homogeneous=False, returnTestSamples=False):
     # Test
     print("Testing...");
@@ -285,7 +294,8 @@ def test(model, dataset, dataset_data, parameters, max_length, base_offset, inte
             interventionLocations, topcause, nrSamples = get_batch(False, dataset, model, 
                                                                       intervention_range, 
                                                                       max_length, 
-                                                                      parameters, dataset_data, debug=parameters['debug'],
+                                                                      parameters, dataset_data, label_index, 
+                                                                      debug=parameters['debug'],
                                                                       base_offset=base_offset,
                                                                       seq2ndmarkov=parameters['dataset_type'] == 1,
                                                                       bothcause=parameters['bothcause'],
@@ -341,16 +351,19 @@ def test(model, dataset, dataset_data, parameters, max_length, base_offset, inte
         if (print_samples and not printed_samples):
             for i in range(nrSamples):
                 prefix = "# ";
-                print(prefix + "Intervention location: %d" % interventionLocations[0,i]);
+                whitespaceprefix = "".join([" " for k in range(parameters['lag'])]);
+                if (parameters['dataset_type'] != 3):
+                    print(prefix + "Intervention location: %d" % interventionLocations[0,i]);
+                    whitespaceprefix = "";
                 print(prefix + "Data          1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                    np.argmax(test_targets[i,:,:model.data_dim],len(test_data.shape)-2)))));
-                print(prefix + "Prediction    1: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_1[i])));
+                print(prefix + "Prediction    1: %s" % (whitespaceprefix + "".join(map(lambda x: dataset.findSymbol[x], prediction_1[i]))));
                 print(prefix + "Used label    1: %s" % labels_used[i][0]);
                 
                 if (not parameters['only_cause_expression']):
                     print(prefix + "Data          2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                        np.argmax(test_targets[i,:,model.data_dim:],len(test_data.shape)-2)))));
-                    print(prefix + "Prediction    2: %s" % "".join(map(lambda x: dataset.findSymbol[x], prediction_2[i])));
+                    print(prefix + "Prediction    2: %s" % (whitespaceprefix + "".join(map(lambda x: dataset.findSymbol[x], prediction_2[i]))));
                     print(prefix + "Used label    2: %s" % labels_used[i][1]);
             printed_samples = True;
 
@@ -437,8 +450,9 @@ if __name__ == '__main__':
     next_testing_threshold = parameters['test_interval'] * repetition_size;
     
     dataset_data = None;
+    label_index = None;
     if (parameters['simple_data_loading']):
-        dataset_data = load_data(parameters, processor, dataset);
+        dataset_data, label_index = load_data(parameters, processor, dataset);
             
     
     
@@ -459,7 +473,7 @@ if __name__ == '__main__':
             data, target, _, target_expressions, interventionLocations, topcause, nrSamples = \
                 get_batch(True, dataset, model, 
                           parameters['intervention_range'], model.n_max_digits, 
-                          parameters, dataset_data, 
+                          parameters, dataset_data, label_index,
                           debug=parameters['debug'],
                           base_offset=parameters['intervention_base_offset'],
                           seq2ndmarkov=parameters['dataset_type'] == 1,
@@ -498,7 +512,7 @@ if __name__ == '__main__':
         sampleSize = parameters['sample_testing_size'];
         if (r == parameters['repetitions'] - 1):
             sampleSize = False;
-        test(model, dataset, dataset_data, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
+        test(model, dataset, dataset_data, label_index, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
              sample_size=sampleSize, homogeneous=parameters['homogeneous']);
         
         # Save weights to pickles

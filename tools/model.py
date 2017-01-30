@@ -81,7 +81,8 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset
                                          peepholes=parameters['peepholes'],
                                          lstm_biases=parameters['lstm_biases'],
                                          lag=parameters['lag'],
-                                         rnn_version=parameters['rnn_version']);
+                                         rnn_version=parameters['rnn_version'],
+                                         nocrosslinks_hidden_factor=parameters['nocrosslinks_hidden_factor']);
     else:
         rnn = None;
 
