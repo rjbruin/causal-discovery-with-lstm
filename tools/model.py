@@ -9,8 +9,6 @@ import numpy as np;
 from models.GeneratedExpressionDataset import GeneratedExpressionDataset;
 from models.TheanoRecurrentNeuralNetwork import TheanoRecurrentNeuralNetwork;
 from models.SequenceRepairingRecurrentNeuralNetwork import SequenceRepairingRecurrentNeuralNetwork;
-from models.FindXRecurrentNeuralNetwork import FindXRecurrentNeuralNetwork;
-from models.SubsystemsTheanoRecurrentNeuralNetwork import SubsystemsTheanoRecurrentNeuralNetwork;
 
 
 def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset=False):

@@ -11,6 +11,7 @@
         "learning_rate": "0.005",
         "hidden_dim": "128",
       	"minibatch_size": "64",
-        "double_layer": "True"
+        "double_layer": "True",
+        "only_cause_expression": "1"
     }
 ]
