@@ -48,7 +48,7 @@ class RecurrentModel(object):
         Adds general statistics to the statistics generated per batch.
         """
         stats['prediction_histogram'] = RecurrentModel.addDicts(stats['prediction_1_histogram'], stats['prediction_2_histogram']);
-#         stats['prediction_size_histogram'] = RecurrentModel.addDicts(stats['prediction_1_size_histogram'], stats['prediction_2_size_histogram']);
+        stats['prediction_sizes'] = RecurrentModel.addDicts(stats['prediction_1_size_histogram'], stats['prediction_2_size_histogram']);
         
         for i in range(20):
             if (stats['digit_1_prediction_size'][i] > 0):
@@ -65,7 +65,7 @@ class RecurrentModel(object):
         
         stats['digit_1_total_score'] = np.mean([stats['digit_1_score'][i] for i in range(dp_length) if stats['digit_1_prediction_size'][i] > 0]);
         stats['digit_2_total_score'] = np.mean([stats['digit_2_score'][i] for i in range(dp_length) if stats['digit_2_prediction_size'][i] > 0]);
-        stats['digit_correct'] = (stats['digit_1_total_score'] + stats['digit_2_total_score']) / 2.;
+        stats['digit_score'] = (stats['digit_1_total_score'] + stats['digit_2_total_score']) / 2.;
         stats['digit_prediction_size'] = np.sum([stats['digit_1_prediction_size'][i] for i in range(dp_length)]) + np.sum([stats['digit_2_prediction_size'][i] for i in range(dp_length)])
         
         

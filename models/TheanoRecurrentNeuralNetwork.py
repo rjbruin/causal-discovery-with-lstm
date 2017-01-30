@@ -1147,7 +1147,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if (emptySamples is not None and j in emptySamples):
                     continue;
     
-                if (intervention_locations[0,j] >= len(labels_to_use[j][effectIndex]) - 1):
+                if (intervention_locations[0,j] >= len(labels_to_use[j][causeIndex]) - 1):
                     stats['skipped_because_intervention_location'] += 1;
                     continue;
     
@@ -1164,7 +1164,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 causeExpressionPrediction = dataset.indicesToStr(prediction[causeIndex][j], ignoreEOS=parameters['dataset_type'] == 3);
                 if (not self.only_cause_expression):
                     effectExpressionPrediction = dataset.indicesToStr(prediction[effectIndex][j], ignoreEOS=parameters['dataset_type'] == 3);
-    
+
+                stats['prediction_sizes'][len(causeExpressionPrediction)] += 1;
     
                 # Prepare vars to save correct samples
                 topCorrect = False;
@@ -1247,6 +1248,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     stats['correct'] += 1.0;
                     stats['valid'] += 1.0;
                     stats['inDataset'] += 1.0;
+                    stats['prediction_size_correct'][len(causeExpressionPrediction)] += 1.;
     
                     # Do local scoring for seq2ndmarkov
                     if (self.seq2ndmarkov):
@@ -1320,8 +1322,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     for i in range(intervention_locations[causeIndex,j]+1,len_to_use):
                         if (i < len(causeExpressionPrediction)):
                             if (causeExpressionPrediction[i] == label_cause[i]):
-                                stats['digit_1_correct'] += 1.0;
-                    stats['digit_1_prediction_size'] += len_to_use - (intervention_locations[causeIndex,j]+1);
+                                stats['digit_1_correct'][i] += 1.0;
+                            stats['digit_1_prediction_size'][i] += 1;
         
                     if (not self.only_cause_expression):
                         i = 0;
@@ -1330,7 +1332,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             if (i < len(effectExpressionPrediction)):
                                 if (effectExpressionPrediction[i] == label_effect[i]):
                                     stats['digit_2_correct'] += 1.0;
-                        stats['digit_2_prediction_size'] += len_to_use - (intervention_locations[effectIndex,j]+1);
+                                stats['digit_2_prediction_size'] += 1;
         
         
                     stats['prediction_1_size_histogram'][int(eos_location)] += 1;

@@ -85,9 +85,9 @@ def print_stats(stats, parameters, prefix=''):
     output += prefix + "Digit histogram:   %s\n" % (str(stats['prediction_histogram']));
     
     if (parameters['dataset_type'] != 3 and 'prediction_size_score' in stats):
-        output += prefix + "Prediction sizes: %s" % (str(stats['prediction_sizes']));
+        output += prefix + "Prediction sizes: %s\n" % (str(stats['prediction_sizes']));
         for size in stats['prediction_size_score'].keys():
-            output += prefix + "Score by prediction size = %d: %.2f percent\n" % (size, stats['prediction_size_score'][size]);
+            output += prefix + "Score by prediction size = %d: %.2f percent\n" % (size, stats['prediction_size_score'][size]*100.);
     
     output += prefix + "Error margin 1 score: %.2f percent\n" % (stats['error_1_score']*100.);
     output += prefix + "Error margin 2 score: %.2f percent\n" % (stats['error_2_score']*100.);
