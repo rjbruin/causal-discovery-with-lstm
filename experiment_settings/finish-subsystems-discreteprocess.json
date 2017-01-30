@@ -16,6 +16,6 @@
         "minibatch_size": "64",
         "rnn_version": "1",
         "lag": "8",
-        "sample_data_loading": "True"
+        "simple_data_loading": "True"
     }
 ]

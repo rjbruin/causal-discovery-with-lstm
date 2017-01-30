@@ -793,7 +793,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         input_gate = T.nnet.sigmoid(previous_hidden.dot(hWi) + input.dot(XWi[sd:ed,:]) + previous_cell * Pi + bi);
         candidate_cell = T.tanh(previous_hidden.dot(hWc) + input.dot(XWc[sd:ed,:]) + bc);
         cell = forget_gate * previous_cell + input_gate * candidate_cell;
-        output_gate = T.nnet.sigmoid(previous_hidden.dot(hWo) + input.dot(XWo[sd:ed,:]) + previous_cell * Po + bo);
+        output_1 = previous_hidden.dot(hWo);
+        output_2 = input.dot(XWo[sd:ed,:]);
+        output_gate = T.nnet.sigmoid(output_1 + output_2 + previous_cell * Po + bo);
         hidden = output_gate * T.tanh(cell);
         
         return hidden, cell;
@@ -856,7 +858,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                       Pf, Pi, Po, bc, bf, bi, bo, sd, ed);
         hidden_1 = self.lstm_dropout(hidden_1, self.hidden_dim);
         hidden_2, cell_2 = self.lstm_cell(hidden_1, previous_hidden_2, previous_cell_2, hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, \
-                                        XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2, sd, ed);
+                                        XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2, 0, self.hidden_dim);
         hidden_2 = self.lstm_dropout(hidden_2, self.hidden_dim);
         
         # Use given intervention locations to determine whether to use label
@@ -887,7 +889,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                       Pf, Pi, Po, bc, bf, bi, bo, sd, ed);
         hidden_1 = self.lstm_dropout(hidden_1, self.hidden_dim);
         hidden_2, cell_2 = self.lstm_cell(hidden_1, previous_hidden_2, previous_cell_2, hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, \
-                                        XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2, sd, ed);
+                                        XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2, 0, self.hidden_dim);
         hidden_2 = self.lstm_dropout(hidden_2, self.hidden_dim);
         
         Y_output = self.lstm_output(hidden_2, hWY, hbY);
@@ -904,7 +906,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                       Pf, Pi, Po, bc, bf, bi, bo, sd, ed);
         hidden_1 = self.lstm_dropout(hidden_1, self.hidden_dim);
         hidden_2, cell_2 = self.lstm_cell(hidden_1, previous_hidden_2, previous_cell_2, hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, \
-                                        XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2, sd, ed);
+                                        XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2, 0, self.hidden_dim);
         hidden_2 = self.lstm_dropout(hidden_2, self.hidden_dim);
 
         return hidden_1, hidden_2, cell, cell_2;
@@ -1050,6 +1052,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         data = np.swapaxes(data, 0, 1);
         label = np.swapaxes(label, 0, 1);
+        
         if (self.rnn_version == 0):
             return self._sgd(data, label, interventionLocations, nrSamples);
         else:
