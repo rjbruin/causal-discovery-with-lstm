@@ -35,6 +35,7 @@ def print_stats(stats, parameters, prefix=''):
 
     # Print statistics
     output += prefix + "Score: %.2f percent\n" % (stats['score']*100);
+    output += prefix + "Digit-based score: %.2f percent\n" % (stats['digit_score']*100);
     
     if (not parameters['only_cause_expression']):
         if (parameters['dataset_type'] != 3):
@@ -62,17 +63,24 @@ def print_stats(stats, parameters, prefix=''):
             output += prefix + "In dataset: %.2f percent\n" % (stats['inDatasetScore']*100);
 
     if (not parameters['only_cause_expression']):
-        output += prefix + "Digit-based (1) score: %.2f percent\n" % (stats['digit_1_score']*100);
+        output += prefix + "Digit-based (1) score: %.2f percent\n" % (stats['digit_1_total_score']*100);
+        output += prefix + "Digit-based (1) individual scores histogram: %s percent\n" % (str(stats['digit_1_score']));
+        output += prefix + "Digit prediction (1) histogram:   %s\n" % (str(stats['prediction_1_histogram']));
+        
+        output += prefix + "Digit-based (2) score: %.2f percent\n" % (stats['digit_2_total_score']*100);
+        output += prefix + "Digit-based (2) individual scores histogram: %s percent\n" % (str(stats['digit_2_score']));
+        output += prefix + "Digit prediction (2) histogram:   %s\n" % (str(stats['prediction_2_histogram']));
+        
         if (parameters['dataset_type'] != 3):
             output += prefix + "Prediction size (1) histogram:   %s\n" % (str(stats['prediction_1_size_histogram']));
-        output += prefix + "Digit (1) histogram:   %s\n" % (str(stats['prediction_1_histogram']));
-        
-        output += prefix + "Digit-based (2) score: %.2f percent\n" % (stats['digit_2_score']*100);
-        if (parameters['dataset_type'] != 3):
             output += prefix + "Prediction size (2) histogram:   %s\n" % (str(stats['prediction_2_size_histogram']));
-        output += prefix + "Digit (2) histogram:   %s\n" % (str(stats['prediction_2_histogram']));
+        else:
+            dp_length = 20 - 8;
+            output += prefix + "Digit-based score (1st quarter):    %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((0./4)*dp_length),int((1./4)*dp_length))]))
+            output += prefix + "Digit-based score (2nd quarter):    %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((1./4)*dp_length),int((2./4)*dp_length))]))
+            output += prefix + "Digit-based score (3rd quarter):    %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((2./4)*dp_length),int((3./4)*dp_length))]))
+            output += prefix + "Digit-based score (4th quarter):    %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((3./4)*dp_length),int((4./4)*dp_length))]))
         
-    output += prefix + "Digit-based score: %.2f percent\n" % (stats['digit_score']*100);
 #     output += prefix + "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
     output += prefix + "Digit histogram:   %s\n" % (str(stats['prediction_histogram']));
     
@@ -351,7 +359,7 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
         if (print_samples and not printed_samples):
             for i in range(nrSamples):
                 prefix = "# ";
-                whitespaceprefix = "".join([" " for k in range(parameters['lag'])]);
+                whitespaceprefix = "".join([" " for t in range(parameters['lag'])]);
                 if (parameters['dataset_type'] != 3):
                     print(prefix + "Intervention location: %d" % interventionLocations[0,i]);
                     whitespaceprefix = "";

@@ -1347,8 +1347,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     for i in range(0,len_to_use):
                         if (i < len(causeExpressionPrediction)):
                             if (causeExpressionPrediction[i] == label_cause[i]):
-                                stats['digit_1_correct'] += 1.0;
-                    stats['digit_1_prediction_size'] += len_to_use - (intervention_locations[causeIndex,j]+1);
+                                stats['digit_1_correct'][i] += 1.0;
+                            stats['digit_1_prediction_size'][i] += 1;
+                    
+                    stats['prediction_1_size_histogram'][int(eos_location)] += 1;
+                    for digit_prediction in prediction[causeIndex][j][:len_to_use]:
+                        stats['prediction_1_histogram'][int(digit_prediction)] += 1;
         
                     if (not self.only_cause_expression):
                         i = 0;
@@ -1356,17 +1360,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         for i in range(intervention_locations[effectIndex,j]+1,len_to_use):
                             if (i < len(effectExpressionPrediction)):
                                 if (effectExpressionPrediction[i] == label_effect[i]):
-                                    stats['digit_2_correct'] += 1.0;
-                        stats['digit_2_prediction_size'] += len_to_use - (intervention_locations[effectIndex,j]+1);
+                                    stats['digit_2_correct'][i] += 1.0;
+                                stats['digit_2_prediction_size'][i] += 1;
         
-        
-                    stats['prediction_1_size_histogram'][int(eos_location)] += 1;
-                    for digit_prediction in prediction[causeIndex][j][intervention_locations[causeIndex,j]+1:len(causeExpressionPrediction)]:
-                        stats['prediction_1_histogram'][int(digit_prediction)] += 1;
         
                     if (not self.only_cause_expression):
                         stats['prediction_2_size_histogram'][int(eos_location)] += 1;
-                        for digit_prediction in prediction[effectIndex][j][intervention_locations[effectIndex,j]+1:len(effectExpressionPrediction)]:
+                        for digit_prediction in prediction[effectIndex][j][:len_to_use]:
                             stats['prediction_2_histogram'][int(digit_prediction)] += 1;
     
                 stats['prediction_size'] += 1;
