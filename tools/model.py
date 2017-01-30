@@ -15,7 +15,6 @@ from models.SubsystemsTheanoRecurrentNeuralNetwork import SubsystemsTheanoRecurr
 
 def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset=False):
     train_path = "%s/all.txt" % (parameters['dataset']);
-    test_path = "%s/test.txt" % (parameters['dataset']);
     config_path = "%s/config.json" % (parameters['dataset']);
 
     dataset = None;
@@ -39,24 +38,11 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset
                                              test_size=parameters['test_size'],
                                              test_offset=parameters['test_offset'],
                                              repairExpressions=parameters['sequence_repairing'],
-                                             find_x=parameters['find_x']);
+                                             find_x=parameters['rnn_version'] == 2,
+                                             preload=not parameters['simple_data_loading']);
 
     if (parameters['sequence_repairing']):
         rnn = SequenceRepairingRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim,
-                                         minibatch_size=parameters['minibatch_size'],
-                                         n_max_digits=parameters['n_max_digits'],
-                                         verboseOutputter=verboseOutputter,
-                                         optimizer=parameters['optimizer'],
-                                         learning_rate=parameters['learning_rate'],
-                                         operators=parameters['operators'],
-                                         digits=parameters['digits'],
-                                         seq2ndmarkov=parameters['dataset_type'] == 1,
-                                         doubleLayer=parameters['double_layer'],
-                                         dropoutProb=parameters['dropout_prob'],
-                                         outputBias=parameters['output_bias'],
-                                         GO_symbol_index=dataset.GO_symbol_index);
-    elif (parameters['find_x']):
-        rnn = FindXRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim,
                                          minibatch_size=parameters['minibatch_size'],
                                          n_max_digits=parameters['n_max_digits'],
                                          verboseOutputter=verboseOutputter,

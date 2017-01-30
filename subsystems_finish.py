@@ -5,7 +5,7 @@ Created on 9 sep. 2016
 '''
 
 import time;
-import sys;
+import sys, os;
 from math import floor;
 
 from tools.file import save_to_pickle, load_from_pickle_with_filename;
@@ -91,10 +91,63 @@ def print_stats(stats, parameters, prefix=''):
     output += "\n";
     print(output);
 
-def get_batch(isTrain, dataset, model, intervention_range, max_length, 
-              debug=False, base_offset=12, 
-              seq2ndmarkov=False, bothcause=False, homogeneous=False,
-              answering=False):    
+def processSampleDiscreteProcess(line, data_dim, oneHot):
+    """
+    Data is ndarray of size (nr lines, sequence length, nr input vars).
+    Targets is same as data.
+    Labels is same as data.
+    Expressions is string representation.
+    """
+    sample1, sample2 = line.split(";");
+    encoding = np.zeros((len(sample1), data_dim*2), dtype='float32');
+    
+    for i in range(len(sample1)):
+        encoding[i,oneHot[sample1[i]]] = 1.0;
+    
+    for i in range(len(sample2)):
+        encoding[i,oneHot[sample2[i]]+data_dim] = 1.0;
+    
+    return encoding, (sample1, sample2);
+
+def load_data(parameters, processor, dataset_model):
+    f = open(os.path.join(parameters['dataset'],'all.txt'));
+    
+    dataset_data = [];
+    for line in f:
+        data, labels = processor(line.strip(), dataset_model.data_dim, dataset_model.oneHot);
+        dataset_data.append((data, labels));
+    
+    return dataset_data;
+
+def get_batch_unprefixed(isTrain, dataset_data, parameters):    
+    # Reseed the random generator to prevent generating identical batches
+    np.random.seed();
+    
+    # Set range to sample from
+    test_sample_range = [parameters['test_offset']*len(dataset_data),parameters['test_offset']*len(dataset_data)+parameters['test_size']*len(dataset_data)];
+    
+    data = [];
+    labels = [];
+    while (len(data) < model.minibatch_size):
+        # Get random sample
+        sampleIndex = np.random.randint(0,len(dataset_data));
+        while ((isTrain and sampleIndex >= test_sample_range[0] and sampleIndex < test_sample_range[1]) or
+               (not isTrain and sampleIndex < test_sample_range[0] and sampleIndex >= test_sample_range[1])):
+            sampleIndex = np.random.randint(0,len(dataset_data));
+        # Append to data
+        encoded, sampleLabels = dataset_data[sampleIndex];
+        data.append(encoded);
+        labels.append(sampleLabels);
+    
+    # Make data ndarray
+    data = np.array(data);
+    
+    return data, labels;
+
+def get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length, 
+                       debug=False, base_offset=12, 
+                       seq2ndmarkov=False, bothcause=False, homogeneous=False,
+                       answering=False):    
     # Reseed the random generator to prevent generating identical batches
     np.random.seed();
     
@@ -191,7 +244,18 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length,
     
     return data, targets, labels, expressions, interventionLocations, topcause, nrSamples;
 
-def test(model, dataset, parameters, max_length, base_offset, intervention_range, print_samples=False, 
+def get_batch(isTrain, dataset, model, intervention_range, max_length, parameters, dataset_data, 
+              debug=False, base_offset=12, 
+              seq2ndmarkov=False, bothcause=False, homogeneous=False,
+              answering=False):    
+    if (parameters['simple_data_loading']):
+        data, expressions = get_batch_unprefixed(isTrain, dataset_data, parameters);
+        return data, data, data, expressions, np.zeros((data.shape[0])), True, parameters['minibatch_size'];
+    else:
+        return get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length, debug, 
+                                  base_offset, seq2ndmarkov, bothcause, homogeneous, answering);
+
+def test(model, dataset, dataset_data, parameters, max_length, base_offset, intervention_range, print_samples=False, 
          sample_size=False, homogeneous=False, returnTestSamples=False):
     # Test
     print("Testing...");
@@ -218,7 +282,8 @@ def test(model, dataset, parameters, max_length, base_offset, intervention_range
         test_data, test_targets, _, test_expressions, \
             interventionLocations, topcause, nrSamples = get_batch(False, dataset, model, 
                                                                       intervention_range, 
-                                                                      max_length, debug=parameters['debug'],
+                                                                      max_length, 
+                                                                      parameters, dataset_data, debug=parameters['debug'],
                                                                       base_offset=base_offset,
                                                                       seq2ndmarkov=parameters['dataset_type'] == 1,
                                                                       bothcause=parameters['bothcause'],
@@ -333,6 +398,10 @@ if __name__ == '__main__':
     if (parameters['intervention_base_offset'] <= 0):
         raise ValueError("Invalid intervention base offset: is %d, must be at least 1." % parameters['intervention_base_offset']);
     
+    # Set simple loading processor
+    processor = None;
+    if (parameters['dataset_type'] == 3):
+        processor = processSampleDiscreteProcess;
     
     
     # Construct models
@@ -364,6 +433,10 @@ if __name__ == '__main__':
         repetition_size = min(parameters['max_training_size'],repetition_size);
     next_testing_threshold = parameters['test_interval'] * repetition_size;
     
+    dataset_data = None;
+    if (parameters['simple_data_loading']):
+        dataset_data = load_data(parameters, processor, dataset);
+            
     
     
     intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
@@ -383,6 +456,7 @@ if __name__ == '__main__':
             data, target, _, target_expressions, interventionLocations, topcause, nrSamples = \
                 get_batch(True, dataset, model, 
                           parameters['intervention_range'], model.n_max_digits, 
+                          parameters, dataset_data, 
                           debug=parameters['debug'],
                           base_offset=parameters['intervention_base_offset'],
                           seq2ndmarkov=parameters['dataset_type'] == 1,
@@ -421,7 +495,7 @@ if __name__ == '__main__':
         sampleSize = parameters['sample_testing_size'];
         if (r == parameters['repetitions'] - 1):
             sampleSize = False;
-        test(model, dataset, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
+        test(model, dataset, dataset_data, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
              sample_size=sampleSize, homogeneous=parameters['homogeneous']);
         
         # Save weights to pickles

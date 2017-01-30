@@ -85,12 +85,12 @@ argumentProcessors = {'name': processString,
                       'relu': processBool,
                       'answering': processBool,
                       'sequence_repairing': processBool,
-                      'find_x': processBool,
                       'ignore_zero_difference': processBool,
                       'rnn_version': processInt,
                       'peepholes': processBool,
                       'lstm_biases': processBool,
-                      'lag': processInt
+                      'lag': processInt,
+                      'simple_data_loading': processBool
                       }
 defaults = {'output_name': "",
             'report_to_tracker': True,
@@ -146,12 +146,12 @@ defaults = {'output_name': "",
             'relu': False,
             'answering': False,
             'sequence_repairing': False,
-            'find_x': False,
             'ignore_zero_difference': False,
             'rnn_version': 0,
             'peepholes': True,
             'lstm_biases': True,
-            'lag': 8
+            'lag': 8,
+            'simple_data_loading': False
             }
 
 def processKeyValue(key,value):

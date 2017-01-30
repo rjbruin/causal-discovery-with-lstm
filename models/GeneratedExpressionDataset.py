@@ -152,61 +152,62 @@ class GeneratedExpressionDataset(object):
         if (not self.only_cause_expression): 
             self.testExpressionsByPrefixBot = SequencesByPrefix();
         
-        f = open(self.source,'r');
-        line = f.readline().strip();
-        n = 0;
-        
-        append_to_train = True;
-        test_set_done = False;
-        if (test_offset == 0.):
-            append_to_train = False;
-        # Check for n is to make the code work with max_training_size
-        while (line != "" and n < self.lengths[self.TRAIN]):
-            result = line.split(";");
-            if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV and not self.bothcause):
-                expression, expression_prime, topcause = result;
-            else:
-                expression, expression_prime = result;
-                topcause = '1';
-            
-            if (self.only_cause_expression == 1):
-                expression_prime = "";
-            elif (self.only_cause_expression == 2):
-                expression = expression_prime;
-                expression_prime = "";
-            
-            if (append_to_train):
-                if (not self.only_cause_expression and \
-                        (topcause == '0' or \
-                        self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
-                        self.bothcause)):
-                    self.expressionsByPrefixBot.add(expression_prime, expression);
-                if (topcause == '1'):
-                    self.expressionsByPrefix.add(expression, expression_prime);
-                self.expressionLengths[len(expression)] += 1;
-            else:
-                if (not self.only_cause_expression and \
-                        (topcause == '0' or \
-                        self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
-                        self.bothcause)):
-                    self.testExpressionsByPrefixBot.add(expression_prime, expression);
-                if (topcause == '1'):
-                    self.testExpressionsByPrefix.add(expression, expression_prime);
-                self.testExpressionLengths[len(expression)] += 1;
-            
+        if (preload):    
+            f = open(self.source,'r');
             line = f.readline().strip();
-            n += 1;
+            n = 0;
             
-            # Reassess whether to switch target dataset part
-            if (not test_set_done):
-                if (append_to_train):
-                    if (n / float(self.lengths[self.TRAIN]) >= test_offset and test_size > 0.):
-                        append_to_train = False;
+            append_to_train = True;
+            test_set_done = False;
+            if (test_offset == 0.):
+                append_to_train = False;
+            # Check for n is to make the code work with max_training_size
+            while (line != "" and n < self.lengths[self.TRAIN]):
+                result = line.split(";");
+                if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV and not self.bothcause):
+                    expression, expression_prime, topcause = result;
                 else:
-                    if (n / float(self.lengths[self.TRAIN]) >= test_offset + test_size):
-                        test_set_done = True;
-                        append_to_train = True;
-        f.close();
+                    expression, expression_prime = result;
+                    topcause = '1';
+                
+                if (self.only_cause_expression == 1):
+                    expression_prime = "";
+                elif (self.only_cause_expression == 2):
+                    expression = expression_prime;
+                    expression_prime = "";
+                
+                if (append_to_train):
+                    if (not self.only_cause_expression and \
+                            (topcause == '0' or \
+                            self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
+                            self.bothcause)):
+                        self.expressionsByPrefixBot.add(expression_prime, expression);
+                    if (topcause == '1'):
+                        self.expressionsByPrefix.add(expression, expression_prime);
+                    self.expressionLengths[len(expression)] += 1;
+                else:
+                    if (not self.only_cause_expression and \
+                            (topcause == '0' or \
+                            self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
+                            self.bothcause)):
+                        self.testExpressionsByPrefixBot.add(expression_prime, expression);
+                    if (topcause == '1'):
+                        self.testExpressionsByPrefix.add(expression, expression_prime);
+                    self.testExpressionLengths[len(expression)] += 1;
+                
+                line = f.readline().strip();
+                n += 1;
+                
+                # Reassess whether to switch target dataset part
+                if (not test_set_done):
+                    if (append_to_train):
+                        if (n / float(self.lengths[self.TRAIN]) >= test_offset and test_size > 0.):
+                            append_to_train = False;
+                    else:
+                        if (n / float(self.lengths[self.TRAIN]) >= test_offset + test_size):
+                            test_set_done = True;
+                            append_to_train = True;
+            f.close();
     
     def filemeta(self, source, max_length=False):
         f = open(source, 'r');
