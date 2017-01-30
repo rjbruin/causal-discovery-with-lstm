@@ -1051,7 +1051,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             nrSamples = self.minibatch_size;
 
         data = np.swapaxes(data, 0, 1);
-        label = np.swapaxes(label, 0, 1);
+        if (self.rnn_version != 2):
+            label = np.swapaxes(label, 0, 1);
         
         if (self.rnn_version == 0):
             return self._sgd(data, label, interventionLocations, nrSamples);
@@ -1069,7 +1070,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         # Swap axes of index in sentence and datapoint for Theano purposes
         encoding_label = np.swapaxes(encoding_label, 0, 1);
-        prediction_label = np.swapaxes(prediction_label, 0, 1);
+        if (self.rnn_version != 2):            
+            prediction_label = np.swapaxes(prediction_label, 0, 1);
 
         if (not self.only_cause_expression):
             if (self.rnn_version == TheanoRecurrentNeuralNetwork.RNN_DECODESELFFEEDING):
@@ -1087,10 +1089,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         self._predict(encoding_label, prediction_label, nrSamples);
 
         # Swap sentence index and datapoints back
-        prediction_1 = np.swapaxes(prediction_1, 0, 1);
-        if (not self.only_cause_expression):
-            prediction_2 = np.swapaxes(prediction_2, 0, 1);
-        right_hand = np.swapaxes(right_hand, 0, 1);
+        if (self.rnn_version != 2):
+            prediction_1 = np.swapaxes(prediction_1, 0, 1);
+            if (not self.only_cause_expression):
+                prediction_2 = np.swapaxes(prediction_2, 0, 1);
+            right_hand = np.swapaxes(right_hand, 0, 1);
 
         if (not self.only_cause_expression):
             return [prediction_1, prediction_2], {'right_hand': right_hand, 'error': error};

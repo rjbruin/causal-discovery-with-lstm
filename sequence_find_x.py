@@ -93,8 +93,9 @@ def test(model, dataset, parameters, max_length, print_samples=False,
         
         profiler.start("test batch stats");
         stats, _ = model.batch_statistics(stats, predictions, 
-                                       test_labels,
-                                       other, nrSamples, dataset);
+                                       test_labels, None,
+                                       other, nrSamples, dataset, 
+                                       None, None, parameters);
         
         for j in range(nrSamples):
             total_labels_used[test_labels[j]] = True;

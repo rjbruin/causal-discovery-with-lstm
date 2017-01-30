@@ -402,8 +402,6 @@ if __name__ == '__main__':
         print("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!");
     if (not using_gpu()):
         print("WARNING! RUNNING WITHOUT GPU USAGE!");
-    if (not parameters['decoder']):
-        print("WARNING! RUNNING WITHOUT DECODER!");
     
     # Check for valid subbatch size
     if (parameters['minibatch_size'] % parameters['subbatch_size'] != 0):
