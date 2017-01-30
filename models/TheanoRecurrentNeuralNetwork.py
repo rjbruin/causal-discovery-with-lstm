@@ -1093,7 +1093,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
     def batch_statistics(self, stats, prediction,
                          target_expressions, intervention_locations,
-                         other, test_n, dataset, labels_to_use,
+                         other, test_n, dataset, labels_to_use, dataset_data, parameters,
                          emptySamples=None,
                          training=False, topcause=True,
                          testInDataset=True, bothcause=False):
@@ -1247,6 +1247,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             stats['inDataset'] += 1.0;
                         elif (dataset.expressionsByPrefix.exists(causeExpressionPrediction, prime=primeToUse)):
                             stats['inDataset'] += 1.0;
+#                         def storageChecker(causeExpressionPrediction, primeToUse, dataset_data, dataset):
+#                             if (dataset.testExpressionsByPrefix.exists(causeExpressionPrediction, prime=primeToUse)):
+#                                 return True;
+#                             elif (dataset.expressionsByPrefix.exists(causeExpressionPrediction, prime=primeToUse)):
+#                                 return True;
+#                             return False;
+#                         if (parameters['dataset_type'] == 3):
+#                             def storageChecker(causeExpressionPrediction, primeToUse, dataset_data, dataset):
+#                                 if (dataset_data)
     
                     difference1 = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, labels_to_use[j][causeIndex]);
                     if (not self.only_cause_expression):

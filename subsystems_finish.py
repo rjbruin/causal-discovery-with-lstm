@@ -112,10 +112,11 @@ def processSampleDiscreteProcess(line, data_dim, oneHot):
 def load_data(parameters, processor, dataset_model):
     f = open(os.path.join(parameters['dataset'],'all.txt'));
     
-    dataset_data = [];
+    dataset_data = {};
     for line in f:
         data, labels = processor(line.strip(), dataset_model.data_dim, dataset_model.oneHot);
-        dataset_data.append((data, labels));
+#         dataset_data.append((data, labels));
+        dataset_data[line.strip()] = (data, labels);
     
     return dataset_data;
 
@@ -124,18 +125,19 @@ def get_batch_unprefixed(isTrain, dataset_data, parameters):
     np.random.seed();
     
     # Set range to sample from
-    test_sample_range = [parameters['test_offset']*len(dataset_data),parameters['test_offset']*len(dataset_data)+parameters['test_size']*len(dataset_data)];
+    dataset_size = len(dataset_data.keys());
+    test_sample_range = [parameters['test_offset']*dataset_size,parameters['test_offset']*dataset_size+parameters['test_size']*dataset_size];
     
     data = [];
     labels = [];
     while (len(data) < model.minibatch_size):
         # Get random sample
-        sampleIndex = np.random.randint(0,len(dataset_data));
+        sampleIndex = np.random.randint(0,dataset_size);
         while ((isTrain and sampleIndex >= test_sample_range[0] and sampleIndex < test_sample_range[1]) or
                (not isTrain and sampleIndex < test_sample_range[0] and sampleIndex >= test_sample_range[1])):
-            sampleIndex = np.random.randint(0,len(dataset_data));
+            sampleIndex = np.random.randint(0,dataset_size);
         # Append to data
-        encoded, sampleLabels = dataset_data[sampleIndex];
+        encoded, sampleLabels = dataset_data[dataset_data.keys()[sampleIndex]];
         data.append(encoded);
         labels.append(sampleLabels);
     
@@ -311,6 +313,7 @@ def test(model, dataset, dataset_data, parameters, max_length, base_offset, inte
         stats, labels_used = model.batch_statistics(stats, predictions, 
                                        test_expressions, interventionLocations, 
                                        other, nrSamples, dataset, test_expressions,
+                                       dataset_data, parameters,
                                        topcause=topcause or parameters['bothcause'], # If bothcause then topcause = 1
                                        testInDataset=parameters['test_in_dataset'],
                                        bothcause=parameters['bothcause']);
