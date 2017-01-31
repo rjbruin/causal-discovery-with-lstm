@@ -35,7 +35,11 @@ def print_stats(stats, parameters, prefix=''):
 
     # Print statistics
     output += prefix + "Score: %.2f percent\n" % (stats['score']*100);
-    output += prefix + "Digit-based score: %.2f percent\n" % (stats['digit_score']*100);
+    
+    digit_score = (stats['digit_1_total_score']) * 100.;
+    if (not parameters['only_cause_expression']):
+        digit_score = (stats['digit_1_total_score'] + stats['digit_2_total_score']) * 50.;
+    output += prefix + "Digit-based score: %.2f percent\n" % (digit_score);
     
     if (not parameters['only_cause_expression']):
         if (parameters['dataset_type'] != 3):
