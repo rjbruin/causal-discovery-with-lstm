@@ -76,10 +76,10 @@ def print_stats(stats, parameters, prefix=''):
             output += prefix + "Prediction size (2) histogram:   %s\n" % (str(stats['prediction_2_size_histogram']));
         else:
             dp_length = 20 - 8;
-            output += prefix + "Digit-based score (1st quarter):    %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((0./4)*dp_length),int((1./4)*dp_length))]))
-            output += prefix + "Digit-based score (2nd quarter):    %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((1./4)*dp_length),int((2./4)*dp_length))]))
-            output += prefix + "Digit-based score (3rd quarter):    %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((2./4)*dp_length),int((3./4)*dp_length))]))
-            output += prefix + "Digit-based score (4th quarter):    %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((3./4)*dp_length),int((4./4)*dp_length))]))
+            output += prefix + "Digit-based score (1st quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((0./4)*dp_length),int((1./4)*dp_length))]))
+            output += prefix + "Digit-based score (2nd quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((1./4)*dp_length),int((2./4)*dp_length))]))
+            output += prefix + "Digit-based score (3rd quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((2./4)*dp_length),int((3./4)*dp_length))]))
+            output += prefix + "Digit-based score (4th quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((3./4)*dp_length),int((4./4)*dp_length))]))
         
 #     output += prefix + "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
     output += prefix + "Digit histogram:   %s\n" % (str(stats['prediction_histogram']));
