@@ -26,7 +26,7 @@ def generateWeights(length, max_lag, weightsrange, crosslinks=True):
     
     return weights1, weights2, weights1to2, weights2to1;
 
-def generateSample(length, max_lag, inputrange, weights1, weights2, weights1to2, weights2to1, sampleStorage):
+def generateSample(length, max_lag, inputrange, weights1, weights2, weights1to2, weights2to1, sampleStorage, noise_prob):
     var1 = [];
     var2 = [];
     
@@ -42,8 +42,14 @@ def generateSample(length, max_lag, inputrange, weights1, weights2, weights1to2,
     sample1 = [];
     sample2 = [];
     for j in range(len(var1)):
-        sample1.append("%d" % (var1[j]));
-        sample2.append("%d" % (var2[j]));
+        var1val = var1[j];
+        var2val = var2[j];
+        if (np.random.random() < noise_prob):
+            var1val = np.random.randint(inputrange[0], inputrange[1]);
+            var2val = np.random.randint(inputrange[0], inputrange[1]);
+        
+        sample1.append("%d" % (var1val));
+        sample2.append("%d" % (var2val));
         
     # Check sampleStorage, recurse into new sample generation if sample exists already
     seedString = "".join(sample1[:max_lag]) + "".join(sample2[:max_lag]);
@@ -63,6 +69,9 @@ if __name__ == '__main__':
     inputrange = [0,9];
     weightsrange = [1,2];
     progressPrintInterval = 10000;
+    
+    # Noise settings
+    noise_prob = 0.01;
     
     # DEBUG
 #     n = 1000;
@@ -94,7 +103,7 @@ if __name__ == '__main__':
         
         # Generate linear processes and write to file
         for i in range(n):
-            sample, sampleStorage = generateSample(length, max_lag, inputrange, weights1, weights2, weights1to2, weights2to1, sampleStorage);
+            sample, sampleStorage = generateSample(length, max_lag, inputrange, weights1, weights2, weights1to2, weights2to1, sampleStorage, noise_prob);
             f.write(sample + "\n");
             if (i % progressPrintInterval == 0):
                 print("%.2f%%..." % ((i/float(n))*100.))
