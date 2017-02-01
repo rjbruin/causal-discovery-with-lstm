@@ -96,7 +96,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             self.actual_data_dim = self.data_dim;
             self.actual_prediction_output_dim = self.prediction_output_dim;
         if (not self.crosslinks):
-            self.hidden_dim = self.hidden_dim * nocrosslinks_hidden_factor;
+            self.hidden_dim = int(self.hidden_dim * nocrosslinks_hidden_factor);
+            self.actual_prediction_output_dim = self.prediction_output_dim;
         
         self.RNNVars();
         if (self.rnn_version == 0):
@@ -427,7 +428,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             cell_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
             hidden_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
             cell_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
-            if (self.doubleLayer or self.tripleLayer):
+            if (self.doubleLayer):
                 hidden_2_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
                 cell_2_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
                 hidden_2_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
@@ -487,7 +488,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 #                                {'initial': cell_2_top[-1], 'taps': [-1]}, 
 #                                {'initial': cell_3_top[-1], 'taps': [-1]});
             outputs_1, _ = theano.scan(fn=encode_function,
-                                     sequences=label[:self.lag-1],
+                                     sequences=label[:self.lag-1,:,:self.data_dim],
                                      outputs_info=init_values,
                                      non_sequences=encode_parameters + [0,self.data_dim],
                                      name='decode_scan_1')
@@ -521,7 +522,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 #                                    {'initial': cell_2_bot[-1], 'taps': [-1]},
 #                                    {'initial': cell_3_bot[-1], 'taps': [-1]});
                 outputs_2, _ = theano.scan(fn=encode_function,
-                                         sequences=label[:self.lag-1],
+                                         sequences=label[:self.lag-1,:,self.data_dim:],
                                          outputs_info=init_values,
                                          non_sequences=encode_parameters + [self.data_dim,self.data_dim*2],
                                          name='decode_scan_2')
@@ -532,12 +533,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     learned_hidden_2_bot = outputs_2[1];
                     learned_cell_bot = outputs_2[2];
                     learned_cell_2_bot = outputs_2[3];
-                if (self.tripleLayer):
-                    learned_hidden_2_bot = outputs_2[1];
-                    learned_hidden_3_bot = outputs_2[2];
-                    learned_cell_bot = outputs_2[3];
-                    learned_cell_2_bot = outputs_2[4];
-                    learned_cell_3_bot = outputs_2[5];
+#                 if (self.tripleLayer):
+#                     learned_hidden_2_bot = outputs_2[1];
+#                     learned_hidden_3_bot = outputs_2[2];
+#                     learned_cell_bot = outputs_2[3];
+#                     learned_cell_2_bot = outputs_2[4];
+#                     learned_cell_3_bot = outputs_2[5];
 
         # DECODING PHASE
         if (self.crosslinks and not self.only_cause_expression):
@@ -583,7 +584,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 #                                {'initial': learned_cell_2_top[-1], 'taps': [-1]}, 
 #                                {'initial': learned_cell_3_top[-1], 'taps': [-1]});
             outputs_1, _ = theano.scan(fn=decode_function,
-                                     sequences=label[self.lag-1:-1],
+                                     sequences=label[self.lag-1:-1,:,:self.data_dim],
                                      outputs_info=init_values,
                                      non_sequences=decode_parameters + [0,self.data_dim],
                                      name='decode_scan_1')
@@ -609,7 +610,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 #                                    {'initial': learned_cell_2_bot[-1], 'taps': [-1]},
 #                                    {'initial': learned_cell_3_bot[-1], 'taps': [-1]});
                 outputs_2, _ = theano.scan(fn=decode_function,
-                                         sequences=label[self.lag-1:-1],
+                                         sequences=label[self.lag-1:-1,:,self.data_dim:],
                                          outputs_info=init_values,
                                          non_sequences=decode_parameters + [self.data_dim,self.data_dim*2],
                                          name='decode_scan_2')
