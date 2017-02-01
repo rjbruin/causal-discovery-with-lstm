@@ -728,6 +728,7 @@ class GeneratedExpressionDataset(object):
         return True;
     
     def valid_expression(self, expression, nr_digits, nr_operators):
+        expression = self.indicesToStr(expression, ignoreEOS=False)
         try:
             equals_index = expression.index("=");
             node = ExpressionNode.fromStr(expression[:equals_index]);
