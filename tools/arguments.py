@@ -91,7 +91,10 @@ argumentProcessors = {'name': processString,
                       'lstm_biases': processBool,
                       'lag': processInt,
                       'simple_data_loading': processBool,
-                      'nocrosslinks_hidden_factor': processFloat
+                      'nocrosslinks_hidden_factor': processFloat,
+                      'early_stopping': processBool,
+                      'early_stopping_errors': processInt,
+                      'early_stopping_epsilon': processFloat
                       }
 defaults = {'output_name': "",
             'report_to_tracker': True,
@@ -153,7 +156,10 @@ defaults = {'output_name': "",
             'lstm_biases': True,
             'lag': 8,
             'simple_data_loading': False,
-            'nocrosslinks_hidden_factor': 1.
+            'nocrosslinks_hidden_factor': 1.,
+            'early_stopping': False,
+            'early_stopping_errors': 5,
+            'early_stopping_epsilon': 1.
             }
 
 def processKeyValue(key,value):

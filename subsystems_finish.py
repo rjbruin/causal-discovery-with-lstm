@@ -7,6 +7,7 @@ Created on 9 sep. 2016
 import time;
 import sys, os;
 from math import floor;
+from collections import deque;
 
 from tools.file import save_to_pickle, load_from_pickle_with_filename;
 from tools.arguments import processCommandLineArguments;
@@ -393,9 +394,9 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
     print_stats(stats, parameters);
     
     if (returnTestSamples):
-        return stats, testSamples;
+        return stats, totalError, testSamples;
     else:
-        return stats;
+        return stats, totalError;
 
 if __name__ == '__main__':
     theano.config.floatX = 'float32';
@@ -467,6 +468,8 @@ if __name__ == '__main__':
     
     
     intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
+    test_error_stack = deque();
+    last_test_error_avg = 0.0;
     for r in range(parameters['repetitions']):
         stats = set_up_statistics(dataset.output_dim, model.n_max_digits);
         total_error = 0.0;
@@ -522,13 +525,29 @@ if __name__ == '__main__':
         sampleSize = parameters['sample_testing_size'];
         if (r == parameters['repetitions'] - 1):
             sampleSize = False;
-        test(model, dataset, dataset_data, label_index, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
-             sample_size=sampleSize, homogeneous=parameters['homogeneous']);
+        _, testError = test(model, dataset, dataset_data, label_index, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
+                            sample_size=sampleSize, homogeneous=parameters['homogeneous']);
         
         # Save weights to pickles
         if (saveModels):
             saveVars = model.getVars();
             save_to_pickle('saved_models/%s_%d.model' % (name, r), saveVars, settings=parameters);
+        
+        # Check for early stopping
+        if (parameters['early_stopping']):
+            testErrorMovingAverageN = parameters['early_stopping_errors'];
+            testErrorEpsilon = parameters['early_stopping_epsilon'];
+            test_error_stack.append(testError);
+            if (len(test_error_stack) >= testErrorMovingAverageN):
+                if (len(test_error_stack) > testErrorMovingAverageN):
+                    test_error_stack.popleft();
+                # Only check for early stopping after queue is large enough
+                avg_error = np.mean(test_error_stack);
+                error_diff = np.abs(avg_error - last_test_error_avg);
+                if (error_diff < testErrorEpsilon):
+                    print("STOPPING EARLY at iteration %d with average error %.2f and difference %.2f!" % (r+1, avg_error, error_diff));
+                    break;
+                last_test_error_avg = avg_error;
     
     print("Training finished!");
     
