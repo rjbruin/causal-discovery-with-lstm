@@ -97,7 +97,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             self.actual_prediction_output_dim = self.prediction_output_dim;
         if (not self.crosslinks):
             self.hidden_dim = int(self.hidden_dim * nocrosslinks_hidden_factor);
-            self.actual_prediction_output_dim = self.prediction_output_dim;
         
         self.RNNVars();
         if (self.rnn_version == 0):
@@ -820,7 +819,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         hidden, cell = self.lstm_cell(given_X, previous_hidden, previous_cell, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, \
                                       Pf, Pi, Po, bc, bf, bi, bo, sd, ed);
         hidden = self.lstm_dropout(hidden, self.hidden_dim);
-        Y_output = self.lstm_output(hidden, hWY, hbY);
+        Y_output = self.lstm_output(hidden, hWY[:,sd:ed], hbY[sd:ed]);
         Y_output = self.lstm_dropout(Y_output, self.decoding_output_dim);        
 
         return Y_output, hidden, cell;
@@ -893,7 +892,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                         XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2, 0, self.hidden_dim);
         hidden_2 = self.lstm_dropout(hidden_2, self.hidden_dim);
         
-        Y_output = self.lstm_output(hidden_2, hWY, hbY);
+        Y_output = self.lstm_output(hidden_2, hWY[:,sd:ed], hbY[sd:ed]);
         Y_output = self.lstm_dropout(Y_output, self.decoding_output_dim);
         
         return Y_output, hidden_1, hidden_2, cell, cell_2;
