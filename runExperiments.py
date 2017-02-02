@@ -57,7 +57,11 @@ if __name__ == '__main__':
                    'Stddev weights difference': 'Stddev weights difference',
                    'f-subs prediction score': 'f-subs prediction score',
                    'f-subs prediction cause score': 'f-subs prediction score (c)',
-                   'f-subs prediction effect score': 'f-subs prediction score (e)'};
+                   'f-subs prediction effect score': 'f-subs prediction score (e)',
+                   'Mean data health': 'Average data health',
+                   'Stddev data health': 'Stddev data health',
+                   'Mean model health': 'Average model health',
+                   'Stddev model health': 'Stddev model health'};
     for size in range(20):
         score_types['Size %d' % size] = 'Score by prediction size = %d:' % size;
     trackerreporter.init('http://rjbruin.nl/experimenttracker/api/',api_key);

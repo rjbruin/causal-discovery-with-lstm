@@ -1039,6 +1039,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (not self.single_digit and training_labels.shape[1] > (self.n_max_digits+1)):
             raise ValueError("n_max_digits too small! Increase to %d" % training_labels.shape[1]);
 
+    def modelHealth(self):
+        totalSum = 0.;
+        for varname in self.vars.keys():
+            totalSum += np.sum(self.vars[varname].get_value());
+        
+        return totalSum;
+
     def sgd(self, dataset, data, label, learning_rate, emptySamples=None,
             expressions=None,
             interventionLocations=0, topcause=True,

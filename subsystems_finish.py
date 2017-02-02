@@ -142,6 +142,25 @@ def load_data(parameters, processor, dataset_model):
     
     return dataset_data, label_index;
 
+def dataset_health(dataset_set, label_index, n=100):
+    # Draw n random samples to inspect
+    dataset_size = len(label_index.keys());
+    indices = 0.;
+    for _ in range(n):
+        sampleIndex = np.random.randint(0,dataset_size);
+        encoded, _ = dataset_data[label_index[sampleIndex]];
+        indices += np.sum(encoded);
+    
+    return indices;
+
+def batch_health(data):
+    indices = 0;
+    for i in range(data.shape[0]):
+        encoded = data[i];
+        indices += np.sum(encoded);
+    
+    return indices;
+
 def get_batch_unprefixed(isTrain, dataset_data, label_index, parameters):    
     # Reseed the random generator to prevent generating identical batches
     np.random.seed();
@@ -166,7 +185,7 @@ def get_batch_unprefixed(isTrain, dataset_data, label_index, parameters):
     # Make data ndarray
     data = np.array(data);
     
-    return data, labels;
+    return data, labels, batch_health(data);
 
 def get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length, 
                        debug=False, base_offset=12, 
@@ -273,11 +292,13 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, parameter
               seq2ndmarkov=False, bothcause=False, homogeneous=False,
               answering=False):    
     if (parameters['simple_data_loading']):
-        data, expressions = get_batch_unprefixed(isTrain, dataset_data, label_index, parameters);
-        return data, data, data, expressions, np.zeros((data.shape[0])), True, parameters['minibatch_size'];
+        data, expressions, health = get_batch_unprefixed(isTrain, dataset_data, label_index, parameters);
+        return data, data, data, expressions, np.zeros((data.shape[0])), True, parameters['minibatch_size'], health;
     else:
-        return get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length, debug, 
-                                  base_offset, seq2ndmarkov, bothcause, homogeneous, answering);
+        data, targets, labels, expressions, interventionLocations, topcause, nrSamples = \
+            get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length, debug, 
+                               base_offset, seq2ndmarkov, bothcause, homogeneous, answering)
+        return data, targets, labels, expressions, interventionLocations, topcause, nrSamples, 0;
 
 def test(model, dataset, dataset_data, label_index, parameters, max_length, base_offset, intervention_range, print_samples=False, 
          sample_size=False, homogeneous=False, returnTestSamples=False):
@@ -304,7 +325,7 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
     while k < total:
         # Get data from batch
         test_data, test_targets, _, test_expressions, \
-            interventionLocations, topcause, nrSamples = get_batch(False, dataset, model, 
+            interventionLocations, topcause, nrSamples, _ = get_batch(False, dataset, model, 
                                                                       intervention_range, 
                                                                       max_length, 
                                                                       parameters, dataset_data, label_index, 
@@ -480,10 +501,12 @@ if __name__ == '__main__':
         # Train model per minibatch
         k = 0;
         printedProgress = -1;
+        data_healths = [];
+        model_healths = [];
         while k < repetition_size:
             profiler.start('train batch');
             profiler.start('get train batch');
-            data, target, _, target_expressions, interventionLocations, topcause, nrSamples = \
+            data, target, _, target_expressions, interventionLocations, topcause, nrSamples, health = \
                 get_batch(True, dataset, model, 
                           parameters['intervention_range'], model.n_max_digits, 
                           parameters, dataset_data, label_index,
@@ -493,6 +516,8 @@ if __name__ == '__main__':
                           bothcause=parameters['bothcause'],
                           homogeneous=parameters['homogeneous'],
                           answering=parameters['answering']);
+            data_healths.append(health);
+            model_healths.append(model.modelHealth());
             profiler.stop('get train batch');
             
             # Make intervention locations into matrix
@@ -519,6 +544,11 @@ if __name__ == '__main__':
         
         # Report on error
         print("Total error: %.2f" % total_error);
+        if (parameters['simple_data_loading']):
+            print("Average data health: %.2f" % np.mean(data_healths));
+            print("Stddev data health: %.2f" % np.std(data_healths));
+            print("Average model health: %.2f" % np.mean(model_healths));
+            print("Stddev model health: %.2f" % np.std(model_healths));
         
         # Intermediate testing if this was not the last iteration of training
         # and we have passed the testing threshold
