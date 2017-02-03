@@ -486,7 +486,9 @@ if __name__ == '__main__':
     if (parameters['simple_data_loading']):
         dataset_data, label_index = load_data(parameters, processor, dataset);
             
-    
+    if (not os.path.exists(os.path.join('.','figures'))):
+        os.makedirs(os.path.join('.','figures'));
+    model.plotWeights("%s_0" % (name));
     
     intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
     test_error_stack = deque();
@@ -562,6 +564,8 @@ if __name__ == '__main__':
         if (saveModels):
             saveVars = model.getVars();
             save_to_pickle('saved_models/%s_%d.model' % (name, r), saveVars, settings=parameters);
+        
+        model.plotWeights("%s_%d" % (name, r+1));
         
         # Check for early stopping
         if (parameters['early_stopping']):

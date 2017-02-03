@@ -4,6 +4,8 @@ Created on 22 feb. 2016
 @author: Robert-Jan
 '''
 
+import os;
+
 import theano;
 import theano.tensor as T;
 # from theano.compile.nanguardmode import NanGuardMode
@@ -1045,6 +1047,61 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             totalSum += np.sum(self.vars[varname].get_value());
         
         return totalSum;
+
+    def plotWeights(self, name='test'):
+        import matplotlib.pyplot as plt
+        
+#         fig, axes = plt.subplots(nrows=3, ncols=4, squeeze=True);
+        
+        weights = [((0,0),'XWf'),
+                   ((0,1),'XWi'),
+                   ((0,2),'XWc'),
+                   ((0,3),'XWo'),
+                   ((1,0),'hWf'),
+                   ((1,1),'hWi'),
+                   ((1,2),'hWc'),
+                   ((1,3),'hWo'),
+                   ((2,0),'hWY')];
+        for (x, y), title in weights:
+            w = self.vars[title].get_value();
+            norm = (w - np.min(w)) / float(np.max(w));
+            
+            ax = plt.subplot2grid((3,4), (x,y));
+            ax.imshow(norm, cmap='gray');
+            ax.set_title(title);
+            ax.set_axis_off();  
+        
+        # Biases
+        w = np.concatenate((self.vars['bf'].get_value().reshape((1,self.hidden_dim)),
+                            self.vars['bi'].get_value().reshape((1,self.hidden_dim)),
+                            self.vars['bc'].get_value().reshape((1,self.hidden_dim)),
+                            self.vars['bo'].get_value().reshape((1,self.hidden_dim))), axis=0);
+        norm = (w - np.min(w)) / float(np.max(w));
+        ax = plt.subplot2grid((3,4), (2,0));
+        ax.imshow(norm, cmap='gray');
+        ax.set_title('b(f/i/c/o/Y)');
+        ax.set_axis_off();
+         
+        # Peepholes
+        w = np.concatenate((self.vars['Pf'].get_value().reshape((1,self.hidden_dim)),
+                            self.vars['Pi'].get_value().reshape((1,self.hidden_dim)),
+                            self.vars['Po'].get_value().reshape((1,self.hidden_dim))), axis=0);
+        norm = (w - np.min(w)) / float(np.max(w));
+        ax = plt.subplot2grid((3,4), (2,1));
+        ax.imshow(norm, cmap='gray');
+        ax.set_title('P(f/i/o)');
+        ax.set_axis_off();
+         
+        # Output bias
+        w = self.vars['hbY'].get_value().reshape((1,self.prediction_output_dim));
+        norm = (w - np.min(w)) / float(np.max(w));
+        ax = plt.subplot2grid((3,4), (2,2));
+        ax.imshow(norm, cmap='gray');
+        ax.set_title('hbY');
+        ax.set_axis_off();
+        
+#         plt.show();
+        plt.savefig(os.path.join('.','figures',name));
 
     def sgd(self, dataset, data, label, learning_rate, emptySamples=None,
             expressions=None,
