@@ -1049,6 +1049,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         return totalSum;
 
     def plotWeights(self, name='test'):
+        import matplotlib;
         import matplotlib.pyplot as plt
         matplotlib.use('Agg');
         
