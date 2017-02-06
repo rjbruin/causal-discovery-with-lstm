@@ -1050,8 +1050,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
     def plotWeights(self, name='test'):
         import matplotlib;
-        import matplotlib.pyplot as plt
         matplotlib.use('Agg');
+        import matplotlib.pyplot as plt;
         
 #         fig, axes = plt.subplots(nrows=3, ncols=4, squeeze=True);
         
