@@ -107,7 +107,7 @@ def print_stats(stats, parameters, prefix=''):
         nrCorrects = 6;
     if (parameters['answering']):
         for trueSize in range(trueSizes):
-            for nrCorrect in range(nrCorrects):
+            for nrCorrect in range(min(nrCorrects,trueSize)):
                 output += prefix + "Prediction size %d nr correct %d: %.2f\n" % (trueSize, nrCorrect, stats['correct_matrix_scores'][trueSize][nrCorrect] * 100.);
     
     if (parameters['dataset_type'] != 3):
