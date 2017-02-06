@@ -120,4 +120,6 @@ def set_up_statistics(output_dim, n_max_digits):
             'skipped_because_intervention_location': 0,
             'samplesCorrect': [],
             'prediction_sizes': {k: 0 for k in range(20)},
-            'prediction_size_correct': {k: 0. for k in range(20)}};
+            'prediction_size_correct': {k: 0. for k in range(20)},
+            'correct_matrix': np.zeros((n_max_digits,n_max_digits), dtype='int16'),
+            'correct_matrix_sizes': np.zeros((n_max_digits), dtype='int16')};

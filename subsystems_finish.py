@@ -100,6 +100,16 @@ def print_stats(stats, parameters, prefix=''):
     
     output += prefix + "All error margins: %s\n" % str(stats['error_histogram']);
     
+    trueSizes = parameters['n_max_digits'];
+    nrCorrects = parameters['n_max_digits'];
+    if (parameters['answering']):
+        trueSizes = 4;
+        nrCorrects = 6;
+    if (parameters['answering']):
+        for trueSize in range(trueSizes):
+            for nrCorrect in range(nrCorrects):
+                output += prefix + "Prediction size %d nr correct %d: %.2f\n" % (trueSize, nrCorrect, stats['correct_matrix_scores'][trueSize][nrCorrect] * 100.);
+    
     if (parameters['dataset_type'] != 3):
         output += prefix + "Unique labels predicted: %d\n" % stats['unique_labels_predicted'];
         output += prefix + "Skipped because of zero prediction length: %d\n" % stats['skipped_because_intervention_location'];

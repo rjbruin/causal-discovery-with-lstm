@@ -144,6 +144,15 @@ class RecurrentModel(object):
         
         stats['unique_labels_predicted'] = len(total_labels_used.keys());
         
+        stats['correct_matrix_scores'] = np.zeros_like(stats['correct_matrix'], dtype='float32');
+        # Changing division size for empty sizes to avoid division by zero error
+        for i in range(stats['correct_matrix_sizes'].shape[0]):
+            if (stats['correct_matrix_sizes'][i] == 0):
+                stats['correct_matrix_scores'][i] = 0.;
+            else:
+                stats['correct_matrix_scores'][i,:] = stats['correct_matrix'][i,:] / float(stats['correct_matrix_sizes'][i]);
+#         stats['correct_matrix_scores'] = (stats['correct_matrix'] / stats['correct_matrix_sizes'].reshape(1,stats['correct_matrix_sizes'].shape[0]).astype('float32')) * 100.;
+        
         return stats;
     
     @staticmethod

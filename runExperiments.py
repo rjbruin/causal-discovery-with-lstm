@@ -64,6 +64,9 @@ if __name__ == '__main__':
                    'Stddev model health': 'Stddev model health'};
     for size in range(20):
         score_types['Size %d' % size] = 'Score by prediction size = %d:' % size;
+    for trueSize in range(20):
+        for nrCorrect in range(20):
+            score_types['T %d C %d' % size] = 'Prediction size %d nr correct %d' % (trueSize, nrCorrect);
     trackerreporter.init('http://rjbruin.nl/experimenttracker/api/',api_key);
     
     experiments_file = 'choose';
