@@ -1095,7 +1095,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         ax.set_axis_off();
          
         # Output bias
-        w = self.vars['hbY'].get_value().reshape((1,self.prediction_output_dim));
+        w = self.vars['hbY'].get_value().reshape((1,self.actual_prediction_output_dim));
         norm = (w - np.min(w)) / float(np.max(w));
         ax = plt.subplot2grid((3,4), (2,2));
         ax.imshow(norm, cmap='gray');
