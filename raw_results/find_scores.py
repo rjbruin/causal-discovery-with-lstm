@@ -8,7 +8,7 @@ import sys;
 
 if __name__ == '__main__':
     f = open(sys.argv[1]);
-    query = raw_input("Enter query (without colon): ");
+    query = raw_input("Enter query (without colon): ") + ':';
     
     scores = [];
     batchNr = -1;
@@ -20,8 +20,8 @@ if __name__ == '__main__':
             batchNr = int(args[1]);
         if (line.find(query) == 0):
             # Match
-            scoreline = line[len(query)+1:];
-            args = scoreline.split(" ");
+            scoreline = line[len(query):];
+            args = scoreline.split();
             score = float(args[0]);
             scores.append((batchNr,score));
     
@@ -29,4 +29,4 @@ if __name__ == '__main__':
     for index, score in scores:
         scoreStrings.append("(%d, %.2f)" % (index, score));
     
-    print(",".join(scoreStrings));
+    print("".join(scoreStrings));
