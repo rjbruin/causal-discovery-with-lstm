@@ -43,12 +43,12 @@ class RecurrentModel(object):
     def getVars(self):
         pass
         
-    def total_statistics(self, stats, total_labels_used={}):
+    def total_statistics(self, stats, total_labels_used={}, digits=True):
         """
         Adds general statistics to the statistics generated per batch.
         """
         stats['prediction_histogram'] = RecurrentModel.addDicts(stats['prediction_1_histogram'], stats['prediction_2_histogram']);
-        stats['prediction_sizes'] = RecurrentModel.addDicts(stats['prediction_1_size_histogram'], stats['prediction_2_size_histogram']);
+#         stats['prediction_sizes'] = RecurrentModel.addDicts(stats['prediction_1_size_histogram'], stats['prediction_2_size_histogram']);
         
         for i in range(20):
             if (stats['digit_1_prediction_size'][i] > 0):
@@ -60,15 +60,16 @@ class RecurrentModel(object):
             else:
                 stats['digit_2_score'][i] = 0.0;
         
-        # Using fixed values!
-        dp_length = self.n_max_digits;
-        
-        d1_size = np.sum([stats['digit_1_prediction_size'][i] for i in range(dp_length)]);
-        d2_size = np.sum([stats['digit_2_prediction_size'][i] for i in range(dp_length)]);
-        stats['digit_prediction_size'] = d1_size + d2_size;
-        stats['digit_1_total_score'] = np.sum([stats['digit_1_score'][i] * (stats['digit_1_prediction_size'][i] / float(d1_size)) for i in range(dp_length)]);
-        if (d2_size > 0):
-            stats['digit_2_total_score'] = np.sum([stats['digit_2_score'][i] * (stats['digit_2_prediction_size'][i] / float(d2_size)) for i in range(dp_length)]);
+        if (digits):
+            # Using fixed values!
+            dp_length = self.n_max_digits;
+            
+            d1_size = np.sum([stats['digit_1_prediction_size'][i] for i in range(dp_length)]);
+            d2_size = np.sum([stats['digit_2_prediction_size'][i] for i in range(dp_length)]);
+            stats['digit_prediction_size'] = d1_size + d2_size;
+            stats['digit_1_total_score'] = np.sum([stats['digit_1_score'][i] * (stats['digit_1_prediction_size'][i] / float(d1_size)) for i in range(dp_length)]);
+            if (d2_size > 0):
+                stats['digit_2_total_score'] = np.sum([stats['digit_2_score'][i] * (stats['digit_2_prediction_size'][i] / float(d2_size)) for i in range(dp_length)]);
         
         if (stats['prediction_size'] > 0):
             stats['score'] = stats['correct'] / float(stats['prediction_size']);

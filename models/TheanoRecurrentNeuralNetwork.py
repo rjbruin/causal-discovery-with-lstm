@@ -94,7 +94,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         self.actual_data_dim = self.data_dim * 2;
         self.actual_prediction_output_dim = self.prediction_output_dim * 2;
-        if (self.only_cause_expression):
+        if (self.only_cause_expression or rnn_version == TheanoRecurrentNeuralNetwork.RNN_DECODESINGLEPREDICTION):
             self.actual_data_dim = self.data_dim;
             self.actual_prediction_output_dim = self.prediction_output_dim;
         if (not self.crosslinks):
@@ -1139,7 +1139,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (self.rnn_version != 2):            
             prediction_label = np.swapaxes(prediction_label, 0, 1);
 
-        if (not self.only_cause_expression):
+        if (not self.only_cause_expression and self.rnn_version != TheanoRecurrentNeuralNetwork.RNN_DECODESINGLEPREDICTION):
             if (self.rnn_version == TheanoRecurrentNeuralNetwork.RNN_DECODESELFFEEDING):
                 prediction_1, prediction_2, right_hand, error = \
                         self._predict(encoding_label, prediction_label, interventionLocations, nrSamples);
@@ -1155,13 +1155,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         self._predict(encoding_label, prediction_label, nrSamples);
 
         # Swap sentence index and datapoints back
-        if (self.rnn_version != 2):
+        if (self.rnn_version != TheanoRecurrentNeuralNetwork.RNN_DECODESINGLEPREDICTION):
             prediction_1 = np.swapaxes(prediction_1, 0, 1);
             if (not self.only_cause_expression):
                 prediction_2 = np.swapaxes(prediction_2, 0, 1);
             right_hand = np.swapaxes(right_hand, 0, 1);
 
-        if (not self.only_cause_expression):
+        if (not self.only_cause_expression and self.rnn_version != TheanoRecurrentNeuralNetwork.RNN_DECODESINGLEPREDICTION):
             return [prediction_1, prediction_2], {'right_hand': right_hand, 'error': error};
         else:
             return prediction_1, {'right_hand': right_hand, 'error': error};
@@ -1174,7 +1174,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                          other, test_n, dataset, labels_to_use, dataset_data, parameters,
                          emptySamples=None,
                          training=False, topcause=True,
-                         testInDataset=True, bothcause=False):
+                         testInDataset=True, bothcause=False,
+                         data=None):
         """
         Overriding for finish-target_expressions.
         expressions_with_interventions contains the label-target_expressions (in
@@ -1186,12 +1187,20 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if (emptySamples is not None and j in emptySamples):
                     continue;
                 
+                expression = None;
+                if (data is not None):
+                    expression = dataset.indicesToStr(np.argmax(data[j], axis=1));
+                
                 # Check if cause sequence prediction is in dataset
                 if (prediction[j] == target_expressions[j]):
                     stats['correct'] += 1.0;
+                    if (expression is not None):
+                        stats['prediction_size_correct'][len(expression)] += 1;
            
                 stats['prediction_1_histogram'][int(prediction[j])] += 1;
                 stats['prediction_size'] += 1;
+                if (expression is not None):
+                    stats['prediction_sizes'][len(expression)] += 1;
         else:
             dont_switch = False;
             if (len(prediction) <= 1):

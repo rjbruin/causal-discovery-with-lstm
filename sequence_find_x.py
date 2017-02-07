@@ -26,6 +26,11 @@ def print_stats(stats, parameters, prefix=''):
     
     output += prefix + "Unique labels predicted: %d\n" % stats['unique_labels_predicted'];
     
+    if ('prediction_size_score' in stats):
+        output += prefix + "Prediction sizes: %s\n" % (str(stats['prediction_sizes']));
+        for size in stats['prediction_size_score'].keys():
+            output += prefix + "Score by prediction size = %d: %.2f percent\n" % (size, stats['prediction_size_score'][size]*100.);
+    
 #     output += prefix + "! Samples correct: %s" % str(map(lambda (x,y): "%d,%d" % (int(x), int(y)),stats['samplesCorrect']));
     
     output += "\n";
@@ -95,7 +100,7 @@ def test(model, dataset, parameters, max_length, print_samples=False,
         stats, _ = model.batch_statistics(stats, predictions, 
                                        test_labels, None,
                                        other, nrSamples, dataset, 
-                                       None, None, parameters);
+                                       None, None, parameters, data=test_data);
         
         for j in range(nrSamples):
             total_labels_used[test_labels[j]] = True;
@@ -127,7 +132,7 @@ def test(model, dataset, parameters, max_length, print_samples=False,
     
     print("Total testing error: %.2f" % totalError);
     
-    stats = model.total_statistics(stats, total_labels_used=total_labels_used);
+    stats = model.total_statistics(stats, total_labels_used=total_labels_used, digits=False);
     print_stats(stats, parameters);
     
     if (returnTestSamples):
