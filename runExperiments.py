@@ -19,7 +19,9 @@ if __name__ == '__main__':
         raise ValueError("No API key present for reporting to tracker!");
     score_types = {'Precision': 'Score',
                    'Training loss': 'Total error',
+                   'Training loss (m)': 'Mean error',
                    'Testing loss': 'Total testing error',
+                   'Testing loss (m)': 'Mean testing error',
                    'Digit precision': 'Digit-based score',
                    'Digit (1) precision': 'Digit-based (1) score',
                    'Digit (2) precision': 'Digit-based (2) score',

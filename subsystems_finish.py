@@ -420,6 +420,7 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
     profiler.profile();
     
     print("Total testing error: %.2f" % totalError);
+    print("Mean testing error: %.8f" % (totalError/float(k)));
     
     stats = model.total_statistics(stats, total_labels_used=total_labels_used);
     print_stats(stats, parameters);
@@ -556,6 +557,7 @@ if __name__ == '__main__':
         
         # Report on error
         print("Total error: %.2f" % total_error);
+        print("Mean error: %.8f" % (total_error/float(k)));
         if (parameters['simple_data_loading']):
             print("Average data health: %.2f" % np.mean(data_healths));
             print("Stddev data health: %.2f" % np.std(data_healths));
