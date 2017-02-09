@@ -521,6 +521,7 @@ if __name__ == '__main__':
                 suffix = raw_input("Provide the suffix to the name for iteration %d: " % k);
                 newparams = copy.deepcopy(allparameters[i]);
                 newparams[key] = processKeyValue(key,val);
+                newparams['basename'] += suffix;
                 newparams['name'] += suffix;
                 newparameters.append(newparams);
         else:
