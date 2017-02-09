@@ -571,7 +571,8 @@ if __name__ == '__main__':
                             sample_size=sampleSize, homogeneous=parameters['homogeneous']);
         
         # Save weights to pickles
-        if (saveModels):
+        save_modulo = 50;
+        if (saveModels and (r+1) % save_modulo == 0):
             saveVars = model.getVars();
             save_to_pickle('saved_models/%s_%d.model' % (name, r), saveVars, settings=parameters);
         
