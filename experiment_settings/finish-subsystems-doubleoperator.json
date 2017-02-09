@@ -1,7 +1,6 @@
 [
     {
         "name": "f-subs-dop",
-        "script": "subsystems_finish.py",
         "dataset": "./data/doubleoperator",
         "repetitions": "500",
         "sample_testing_size": "100000",

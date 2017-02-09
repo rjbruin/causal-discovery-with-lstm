@@ -1,7 +1,6 @@
 [
     {
         "name": "f-subs-s2mb",
-        "script": "subsystems_finish.py",
         "dataset": "./data/seq2ndmarkov_both",
         "repetitions": "500",
         "sample_testing_size": "100000",

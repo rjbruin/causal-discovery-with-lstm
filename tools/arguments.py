@@ -172,30 +172,53 @@ def processKeyValue(key,value):
         raise ValueError("Invalid key provided: %s" % key);
 
 def processCommandLineArguments(arguments, parameters=None):
+    """
+    Returns a list of all experiments parsed from command-line.
+    """
+    multiple_parameters = [];
     if (parameters is None):
-        parameters = copy.deepcopy(defaults);
+        multiple_parameters.append(copy.deepcopy(defaults));
+    else:
+        multiple_parameters.append(copy.deepcopy(parameters));
 
     if ('--params_from_experiment_header' in arguments):
         # If no arguments are provided, ask for parameters as raw input
         dictStr = raw_input("Please provide the extra arguments as dictionary: ");
         arguments.extend(parametersArguments(parametersFromDictStr(dictStr)));
+    
+    if ('-f' in arguments):
+        keyLoc = arguments.index('-f');
+        f = open("./experiment_settings/" + arguments[keyLoc+1],'r');
+        loaded_parameters = json.load(f);
+        f.close();
+        
+        # Combine all current parameters with all loaded parameters 
+        new_parameters = [];
+        for current_params in multiple_parameters:
+            for newlyloaded_params in loaded_parameters:
+                overlap_params = copy.deepcopy(current_params);
+                for key in newlyloaded_params:
+                    overlap_params[key] = processKeyValue(key, newlyloaded_params[key]);
+                new_parameters.append(overlap_params);
+        multiple_parameters = new_parameters;
 
-    key = None;
-    for arg in arguments:
-        if (arg[:2] == '--'):
-            # Key
-            key = arg[2:];
-        else:
-            val = arg;
-            if (key is not None):
-                if (key in argumentProcessors):
-                    parameters[key] = processKeyValue(key,val);
-                else:
-                    raise ValueError("Invalid argument provided: %s" % key);
-                key = None;
-                val = None;
+    for i in range(len(multiple_parameters)):
+        key = None;
+        for arg in arguments:
+            if (arg[:2] == '--'):
+                # Key
+                key = arg[2:];
+            else:
+                val = arg;
+                if (key is not None):
+                    if (key in argumentProcessors):
+                        multiple_parameters[i][key] = processKeyValue(key,val);
+                    else:
+                        raise ValueError("Invalid argument provided: %s" % key);
+                    key = None;
+                    val = None;
 
-    return parameters;
+    return multiple_parameters;
 
 def parametersFromDictStr(dictStr):
     obj = dictStr.replace("True","true");

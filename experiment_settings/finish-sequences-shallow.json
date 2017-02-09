@@ -1,7 +1,6 @@
 [
     {
         "name": "f-seqs-s",
-        "script": "subsystems_finish.py",
         "dataset": "./data/subsystems_shallow",
         "repetitions": "500",
         "sample_testing_size": "10000",

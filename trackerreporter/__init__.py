@@ -117,6 +117,14 @@ def addScore(experiment_id, scoreType, value, atProgress=False, atDataset=False)
     response = _post(experiment_id, 'postScore.php', data);
     return response != False;
 
+def findScoreType(message, experimentId):
+    colonLocation = message.find(":");
+    if (colonLocation != -1):
+        for typeId, scoreIdentifier in experiments[experimentId]['scoreIdentifiers'].items():
+            if (message[:colonLocation] == scoreIdentifier):
+                return int(typeId);
+    return None;
+
 def fromExperimentOutput(experiment_id, output, 
                          atProgress=False, atDataset=False):
     if ('scoreIdentifiers' not in experiments[experiment_id]):
@@ -131,23 +139,14 @@ def fromExperimentOutput(experiment_id, output,
     if (ignore):
         return False;
     
-    typeFound = None;
-    colonLocation = output.find(":");
-    if (colonLocation == -1):
-        # No score type matched: add output as message
-        addMessage(experiment_id, output);
-        return True;
-    
-    for typeId, scoreIdentifier in experiments[experiment_id]['scoreIdentifiers'].items():
-        if (output[:colonLocation] == scoreIdentifier):
-            typeFound = int(typeId);
-            break;
+    typeFound = findScoreType(output, experiment_id);
     
     if (typeFound is None):
         # No score type matched: add output as message
         addMessage(experiment_id, output);
         return True;
     
+    colonLocation = output.find(":");
     whitespaceAfterScore = output.find(" ",colonLocation+2);
     if (whitespaceAfterScore == -1):
         whitespaceAfterScore = len(output);
