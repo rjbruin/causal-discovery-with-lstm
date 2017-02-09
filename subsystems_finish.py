@@ -38,70 +38,70 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
     printF("\n", experimentId, currentIteration);
 
     # Print statistics
-    printF(prefix + "Score: %.2f percent\n" % (stats['score']*100), experimentId, currentIteration);
+    printF(prefix + "Score: %.2f percent" % (stats['score']*100), experimentId, currentIteration);
     
     digit_score = (stats['digit_1_total_score']) * 100.;
     if (not parameters['only_cause_expression']):
         digit_score = (stats['digit_1_total_score'] + stats['digit_2_total_score']) * 50.;
-    printF(prefix + "Digit-based score: %.2f percent\n" % (digit_score), experimentId, currentIteration);
+    printF(prefix + "Digit-based score: %.2f percent" % (digit_score), experimentId, currentIteration);
     
     if (not parameters['only_cause_expression']):
         if (parameters['dataset_type'] != 3):
-            printF(prefix + "Structure score cause: %.2f percent\n" % (stats['structureScoreCause']*100), experimentId, currentIteration);
-            printF(prefix + "Structure score effect: %.2f percent\n" % (stats['structureScoreEffect']*100), experimentId, currentIteration);
-        printF(prefix + "Structure score top: %.2f percent\n" % (stats['structureScoreTop']*100), experimentId, currentIteration);
-        printF(prefix + "Structure score bot: %.2f percent\n" % (stats['structureScoreBot']*100), experimentId, currentIteration);
+            printF(prefix + "Structure score cause: %.2f percent" % (stats['structureScoreCause']*100), experimentId, currentIteration);
+            printF(prefix + "Structure score effect: %.2f percent" % (stats['structureScoreEffect']*100), experimentId, currentIteration);
+        printF(prefix + "Structure score top: %.2f percent" % (stats['structureScoreTop']*100), experimentId, currentIteration);
+        printF(prefix + "Structure score bot: %.2f percent" % (stats['structureScoreBot']*100), experimentId, currentIteration);
         if (parameters['dataset_type'] != 3):
-            printF(prefix + "Structure score: %.2f percent\n" % (stats['structureScore']*100), experimentId, currentIteration);
-            printF(prefix + "Effect score: %.2f percent\n" % (stats['effectScore']*100), experimentId, currentIteration);
-            printF(prefix + "Effect score including no effect: %.2f percent\n" % (stats['allEffectScore']*100), experimentId, currentIteration);
+            printF(prefix + "Structure score: %.2f percent" % (stats['structureScore']*100), experimentId, currentIteration);
+            printF(prefix + "Effect score: %.2f percent" % (stats['effectScore']*100), experimentId, currentIteration);
+            printF(prefix + "Effect score including no effect: %.2f percent" % (stats['allEffectScore']*100), experimentId, currentIteration);
     
     if (parameters['dataset_type'] != 3):
-        printF(prefix + "Valid: %.2f percent\n" % (stats['validScore']*100), experimentId, currentIteration);
-        printF(prefix + "Local valid: %.2f percent\n" % (stats['localValidScore']*100), experimentId, currentIteration);
+        printF(prefix + "Valid: %.2f percent" % (stats['validScore']*100), experimentId, currentIteration);
+        printF(prefix + "Local valid: %.2f percent" % (stats['localValidScore']*100), experimentId, currentIteration);
         if (not parameters['only_cause_expression']):
-            printF(prefix + "Structure valid cause: %.2f percent\n" % (stats['structureValidScoreCause']*100), experimentId, currentIteration);
-            printF(prefix + "Structure valid effect: %.2f percent\n" % (stats['structureValidScoreEffect']*100), experimentId, currentIteration);
-            printF(prefix + "Structure valid top: %.2f percent\n" % (stats['structureValidScoreTop']*100), experimentId, currentIteration);
-            printF(prefix + "Structure valid bot: %.2f percent\n" % (stats['structureValidScoreBot']*100), experimentId, currentIteration);
-            printF(prefix + "Local valid cause: %.2f percent\n" % (stats['localValidScoreCause']*100), experimentId, currentIteration);
-            printF(prefix + "Local valid effect: %.2f percent\n" % (stats['localValidScoreEffect']*100), experimentId, currentIteration);
-        printF(prefix + "Intervention locations:   %s\n" % (str(stats['intervention_locations'])), experimentId, currentIteration);
+            printF(prefix + "Structure valid cause: %.2f percent" % (stats['structureValidScoreCause']*100), experimentId, currentIteration);
+            printF(prefix + "Structure valid effect: %.2f percent" % (stats['structureValidScoreEffect']*100), experimentId, currentIteration);
+            printF(prefix + "Structure valid top: %.2f percent" % (stats['structureValidScoreTop']*100), experimentId, currentIteration);
+            printF(prefix + "Structure valid bot: %.2f percent" % (stats['structureValidScoreBot']*100), experimentId, currentIteration);
+            printF(prefix + "Local valid cause: %.2f percent" % (stats['localValidScoreCause']*100), experimentId, currentIteration);
+            printF(prefix + "Local valid effect: %.2f percent" % (stats['localValidScoreEffect']*100), experimentId, currentIteration);
+        printF(prefix + "Intervention locations:   %s" % (str(stats['intervention_locations'])), experimentId, currentIteration);
         if (parameters['test_in_dataset']):
-            printF(prefix + "In dataset: %.2f percent\n" % (stats['inDatasetScore']*100), experimentId, currentIteration);
+            printF(prefix + "In dataset: %.2f percent" % (stats['inDatasetScore']*100), experimentId, currentIteration);
 
     if (not parameters['only_cause_expression']):
-        printF(prefix + "Digit-based (1) score: %.2f percent\n" % (stats['digit_1_total_score']*100), experimentId, currentIteration);
-        printF(prefix + "Digit-based (1) individual scores histogram: %s percent\n" % (str(stats['digit_1_score'])), experimentId, currentIteration);
-        printF(prefix + "Digit prediction (1) histogram:   %s\n" % (str(stats['prediction_1_histogram'])), experimentId, currentIteration);
+        printF(prefix + "Digit-based (1) score: %.2f percent" % (stats['digit_1_total_score']*100), experimentId, currentIteration);
+        printF(prefix + "Digit-based (1) individual scores histogram: %s percent" % (str(stats['digit_1_score'])), experimentId, currentIteration);
+        printF(prefix + "Digit prediction (1) histogram:   %s" % (str(stats['prediction_1_histogram'])), experimentId, currentIteration);
         
-        printF(prefix + "Digit-based (2) score: %.2f percent\n" % (stats['digit_2_total_score']*100), experimentId, currentIteration);
-        printF(prefix + "Digit-based (2) individual scores histogram: %s percent\n" % (str(stats['digit_2_score'])), experimentId, currentIteration);
-        printF(prefix + "Digit prediction (2) histogram:   %s\n" % (str(stats['prediction_2_histogram'])), experimentId, currentIteration);
+        printF(prefix + "Digit-based (2) score: %.2f percent" % (stats['digit_2_total_score']*100), experimentId, currentIteration);
+        printF(prefix + "Digit-based (2) individual scores histogram: %s percent" % (str(stats['digit_2_score'])), experimentId, currentIteration);
+        printF(prefix + "Digit prediction (2) histogram:   %s" % (str(stats['prediction_2_histogram'])), experimentId, currentIteration);
         
         if (parameters['dataset_type'] != 3):
-            printF(prefix + "Prediction size (1) histogram:   %s\n" % (str(stats['prediction_1_size_histogram'])), experimentId, currentIteration);
-            printF(prefix + "Prediction size (2) histogram:   %s\n" % (str(stats['prediction_2_size_histogram'])), experimentId, currentIteration);
+            printF(prefix + "Prediction size (1) histogram:   %s" % (str(stats['prediction_1_size_histogram'])), experimentId, currentIteration);
+            printF(prefix + "Prediction size (2) histogram:   %s" % (str(stats['prediction_2_size_histogram'])), experimentId, currentIteration);
         else:
             dp_length = 20 - 8;
-            printF(prefix + "Digit-based score (1st quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((0./4)*dp_length),int((1./4)*dp_length))])), experimentId, currentIteration);
-            printF(prefix + "Digit-based score (2nd quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((1./4)*dp_length),int((2./4)*dp_length))])), experimentId, currentIteration);
-            printF(prefix + "Digit-based score (3rd quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((2./4)*dp_length),int((3./4)*dp_length))])), experimentId, currentIteration);
-            printF(prefix + "Digit-based score (4th quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((3./4)*dp_length),int((4./4)*dp_length))])), experimentId, currentIteration);
+            printF(prefix + "Digit-based score (1st quarter): %.2f percent" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((0./4)*dp_length),int((1./4)*dp_length))])), experimentId, currentIteration);
+            printF(prefix + "Digit-based score (2nd quarter): %.2f percent" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((1./4)*dp_length),int((2./4)*dp_length))])), experimentId, currentIteration);
+            printF(prefix + "Digit-based score (3rd quarter): %.2f percent" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((2./4)*dp_length),int((3./4)*dp_length))])), experimentId, currentIteration);
+            printF(prefix + "Digit-based score (4th quarter): %.2f percent" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((3./4)*dp_length),int((4./4)*dp_length))])), experimentId, currentIteration);
         
 #     printF(prefix + "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
-    printF(prefix + "Digit histogram:   %s\n" % (str(stats['prediction_histogram'])), experimentId, currentIteration);
+    printF(prefix + "Digit histogram:   %s" % (str(stats['prediction_histogram'])), experimentId, currentIteration);
     
     if (parameters['dataset_type'] != 3 and 'prediction_size_score' in stats):
-        printF(prefix + "Prediction sizes: %s\n" % (str(stats['prediction_sizes'])), experimentId, currentIteration);
+        printF(prefix + "Prediction sizes: %s" % (str(stats['prediction_sizes'])), experimentId, currentIteration);
         for size in stats['prediction_size_score'].keys():
-            printF(prefix + "Score by prediction size = %d: %.2f percent\n" % (size, stats['prediction_size_score'][size]*100.), experimentId, currentIteration);
+            printF(prefix + "Score by prediction size = %d: %.2f percent" % (size, stats['prediction_size_score'][size]*100.), experimentId, currentIteration);
     
-    printF(prefix + "Error margin 1 score: %.2f percent\n" % (stats['error_1_score']*100.), experimentId, currentIteration);
-    printF(prefix + "Error margin 2 score: %.2f percent\n" % (stats['error_2_score']*100.), experimentId, currentIteration);
-    printF(prefix + "Error margin 3 score: %.2f percent\n" % (stats['error_3_score']*100.), experimentId, currentIteration);
+    printF(prefix + "Error margin 1 score: %.2f percent" % (stats['error_1_score']*100.), experimentId, currentIteration);
+    printF(prefix + "Error margin 2 score: %.2f percent" % (stats['error_2_score']*100.), experimentId, currentIteration);
+    printF(prefix + "Error margin 3 score: %.2f percent" % (stats['error_3_score']*100.), experimentId, currentIteration);
     
-    printF(prefix + "All error margins: %s\n" % str(stats['error_histogram']), experimentId, currentIteration);
+    printF(prefix + "All error margins: %s" % str(stats['error_histogram']), experimentId, currentIteration);
     
     trueSizes = parameters['n_max_digits'];
     nrCorrects = parameters['n_max_digits'];
@@ -552,12 +552,15 @@ if __name__ == '__main__':
         # Construct outputPath and new printing target
         name = parameters['name'];
         outputPath = parameters['output_path'];
-        saveModels = True;
         printf = open(outputPath, 'w');
+        printf.close();
+        saveModels = True;
         def printF(s, experimentId, currentIt):
             print(s);
-            if (s == "" and s[0] != "#"):
+            printf = open(outputPath, 'a');
+            if (s != "" and s[0] != "#"):
                 printf.write(s + "\n");
+            printf.close();
             if (parameters['report_to_tracker']):
                 trackerreporter.fromExperimentOutput(experimentId, s, atProgress=currentIt, atDataset=1);
         
