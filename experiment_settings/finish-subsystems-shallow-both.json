@@ -1,7 +1,6 @@
 [
     {
         "name": "f-subs-sboth",
-        "script": "subsystems_finish.py",
         "dataset": "./data/subsystems_shallow_both",
         "repetitions": "500",
         "sample_testing_size": "100000",

@@ -1,7 +1,6 @@
 [
     {
         "name": "f-subs-dp",
-        "script": "subsystems_finish.py",
         "dataset": "./data/discreteprocess_noisy",
         "repetitions": "500",
         "sample_testing_size": "10000",

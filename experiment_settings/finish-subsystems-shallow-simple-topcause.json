@@ -1,7 +1,6 @@
 [
     {
         "name": "f-subs-stop",
-        "script": "subsystems_finish.py",
         "dataset": "./data/subsystems_shallow_simple_topcause",
         "repetitions": "500",
         "sample_testing_size": "100000",

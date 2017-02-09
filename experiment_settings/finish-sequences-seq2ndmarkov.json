@@ -1,7 +1,6 @@
 [
     {
         "name": "f-seqs-s2m",
-        "script": "subsystems_finish.py",
         "dataset": "./data/seq2ndmarkov",
         "repetitions": "100",
         "sample_testing_size": "10000",
