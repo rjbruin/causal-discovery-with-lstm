@@ -67,9 +67,14 @@ class RecurrentModel(object):
             d1_size = np.sum([stats['digit_1_prediction_size'][i] for i in range(dp_length)]);
             d2_size = np.sum([stats['digit_2_prediction_size'][i] for i in range(dp_length)]);
             stats['digit_prediction_size'] = d1_size + d2_size;
-            stats['digit_1_total_score'] = np.sum([stats['digit_1_score'][i] * (stats['digit_1_prediction_size'][i] / float(d1_size)) for i in range(dp_length)]);
+            if (d1_size > 0):
+                stats['digit_1_total_score'] = np.sum([stats['digit_1_score'][i] * (stats['digit_1_prediction_size'][i] / float(d1_size)) for i in range(dp_length)]);
+            else:
+                stats['digit_1_total_score'] = 0.;
             if (d2_size > 0):
                 stats['digit_2_total_score'] = np.sum([stats['digit_2_score'][i] * (stats['digit_2_prediction_size'][i] / float(d2_size)) for i in range(dp_length)]);
+            else:
+                stats['digit_2_total_score'] = 0.;
         
         if (stats['prediction_size'] > 0):
             stats['score'] = stats['correct'] / float(stats['prediction_size']);

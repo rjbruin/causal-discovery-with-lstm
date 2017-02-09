@@ -19,6 +19,9 @@ import theano;
 import copy;
 from profiler import profiler
 
+import trackerreporter;
+from tools.arguments import processKeyValue
+
 def addOtherInterventionLocations(intervention_locations, topcause):
     # Transform intervention locations to matrix where the 'other' locations
     # are location-1 because we don't want to use the label at the 
@@ -30,75 +33,75 @@ def addOtherInterventionLocations(intervention_locations, topcause):
     
     return matrix_intervention_locations;
 
-def print_stats(stats, parameters, prefix=''):
+def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
     # Print statistics
-    output = "\n";
+    printF("\n", experimentId, currentIteration);
 
     # Print statistics
-    output += prefix + "Score: %.2f percent\n" % (stats['score']*100);
+    printF(prefix + "Score: %.2f percent\n" % (stats['score']*100), experimentId, currentIteration);
     
     digit_score = (stats['digit_1_total_score']) * 100.;
     if (not parameters['only_cause_expression']):
         digit_score = (stats['digit_1_total_score'] + stats['digit_2_total_score']) * 50.;
-    output += prefix + "Digit-based score: %.2f percent\n" % (digit_score);
+    printF(prefix + "Digit-based score: %.2f percent\n" % (digit_score), experimentId, currentIteration);
     
     if (not parameters['only_cause_expression']):
         if (parameters['dataset_type'] != 3):
-            output += prefix + "Structure score cause: %.2f percent\n" % (stats['structureScoreCause']*100);
-            output += prefix + "Structure score effect: %.2f percent\n" % (stats['structureScoreEffect']*100);
-        output += prefix + "Structure score top: %.2f percent\n" % (stats['structureScoreTop']*100);
-        output += prefix + "Structure score bot: %.2f percent\n" % (stats['structureScoreBot']*100);
+            printF(prefix + "Structure score cause: %.2f percent\n" % (stats['structureScoreCause']*100), experimentId, currentIteration);
+            printF(prefix + "Structure score effect: %.2f percent\n" % (stats['structureScoreEffect']*100), experimentId, currentIteration);
+        printF(prefix + "Structure score top: %.2f percent\n" % (stats['structureScoreTop']*100), experimentId, currentIteration);
+        printF(prefix + "Structure score bot: %.2f percent\n" % (stats['structureScoreBot']*100), experimentId, currentIteration);
         if (parameters['dataset_type'] != 3):
-            output += prefix + "Structure score: %.2f percent\n" % (stats['structureScore']*100);
-            output += prefix + "Effect score: %.2f percent\n" % (stats['effectScore']*100);
-            output += prefix + "Effect score including no effect: %.2f percent\n" % (stats['allEffectScore']*100);
+            printF(prefix + "Structure score: %.2f percent\n" % (stats['structureScore']*100), experimentId, currentIteration);
+            printF(prefix + "Effect score: %.2f percent\n" % (stats['effectScore']*100), experimentId, currentIteration);
+            printF(prefix + "Effect score including no effect: %.2f percent\n" % (stats['allEffectScore']*100), experimentId, currentIteration);
     
     if (parameters['dataset_type'] != 3):
-        output += prefix + "Valid: %.2f percent\n" % (stats['validScore']*100);
-        output += prefix + "Local valid: %.2f percent\n" % (stats['localValidScore']*100);
+        printF(prefix + "Valid: %.2f percent\n" % (stats['validScore']*100), experimentId, currentIteration);
+        printF(prefix + "Local valid: %.2f percent\n" % (stats['localValidScore']*100), experimentId, currentIteration);
         if (not parameters['only_cause_expression']):
-            output += prefix + "Structure valid cause: %.2f percent\n" % (stats['structureValidScoreCause']*100);
-            output += prefix + "Structure valid effect: %.2f percent\n" % (stats['structureValidScoreEffect']*100);
-            output += prefix + "Structure valid top: %.2f percent\n" % (stats['structureValidScoreTop']*100);
-            output += prefix + "Structure valid bot: %.2f percent\n" % (stats['structureValidScoreBot']*100);
-            output += prefix + "Local valid cause: %.2f percent\n" % (stats['localValidScoreCause']*100);
-            output += prefix + "Local valid effect: %.2f percent\n" % (stats['localValidScoreEffect']*100);
-        output += prefix + "Intervention locations:   %s\n" % (str(stats['intervention_locations']));
+            printF(prefix + "Structure valid cause: %.2f percent\n" % (stats['structureValidScoreCause']*100), experimentId, currentIteration);
+            printF(prefix + "Structure valid effect: %.2f percent\n" % (stats['structureValidScoreEffect']*100), experimentId, currentIteration);
+            printF(prefix + "Structure valid top: %.2f percent\n" % (stats['structureValidScoreTop']*100), experimentId, currentIteration);
+            printF(prefix + "Structure valid bot: %.2f percent\n" % (stats['structureValidScoreBot']*100), experimentId, currentIteration);
+            printF(prefix + "Local valid cause: %.2f percent\n" % (stats['localValidScoreCause']*100), experimentId, currentIteration);
+            printF(prefix + "Local valid effect: %.2f percent\n" % (stats['localValidScoreEffect']*100), experimentId, currentIteration);
+        printF(prefix + "Intervention locations:   %s\n" % (str(stats['intervention_locations'])), experimentId, currentIteration);
         if (parameters['test_in_dataset']):
-            output += prefix + "In dataset: %.2f percent\n" % (stats['inDatasetScore']*100);
+            printF(prefix + "In dataset: %.2f percent\n" % (stats['inDatasetScore']*100), experimentId, currentIteration);
 
     if (not parameters['only_cause_expression']):
-        output += prefix + "Digit-based (1) score: %.2f percent\n" % (stats['digit_1_total_score']*100);
-        output += prefix + "Digit-based (1) individual scores histogram: %s percent\n" % (str(stats['digit_1_score']));
-        output += prefix + "Digit prediction (1) histogram:   %s\n" % (str(stats['prediction_1_histogram']));
+        printF(prefix + "Digit-based (1) score: %.2f percent\n" % (stats['digit_1_total_score']*100), experimentId, currentIteration);
+        printF(prefix + "Digit-based (1) individual scores histogram: %s percent\n" % (str(stats['digit_1_score'])), experimentId, currentIteration);
+        printF(prefix + "Digit prediction (1) histogram:   %s\n" % (str(stats['prediction_1_histogram'])), experimentId, currentIteration);
         
-        output += prefix + "Digit-based (2) score: %.2f percent\n" % (stats['digit_2_total_score']*100);
-        output += prefix + "Digit-based (2) individual scores histogram: %s percent\n" % (str(stats['digit_2_score']));
-        output += prefix + "Digit prediction (2) histogram:   %s\n" % (str(stats['prediction_2_histogram']));
+        printF(prefix + "Digit-based (2) score: %.2f percent\n" % (stats['digit_2_total_score']*100), experimentId, currentIteration);
+        printF(prefix + "Digit-based (2) individual scores histogram: %s percent\n" % (str(stats['digit_2_score'])), experimentId, currentIteration);
+        printF(prefix + "Digit prediction (2) histogram:   %s\n" % (str(stats['prediction_2_histogram'])), experimentId, currentIteration);
         
         if (parameters['dataset_type'] != 3):
-            output += prefix + "Prediction size (1) histogram:   %s\n" % (str(stats['prediction_1_size_histogram']));
-            output += prefix + "Prediction size (2) histogram:   %s\n" % (str(stats['prediction_2_size_histogram']));
+            printF(prefix + "Prediction size (1) histogram:   %s\n" % (str(stats['prediction_1_size_histogram'])), experimentId, currentIteration);
+            printF(prefix + "Prediction size (2) histogram:   %s\n" % (str(stats['prediction_2_size_histogram'])), experimentId, currentIteration);
         else:
             dp_length = 20 - 8;
-            output += prefix + "Digit-based score (1st quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((0./4)*dp_length),int((1./4)*dp_length))]))
-            output += prefix + "Digit-based score (2nd quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((1./4)*dp_length),int((2./4)*dp_length))]))
-            output += prefix + "Digit-based score (3rd quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((2./4)*dp_length),int((3./4)*dp_length))]))
-            output += prefix + "Digit-based score (4th quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((3./4)*dp_length),int((4./4)*dp_length))]))
+            printF(prefix + "Digit-based score (1st quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((0./4)*dp_length),int((1./4)*dp_length))])), experimentId, currentIteration);
+            printF(prefix + "Digit-based score (2nd quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((1./4)*dp_length),int((2./4)*dp_length))])), experimentId, currentIteration);
+            printF(prefix + "Digit-based score (3rd quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((2./4)*dp_length),int((3./4)*dp_length))])), experimentId, currentIteration);
+            printF(prefix + "Digit-based score (4th quarter): %.2f percent\n" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((3./4)*dp_length),int((4./4)*dp_length))])), experimentId, currentIteration);
         
-#     output += prefix + "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
-    output += prefix + "Digit histogram:   %s\n" % (str(stats['prediction_histogram']));
+#     printF(prefix + "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
+    printF(prefix + "Digit histogram:   %s\n" % (str(stats['prediction_histogram'])), experimentId, currentIteration);
     
     if (parameters['dataset_type'] != 3 and 'prediction_size_score' in stats):
-        output += prefix + "Prediction sizes: %s\n" % (str(stats['prediction_sizes']));
+        printF(prefix + "Prediction sizes: %s\n" % (str(stats['prediction_sizes'])), experimentId, currentIteration);
         for size in stats['prediction_size_score'].keys():
-            output += prefix + "Score by prediction size = %d: %.2f percent\n" % (size, stats['prediction_size_score'][size]*100.);
+            printF(prefix + "Score by prediction size = %d: %.2f percent\n" % (size, stats['prediction_size_score'][size]*100.), experimentId, currentIteration);
     
-    output += prefix + "Error margin 1 score: %.2f percent\n" % (stats['error_1_score']*100.);
-    output += prefix + "Error margin 2 score: %.2f percent\n" % (stats['error_2_score']*100.);
-    output += prefix + "Error margin 3 score: %.2f percent\n" % (stats['error_3_score']*100.);
+    printF(prefix + "Error margin 1 score: %.2f percent\n" % (stats['error_1_score']*100.), experimentId, currentIteration);
+    printF(prefix + "Error margin 2 score: %.2f percent\n" % (stats['error_2_score']*100.), experimentId, currentIteration);
+    printF(prefix + "Error margin 3 score: %.2f percent\n" % (stats['error_3_score']*100.), experimentId, currentIteration);
     
-    output += prefix + "All error margins: %s\n" % str(stats['error_histogram']);
+    printF(prefix + "All error margins: %s\n" % str(stats['error_histogram']), experimentId, currentIteration);
     
     trueSizes = parameters['n_max_digits'];
     nrCorrects = parameters['n_max_digits'];
@@ -108,16 +111,15 @@ def print_stats(stats, parameters, prefix=''):
     if (parameters['answering']):
         for trueSize in range(trueSizes+1):
             for nrCorrect in range(min(nrCorrects,trueSize)+1):
-                output += prefix + "Prediction size %d nr correct %d: %.2f\n" % (trueSize, nrCorrect, stats['correct_matrix_scores'][trueSize][nrCorrect] * 100.);
+                printF(prefix + "Prediction size %d nr correct %d: %.2f\n" % (trueSize, nrCorrect, stats['correct_matrix_scores'][trueSize][nrCorrect] * 100.), experimentId, currentIteration);
     
     if (parameters['dataset_type'] != 3):
-        output += prefix + "Unique labels predicted: %d\n" % stats['unique_labels_predicted'];
-        output += prefix + "Skipped because of zero prediction length: %d\n" % stats['skipped_because_intervention_location'];
+        printF(prefix + "Unique labels predicted: %d\n" % stats['unique_labels_predicted'], experimentId, currentIteration);
+        printF(prefix + "Skipped because of zero prediction length: %d\n" % stats['skipped_because_intervention_location'], experimentId, currentIteration);
     
-#     output += prefix + "! Samples correct: %s" % str(map(lambda (x,y): "%d,%d" % (int(x), int(y)),stats['samplesCorrect']));
+#     printF(prefix + "! Samples correct: %s" % str(map(lambda (x,y): "%d,%d" % (int(x), int(y)),stats['samplesCorrect']));
     
-    output += "\n";
-    print(output);
+    printF("\n",experimentId, currentIteration);
 
 def processSampleDiscreteProcess(line, data_dim, oneHot):
     """
@@ -313,7 +315,7 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, parameter
 def test(model, dataset, dataset_data, label_index, parameters, max_length, base_offset, intervention_range, print_samples=False, 
          sample_size=False, homogeneous=False, returnTestSamples=False):
     # Test
-    print("Testing...");
+    printF("Testing...", experimentId, currentIteration);
         
     total = dataset.lengths[dataset.TEST];
     printing_interval = 1000;
@@ -397,32 +399,32 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
                 prefix = "# ";
                 whitespaceprefix = "".join([" " for t in range(parameters['lag'])]);
                 if (parameters['dataset_type'] != 3):
-                    print(prefix + "Intervention location: %d" % interventionLocations[0,i]);
+                    printF(prefix + "Intervention location: %d" % interventionLocations[0,i], experimentId, currentIteration);
                     whitespaceprefix = "";
-                print(prefix + "Data          1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-                                                   np.argmax(test_targets[i,:,:model.data_dim],len(test_data.shape)-2)))));
-                print(prefix + "Prediction    1: %s" % (whitespaceprefix + "".join(map(lambda x: dataset.findSymbol[x], prediction_1[i]))));
-                print(prefix + "Used label    1: %s" % labels_used[i][0]);
+                printF(prefix + "Data          1: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+                                                   np.argmax(test_targets[i,:,:model.data_dim],len(test_data.shape)-2)))), experimentId, currentIteration);
+                printF(prefix + "Prediction    1: %s" % (whitespaceprefix + "".join(map(lambda x: dataset.findSymbol[x], prediction_1[i]))), experimentId, currentIteration);
+                printF(prefix + "Used label    1: %s" % labels_used[i][0], experimentId, currentIteration);
                 
                 if (not parameters['only_cause_expression']):
-                    print(prefix + "Data          2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
-                                                       np.argmax(test_targets[i,:,model.data_dim:],len(test_data.shape)-2)))));
-                    print(prefix + "Prediction    2: %s" % (whitespaceprefix + "".join(map(lambda x: dataset.findSymbol[x], prediction_2[i]))));
-                    print(prefix + "Used label    2: %s" % labels_used[i][1]);
+                    printF(prefix + "Data          2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
+                                                       np.argmax(test_targets[i,:,model.data_dim:],len(test_data.shape)-2)))), experimentId, currentIteration);
+                    printF(prefix + "Prediction    2: %s" % (whitespaceprefix + "".join(map(lambda x: dataset.findSymbol[x], prediction_2[i]))), experimentId, currentIteration);
+                    printF(prefix + "Used label    2: %s" % labels_used[i][1], experimentId, currentIteration);
             printed_samples = True;
 
         if (stats['prediction_size'] % printing_interval == 0):
-            print("# %d / %d" % (stats['prediction_size'], total));
+            printF("# %d / %d" % (stats['prediction_size'], total), experimentId, currentIteration);
         profiler.stop("test batch stats");
         
         k += nrSamples;
     
     profiler.profile();
     
-    print("Total testing error: %.2f" % totalError);
+    printF("Total testing error: %.2f" % totalError, experimentId, currentIteration);
     
     stats = model.total_statistics(stats, total_labels_used=total_labels_used);
-    print_stats(stats, parameters);
+    print_stats(stats, parameters, experimentId, currentIteration);
     
     if (returnTestSamples):
         return stats, totalError, testSamples;
@@ -434,166 +436,286 @@ if __name__ == '__main__':
     np.set_printoptions(precision=3, threshold=10000000);
     profiler.off();
     
-    # Process parameters
-    parameters = processCommandLineArguments(sys.argv[1:]);
+    # Settings
+    api_key = os.environ.get('TCDL_API_KEY');
+    if (api_key is None):
+        raise ValueError("No API key present for reporting to tracker!");
+    score_types = {'Precision': 'Score',
+                   'Training loss': 'Total error',
+                   'Testing loss': 'Total testing error',
+                   'Digit precision': 'Digit-based score',
+                   'Digit (1) precision': 'Digit-based (1) score',
+                   'Digit (2) precision': 'Digit-based (2) score',
+                   'Digit precision (1/4)': 'Digit-based score (1st quarter)',
+                   'Digit precision (2/4)': 'Digit-based score (2nd quarter)',
+                   'Digit precision (3/4)': 'Digit-based score (3rd quarter)',
+                   'Digit precision (4/4)': 'Digit-based score (4th quarter)',
+                   'Train Precision': 'TRAIN Score',
+                   'Train Digit precision': 'TRAIN Digit-based score',
+                   'Structure precision': 'Structure score',
+                   'Structure pr. (c)': 'Structure score cause',
+                   'Structure pr. (e)': 'Structure score effect',
+                   'Effect precision': 'Effect score',
+                   'Mistake (1) precision': 'Error margin 1 score',
+                   'Mistake (2) precision': 'Error margin 2 score',
+                   'Mistake (3) precision': 'Error margin 3 score',
+                   'Validity': 'Valid',
+                   'Validity (c)': 'Structure valid cause',
+                   'Validity (e)': 'Structure valid effect',
+                   'Local validity': 'Local valid',
+                   'Local validity (c)': 'Local valid cause',
+                   'Local validity (e)': 'Local valid effect',
+                   'In dataset': 'In dataset',
+                   'Skipped': 'Skipped because of zero prediction length',
+                   'Unique predictions': 'Unique labels predicted',
+                   'Mean success rate': 'Mean success rate',
+                   'Stddev success rate': 'Stddev success rate',
+                   'Mean convergence iteration': 'Mean convergence iteration',
+                   'Stddev convergence iteration': 'Stddev convergence iteration',
+                   'Mean non-convergence precision': 'Mean non-convergence precision',
+                   'Stddev non-convergence precision': 'Stddev non-convergence precision',
+                   'Mean dominance fails': 'Mean dominance fails',
+                   'Stddev dominance fails': 'Stddev dominance fails',
+                   'Mean weights difference': 'Mean weights difference',
+                   'Stddev weights difference': 'Stddev weights difference',
+                   'f-subs prediction score': 'f-subs prediction score',
+                   'f-subs prediction cause score': 'f-subs prediction score (c)',
+                   'f-subs prediction effect score': 'f-subs prediction score (e)',
+                   'Mean data health': 'Average data health',
+                   'Stddev data health': 'Stddev data health',
+                   'Mean model health': 'Average model health',
+                   'Stddev model health': 'Stddev model health'};
+    for size in range(20):
+        score_types['Size %d' % size] = 'Score by prediction size = %d:' % size;
+    for trueSize in range(20):
+        for nrCorrect in range(20):
+            score_types['T %d C %d' % (trueSize, nrCorrect)] = 'Prediction size %d nr correct %d' % (trueSize, nrCorrect);
+    trackerreporter.init('http://rjbruin.nl/experimenttracker/api/',api_key);
     
-    # Specific settings - default name is time of experiment
-    name = parameters['output_name'] + time.strftime("_%d-%m-%Y_%H-%M-%S");
-    saveModels = True;
-    
-    # Warn for unusual parameters
-    if (parameters['max_training_size'] is not False):
-        print("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!");
-    if (not using_gpu()):
-        print("WARNING! RUNNING WITHOUT GPU USAGE!");
-    
-    # Check for valid subbatch size
-    if (parameters['minibatch_size'] % parameters['subbatch_size'] != 0):
-        raise ValueError("Subbatch size is not compatible with minibatch size: m.size = %d, s.size = %d" % 
-                            (parameters['minibatch_size'], parameters['subbatch_size']));
-    
-    # Check for valid intervention ranges
-    if (parameters['intervention_base_offset'] <= 0):
-        raise ValueError("Invalid intervention base offset: is %d, must be at least 1." % parameters['intervention_base_offset']);
-    
-    # Set simple loading processor
-    processor = None;
-    if (parameters['dataset_type'] == 3):
-        processor = processSampleDiscreteProcess;
-    
-    
-    # Construct models
-    dataset, model = constructModels(parameters, 0, {});
-    
-    # Load pretrained only_cause_expression = 1 model
-    if (parameters['load_cause_expression_1'] is not False):
-        loadedVars, _ = load_from_pickle_with_filename("./saved_models/" + parameters['load_cause_expression_1']);
-        if (model.loadPartialDataDimVars(dict(loadedVars), 0, model.data_dim)):
-            print("Loaded pretrained model (expression 1) successfully!");
-        else:
-            raise ValueError("Loading pretrained model failed: wrong variables supplied!");
-    
-    # Load pretrained only_cause_expression = 2 model
-    if (parameters['load_cause_expression_2'] is not False):
-        loadedVars, _ = load_from_pickle_with_filename("./saved_models/" + parameters['load_cause_expression_2']);
-        if (model.loadPartialDataDimVars(dict(loadedVars), model.data_dim, model.data_dim)):
-            print("Loaded pretrained model (expression 2) successfully!");
-        else:
-            raise ValueError("Loading pretrained model failed: wrong variables supplied!");
-    
-    # Train on all datasets in succession
-    # Print settings headers to raw results file
-    print("# " + str(parameters));
-    
-    # Compute batching variables
-    repetition_size = dataset.lengths[dataset.TRAIN];
-    if (parameters['max_training_size'] is not False):
-        repetition_size = min(parameters['max_training_size'],repetition_size);
-    next_testing_threshold = parameters['test_interval'] * repetition_size;
-    
-    dataset_data = None;
-    label_index = None;
-    if (parameters['simple_data_loading']):
-        dataset_data, label_index = load_data(parameters, processor, dataset);
-            
-    if (not os.path.exists(os.path.join('.','figures'))):
-        os.makedirs(os.path.join('.','figures'));
-    model.plotWeights("%s_0" % (name));
-    
-    intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
-    test_error_stack = deque();
-    last_test_error_avg = 0.0;
-    for r in range(parameters['repetitions']):
-        stats = set_up_statistics(dataset.output_dim, model.n_max_digits);
-        total_error = 0.0;
-        # Print repetition progress and save to raw results file
-        print("Batch %d (repetition %d of %d, dataset 1 of 1) (samples processed after batch: %d)" % \
-                (r+1,r+1,parameters['repetitions'],(r+1)*repetition_size));
+    cmdargs = sys.argv[1:];
+    # Check for experiment settings file argument and obtain new arguments
+    allparameters = processCommandLineArguments(cmdargs);
+    newparameters = [];
+    for i in range(len(allparameters)):
+        iterative = False;
+        # Ask for experiment base name
+        basename = raw_input("Experiment %d name (%s): " % (i+1,allparameters[i]['name']));
+        if (' ' in basename):
+            raise ValueError("Experiment name cannot contain whitespace! Offending name: \"%s\"" % basename);
+        allparameters[i]['basename'] = allparameters[i]['name'];
+        if (basename != ''):
+            allparameters[i]['basename'] = basename;
+        allparameters[i]['name'] = allparameters[i]['basename'] + time.strftime("_%d-%m-%Y_%H-%M-%S");
         
-        # Train model per minibatch
-        k = 0;
-        printedProgress = -1;
-        data_healths = [];
-        model_healths = [];
-        while k < repetition_size:
-            profiler.start('train batch');
-            profiler.start('get train batch');
-            data, target, _, target_expressions, interventionLocations, topcause, nrSamples, health = \
-                get_batch(True, dataset, model, 
-                          parameters['intervention_range'], model.n_max_digits, 
-                          parameters, dataset_data, label_index,
-                          debug=parameters['debug'],
-                          base_offset=parameters['intervention_base_offset'],
-                          seq2ndmarkov=parameters['dataset_type'] == 1,
-                          bothcause=parameters['bothcause'],
-                          homogeneous=parameters['homogeneous'],
-                          answering=parameters['answering']);
-            data_healths.append(health);
-            model_healths.append(model.modelHealth());
-            profiler.stop('get train batch');
-            
-            # Make intervention locations into matrix
-            interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
-            
-            # Run training
-            profiler.start('train sgd');
-            outputs = model.sgd(dataset, data, target, parameters['learning_rate'],
-                                  nrSamples=model.minibatch_size, expressions=target_expressions,
-                                  interventionLocations=interventionLocations,
-                                  topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
-            total_error += outputs[0];
-            profiler.stop('train sgd');
-            
-            # Print batch progress
-            if ((k+model.minibatch_size) % (model.minibatch_size*4) < model.minibatch_size and \
-                (k+model.minibatch_size) / (model.minibatch_size*4) > printedProgress):
-                printedProgress = (k+model.minibatch_size) / (model.minibatch_size*4);
-                print("# %d / %d (error = %.2f)" % (k+model.minibatch_size, repetition_size, total_error));
-            
-            profiler.stop('train batch');
-            
-            k += nrSamples;
+        # Ask for iterative parameter
+        iterativeArgs = raw_input("(optional) Add one iterative parameter where values are separated by commas (e.g. '--key value1,value2,value3'): ");
+        if (iterativeArgs != ""):
+            iterativeArgs = iterativeArgs.split(" ");
+            extraArgs = [];
+            key = iterativeArgs[0][2:];
+            suffices = [];
+            for k, val in enumerate(iterativeArgs[1].split(",")):
+                suffix = raw_input("Provide the suffix to the name for iteration %d: " % k);
+                newparams = copy.deepcopy(allparameters[i]);
+                newparams[key] = processKeyValue(key,val);
+                newparams['name'] += suffix;
+                newparameters.append(newparams);
+        else:
+            newparameters.append(allparameters[i]);
+    
+    allparameters = newparameters;
+    for i in range(len(allparameters)):            
+        # Construct output paths
+        allparameters[i]['output_path'] = './raw_results/%s.txt' % (allparameters[i]['name']);
+        while (os.path.exists(allparameters[i]['output_path'])):
+            allparameters[i]['name'] += '-';
+            allparameters[i]['output_path'] = './raw_results/%s.txt' % (allparameters[i]['name']);
+    
+    for parameters in allparameters:
+        # Initiate experiment at tracker and obtain experiment ID
+        if (parameters['report_to_tracker']):
+            if ('multipart_dataset' in parameters):
+                datasets = parameters['multipart_dataset'];
+            else:
+                datasets = 1;
+            experimentId = trackerreporter.initExperiment(parameters['basename'], totalProgress=parameters['repetitions'], 
+                                                totalDatasets=datasets, scoreTypes=score_types.keys(), 
+                                                scoreIdentifiers=score_types);
+            if (experimentId is False):
+                print("WARNING! Experiment could not be posted to tracker!");
+                experimentId = 0;
+        else:
+            experimentId = 0;
+        currentIteration = 1;
+        currentDataset = 1;        
         
-        # Report on error
-        print("Total error: %.2f" % total_error);
+        # Construct outputPath and new printing target
+        name = parameters['name'];
+        outputPath = parameters['output_path'];
+        saveModels = True;
+        printf = open(outputPath, 'w');
+        def printF(s, experimentId, currentIt):
+            print(s);
+            if (s == "" and s[0] != "#"):
+                printf.write(s + "\n");
+            if (parameters['report_to_tracker']):
+                trackerreporter.fromExperimentOutput(experimentId, s, atProgress=currentIt, atDataset=1);
+        
+        # Warn for unusual parameters
+        if (parameters['max_training_size'] is not False):
+            printF("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!", experimentId, currentIteration);
+        if (not using_gpu()):
+            printF("WARNING! RUNNING WITHOUT GPU USAGE!", experimentId, currentIteration);
+        
+        # Check for valid subbatch size
+        if (parameters['minibatch_size'] % parameters['subbatch_size'] != 0):
+            raise ValueError("Subbatch size is not compatible with minibatch size: m.size = %d, s.size = %d" % 
+                                (parameters['minibatch_size'], parameters['subbatch_size']));
+        
+        # Check for valid intervention ranges
+        if (parameters['intervention_base_offset'] <= 0):
+            raise ValueError("Invalid intervention base offset: is %d, must be at least 1." % parameters['intervention_base_offset']);
+        
+        # Set simple loading processor
+        processor = None;
+        if (parameters['dataset_type'] == 3):
+            processor = processSampleDiscreteProcess;
+        
+        
+        # Construct models
+        dataset, model = constructModels(parameters, 0, {});
+        
+        # Load pretrained only_cause_expression = 1 model
+        if (parameters['load_cause_expression_1'] is not False):
+            loadedVars, _ = load_from_pickle_with_filename("./saved_models/" + parameters['load_cause_expression_1']);
+            if (model.loadPartialDataDimVars(dict(loadedVars), 0, model.data_dim)):
+                printF("Loaded pretrained model (expression 1) successfully!", experimentId, currentIteration);
+            else:
+                raise ValueError("Loading pretrained model failed: wrong variables supplied!");
+        
+        # Load pretrained only_cause_expression = 2 model
+        if (parameters['load_cause_expression_2'] is not False):
+            loadedVars, _ = load_from_pickle_with_filename("./saved_models/" + parameters['load_cause_expression_2']);
+            if (model.loadPartialDataDimVars(dict(loadedVars), model.data_dim, model.data_dim)):
+                printF("Loaded pretrained model (expression 2) successfully!", experimentId, currentIteration);
+            else:
+                raise ValueError("Loading pretrained model failed: wrong variables supplied!");
+        
+        # Train on all datasets in succession
+        # Print settings headers to raw results file
+        printF("# " + str(parameters), experimentId, currentIteration);
+        
+        # Compute batching variables
+        repetition_size = dataset.lengths[dataset.TRAIN];
+        if (parameters['max_training_size'] is not False):
+            repetition_size = min(parameters['max_training_size'],repetition_size);
+        next_testing_threshold = parameters['test_interval'] * repetition_size;
+        
+        dataset_data = None;
+        label_index = None;
         if (parameters['simple_data_loading']):
-            print("Average data health: %.2f" % np.mean(data_healths));
-            print("Stddev data health: %.2f" % np.std(data_healths));
-            print("Average model health: %.2f" % np.mean(model_healths));
-            print("Stddev model health: %.2f" % np.std(model_healths));
+            dataset_data, label_index = load_data(parameters, processor, dataset);
+                
+        if (not os.path.exists(os.path.join('.','figures'))):
+            os.makedirs(os.path.join('.','figures'));
+        model.plotWeights("%s_0" % (name));
         
-        # Intermediate testing if this was not the last iteration of training
-        # and we have passed the testing threshold
-        sampleSize = parameters['sample_testing_size'];
-        if (r == parameters['repetitions'] - 1):
-            sampleSize = False;
-        _, testError = test(model, dataset, dataset_data, label_index, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
-                            sample_size=sampleSize, homogeneous=parameters['homogeneous']);
+        intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
+        test_error_stack = deque();
+        last_test_error_avg = 0.0;
+        for r in range(parameters['repetitions']):
+            stats = set_up_statistics(dataset.output_dim, model.n_max_digits);
+            total_error = 0.0;
+            # Print repetition progress and save to raw results file
+            printF("Batch %d (repetition %d of %d, dataset 1 of 1) (samples processed after batch: %d)" % \
+                    (r+1,r+1,parameters['repetitions'],(r+1)*repetition_size), experimentId, currentIteration);
+            currentIteration = r+1;
+            currentDataset = 1;
+            
+            # Train model per minibatch
+            k = 0;
+            printedProgress = -1;
+            data_healths = [];
+            model_healths = [];
+            while k < repetition_size:
+                profiler.start('train batch');
+                profiler.start('get train batch');
+                data, target, _, target_expressions, interventionLocations, topcause, nrSamples, health = \
+                    get_batch(True, dataset, model, 
+                              parameters['intervention_range'], model.n_max_digits, 
+                              parameters, dataset_data, label_index,
+                              debug=parameters['debug'],
+                              base_offset=parameters['intervention_base_offset'],
+                              seq2ndmarkov=parameters['dataset_type'] == 1,
+                              bothcause=parameters['bothcause'],
+                              homogeneous=parameters['homogeneous'],
+                              answering=parameters['answering']);
+                data_healths.append(health);
+                model_healths.append(model.modelHealth());
+                profiler.stop('get train batch');
+                
+                # Make intervention locations into matrix
+                interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
+                
+                # Run training
+                profiler.start('train sgd');
+                outputs = model.sgd(dataset, data, target, parameters['learning_rate'],
+                                      nrSamples=model.minibatch_size, expressions=target_expressions,
+                                      interventionLocations=interventionLocations,
+                                      topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
+                total_error += outputs[0];
+                profiler.stop('train sgd');
+                
+                # Print batch progress
+                if ((k+model.minibatch_size) % (model.minibatch_size*4) < model.minibatch_size and \
+                    (k+model.minibatch_size) / (model.minibatch_size*4) > printedProgress):
+                    printedProgress = (k+model.minibatch_size) / (model.minibatch_size*4);
+                    printF("# %d / %d (error = %.2f)" % (k+model.minibatch_size, repetition_size, total_error), experimentId, currentIteration);
+                
+                profiler.stop('train batch');
+                
+                k += nrSamples;
+            
+            # Report on error
+            printF("Total error: %.2f" % total_error, experimentId, currentIteration);
+            if (parameters['simple_data_loading']):
+                printF("Average data health: %.2f" % np.mean(data_healths), experimentId, currentIteration);
+                printF("Stddev data health: %.2f" % np.std(data_healths), experimentId, currentIteration);
+                printF("Average model health: %.2f" % np.mean(model_healths), experimentId, currentIteration);
+                printF("Stddev model health: %.2f" % np.std(model_healths), experimentId, currentIteration);
+            
+            # Intermediate testing if this was not the last iteration of training
+            # and we have passed the testing threshold
+            sampleSize = parameters['sample_testing_size'];
+            if (r == parameters['repetitions'] - 1):
+                sampleSize = False;
+            _, testError = test(model, dataset, dataset_data, label_index, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
+                                sample_size=sampleSize, homogeneous=parameters['homogeneous']);
+            
+            # Save weights to pickles
+            save_modulo = 50;
+            if (saveModels and (r+1) % save_modulo == 0):
+                saveVars = model.getVars();
+                save_to_pickle('saved_models/%s_%d.model' % (name, r), saveVars, settings=parameters);
+            
+            model.plotWeights("%s_%d" % (name, r+1));
+            
+            # Check for early stopping
+            if (parameters['early_stopping']):
+                testErrorMovingAverageN = parameters['early_stopping_errors'];
+                testErrorEpsilon = parameters['early_stopping_epsilon'];
+                test_error_stack.append(testError);
+                if (len(test_error_stack) >= testErrorMovingAverageN):
+                    if (len(test_error_stack) > testErrorMovingAverageN):
+                        test_error_stack.popleft();
+                    # Only check for early stopping after queue is large enough
+                    avg_error = np.mean(test_error_stack);
+                    error_diff = np.abs(avg_error - last_test_error_avg);
+                    if (error_diff < testErrorEpsilon):
+                        printF("STOPPING EARLY at iteration %d with average error %.2f and difference %.2f!" % (r+1, avg_error, error_diff), experimentId, currentIteration);
+                        break;
+                    last_test_error_avg = avg_error;
         
-        # Save weights to pickles
-        save_modulo = 50;
-        if (saveModels and (r+1) % save_modulo == 0):
-            saveVars = model.getVars();
-            save_to_pickle('saved_models/%s_%d.model' % (name, r), saveVars, settings=parameters);
-        
-        model.plotWeights("%s_%d" % (name, r+1));
-        
-        # Check for early stopping
-        if (parameters['early_stopping']):
-            testErrorMovingAverageN = parameters['early_stopping_errors'];
-            testErrorEpsilon = parameters['early_stopping_epsilon'];
-            test_error_stack.append(testError);
-            if (len(test_error_stack) >= testErrorMovingAverageN):
-                if (len(test_error_stack) > testErrorMovingAverageN):
-                    test_error_stack.popleft();
-                # Only check for early stopping after queue is large enough
-                avg_error = np.mean(test_error_stack);
-                error_diff = np.abs(avg_error - last_test_error_avg);
-                if (error_diff < testErrorEpsilon):
-                    print("STOPPING EARLY at iteration %d with average error %.2f and difference %.2f!" % (r+1, avg_error, error_diff));
-                    break;
-                last_test_error_avg = avg_error;
-    
-    print("Training finished!");
+        printF("Training finished!", experimentId, currentIteration);
     
     
