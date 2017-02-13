@@ -281,6 +281,8 @@ if __name__ == '__main__':
             # Print repetition progress and save to raw results file
             printF("Batch %d (repetition %d of %d, dataset 1 of 1) (samples processed after batch: %d)" % \
                     (r+1,r+1,parameters['repetitions'],(r+1)*repetition_size), experimentId, currentIteration);
+            currentIteration = r+1;
+            currentDataset = 1;
             
             # Train model per minibatch
             k = 0;
