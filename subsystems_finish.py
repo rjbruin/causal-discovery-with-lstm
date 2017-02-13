@@ -471,16 +471,6 @@ if __name__ == '__main__':
                    'In dataset': 'In dataset',
                    'Skipped': 'Skipped because of zero prediction length',
                    'Unique predictions': 'Unique labels predicted',
-                   'Mean success rate': 'Mean success rate',
-                   'Stddev success rate': 'Stddev success rate',
-                   'Mean convergence iteration': 'Mean convergence iteration',
-                   'Stddev convergence iteration': 'Stddev convergence iteration',
-                   'Mean non-convergence precision': 'Mean non-convergence precision',
-                   'Stddev non-convergence precision': 'Stddev non-convergence precision',
-                   'Mean dominance fails': 'Mean dominance fails',
-                   'Stddev dominance fails': 'Stddev dominance fails',
-                   'Mean weights difference': 'Mean weights difference',
-                   'Stddev weights difference': 'Stddev weights difference',
                    'f-subs prediction score': 'f-subs prediction score',
                    'f-subs prediction cause score': 'f-subs prediction score (c)',
                    'f-subs prediction effect score': 'f-subs prediction score (e)',
@@ -499,33 +489,36 @@ if __name__ == '__main__':
     # Check for experiment settings file argument and obtain new arguments
     allparameters = processCommandLineArguments(cmdargs);
     newparameters = [];
-    for i in range(len(allparameters)):
-        iterative = False;
-        # Ask for experiment base name
-        basename = raw_input("Experiment %d name (%s): " % (i+1,allparameters[i]['name']));
-        if (' ' in basename):
-            raise ValueError("Experiment name cannot contain whitespace! Offending name: \"%s\"" % basename);
-        allparameters[i]['basename'] = allparameters[i]['name'];
-        if (basename != ''):
-            allparameters[i]['basename'] = basename;
-        allparameters[i]['name'] = allparameters[i]['basename'] + time.strftime("_%d-%m-%Y_%H-%M-%S");
-        
-        # Ask for iterative parameter
-        iterativeArgs = raw_input("(optional) Add one iterative parameter where values are separated by commas (e.g. '--key value1,value2,value3'): ");
-        if (iterativeArgs != ""):
-            iterativeArgs = iterativeArgs.split(" ");
-            extraArgs = [];
-            key = iterativeArgs[0][2:];
-            suffices = [];
-            for k, val in enumerate(iterativeArgs[1].split(",")):
-                suffix = raw_input("Provide the suffix to the name for iteration %d: " % k);
-                newparams = copy.deepcopy(allparameters[i]);
-                newparams[key] = processKeyValue(key,val);
-                newparams['basename'] += suffix;
-                newparams['name'] += suffix;
-                newparameters.append(newparams);
-        else:
-            newparameters.append(allparameters[i]);
+    if (allparameters[0]['debug']):
+        newparameters = allparameters;
+    else:
+        for i in range(len(allparameters)):
+            iterative = False;
+            # Ask for experiment base name
+            basename = raw_input("Experiment %d name (%s): " % (i+1,allparameters[i]['name']));
+            if (' ' in basename):
+                raise ValueError("Experiment name cannot contain whitespace! Offending name: \"%s\"" % basename);
+            allparameters[i]['basename'] = allparameters[i]['name'];
+            if (basename != ''):
+                allparameters[i]['basename'] = basename;
+            allparameters[i]['name'] = allparameters[i]['basename'] + time.strftime("_%d-%m-%Y_%H-%M-%S");
+            
+            # Ask for iterative parameter
+            iterativeArgs = raw_input("(optional) Add one iterative parameter where values are separated by commas (e.g. '--key value1,value2,value3'): ");
+            if (iterativeArgs != ""):
+                iterativeArgs = iterativeArgs.split(" ");
+                extraArgs = [];
+                key = iterativeArgs[0][2:];
+                suffices = [];
+                for k, val in enumerate(iterativeArgs[1].split(",")):
+                    suffix = raw_input("Provide the suffix to the name for iteration %d: " % k);
+                    newparams = copy.deepcopy(allparameters[i]);
+                    newparams[key] = processKeyValue(key,val);
+                    newparams['basename'] += suffix;
+                    newparams['name'] += suffix;
+                    newparameters.append(newparams);
+            else:
+                newparameters.append(allparameters[i]);
     
     allparameters = newparameters;
     for i in range(len(allparameters)):            

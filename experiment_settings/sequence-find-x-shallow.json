@@ -1,7 +1,6 @@
 [
     {
         "name": "f-fndx-s",
-        "script": "sequence_find_x.py",
         "dataset": "./data/subsystems_shallow",
         "repetitions": "150",
         "sample_testing_size": "10000",
