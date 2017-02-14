@@ -43,7 +43,7 @@ class RecurrentModel(object):
     def getVars(self):
         pass
         
-    def total_statistics(self, stats, total_labels_used={}, digits=True):
+    def total_statistics(self, stats, dataset, total_labels_used={}, digits=True):
         """
         Adds general statistics to the statistics generated per batch.
         """
@@ -97,6 +97,65 @@ class RecurrentModel(object):
                     stats['prediction_size_score'][size] = val / float(stats['prediction_sizes'][size]);
                 else:
                     stats['prediction_size_score'][size] = 0.
+            stats['label_size_score'] = {};
+            for size, val in stats['label_size_correct'].items():
+                if (stats['label_sizes'][size] > 0):
+                    stats['label_size_score'][size] = val / float(stats['label_sizes'][size]);
+                else:
+                    stats['label_size_score'][size] = 0.
+            stats['input_size_score'] = {};
+            for size, val in stats['input_size_correct'].items():
+                if (stats['input_sizes'][size] > 0):
+                    stats['input_size_score'][size] = val / float(stats['input_sizes'][size]);
+                else:
+                    stats['input_size_score'][size] = 0.
+            stats['label_size_input_size_confusion_score'] = np.zeros((20,20), dtype='int8');
+            for l in range(20):
+                for i in range(20):
+                    if (stats['label_size_input_size_confusion_size'][l,i] > 0):
+                        stats['label_size_input_size_confusion_score'][l,i] = stats['label_size_input_size_confusion_correct'][l,i] / float(stats['label_size_input_size_confusion_size'][l,i]);
+                    else:
+                        stats['label_size_input_size_confusion_score'][l,i] = 0.;
+            
+            stats['x_hand_side_score'] = {};
+            if (stats['x_hand_side_size']['left'] > 0):
+                stats['x_hand_side_score']['left'] = stats['x_hand_side_correct']['left'] / float(stats['x_hand_side_size']['left']);
+            else:
+                stats['x_hand_side_score']['left'] = 0.;
+            if (stats['x_hand_side_size']['right'] > 0):
+                stats['x_hand_side_score']['right'] = stats['x_hand_side_correct']['right'] / float(stats['x_hand_side_size']['right']);
+            else:
+                stats['x_hand_side_score']['right'] = 0.;
+            if (stats['x_hand_side_size']['equals'] > 0):
+                stats['x_hand_side_score']['equals'] = stats['x_hand_side_correct']['equals'] / float(stats['x_hand_side_size']['equals']);
+            else:
+                stats['x_hand_side_score']['equals'] = 0.;
+            
+            stats['x_offset_score'] = {};
+            for size, val in stats['x_offset_correct'].items():
+                if (stats['x_offset_size'][size] > 0):
+                    stats['x_offset_score'][size] = val / float(stats['x_offset_size'][size]);
+                else:
+                    stats['x_offset_score'][size] = 0.
+            
+            stats['syntactically_valid_score'] = stats['syntactically_valid'] / float(stats['prediction_size']);
+            stats['semantically_valid_score'] = stats['semantically_valid'] / float(stats['prediction_size']);
+            stats['left_hand_valid_score'] = stats['left_hand_valid'] / float(stats['prediction_size']);
+            stats['left_hand_valid_correct_score'] = stats['left_hand_valid_correct'] / float(stats['prediction_size']);
+            stats['right_hand_valid_score'] = stats['right_hand_valid'] / float(stats['prediction_size']);
+            
+            if (stats['left_hand_valid_with_prediction_size'] > 0):
+                stats['left_hand_valid_with_prediction_score'] = stats['left_hand_valid_with_prediction_correct'] / float(stats['left_hand_valid_with_prediction_size']);
+            else:
+                stats['left_hand_valid_with_prediction_score'] = 0.;
+            
+            
+            stats['symbol_score'] = {};
+            for symbol in dataset.oneHot.keys():
+                if (stats['symbol_size'][symbol] > 0):
+                    stats['symbol_score'][symbol] = stats['symbol_correct'][symbol] / float(stats['symbol_size'][symbol]);
+                else:
+                    stats['symbol_score'][symbol] = 0.;
         else:
             stats['score'] = 0.0;
             stats['structureScoreCause'] = 0.0;
@@ -112,6 +171,11 @@ class RecurrentModel(object):
             stats['structureValidScoreTop'] = 0.0;
             stats['structureValidScoreBot'] = 0.0;
             stats['inDatasetScore'] = 0.0;
+            stats['syntactically_valid_score'] = 0.0;
+            stats['semantically_valid_score'] = 0.0;
+            stats['left_hand_valid_score'] = 0.0;
+            stats['left_hand_valid_correct_score'] = 0.0;
+            stats['right_hand_valid_score'] = 0.0;
         
         if (stats['localSize'] > 0):
             stats['localValidScore'] = stats['localValid'] / float(stats['localSize']);

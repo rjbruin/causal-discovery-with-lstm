@@ -28,12 +28,31 @@ def print_stats(stats, parameters, prefix=''):
     printF(prefix + "Score: %.2f percent" % (stats['score']*100), experimentId, currentIteration);
     printF(prefix + "Digit histogram:   %s" % (str(stats['prediction_histogram'])), experimentId, currentIteration);
     
+    printF(prefix + "X side sizes: %s" % str(stats['x_hand_side_size']), experimentId, currentIteration);
+    printF(prefix + "X on left hand side score: %.2f percent" % (stats['x_hand_side_score']['left']*100), experimentId, currentIteration);
+    printF(prefix + "X on right hand side score: %.2f percent" % (stats['x_hand_side_score']['right']*100), experimentId, currentIteration);
+    printF(prefix + "X on equals sign score: %.2f percent" % (stats['x_hand_side_score']['equals']*100), experimentId, currentIteration);
+    
     printF(prefix + "Unique labels predicted: %d" % stats['unique_labels_predicted'], experimentId, currentIteration);
     
-    if ('prediction_size_score' in stats):
-        printF(prefix + "Prediction sizes: %s" % (str(stats['prediction_sizes'])), experimentId, currentIteration);
-        for size in stats['prediction_size_score'].keys():
-            printF(prefix + "Score by prediction size = %d: %.2f percent" % (size, stats['prediction_size_score'][size]*100.), experimentId, currentIteration);
+    if ('input_size_score' in stats):
+        printF(prefix + "Input sizes: %s" % (str(stats['input_sizes'])), experimentId, currentIteration);
+        for size in stats['input_size_score'].keys():
+            printF(prefix + "Score by input size = %d: %.2f percent" % (size, stats['input_size_score'][size]*100.), experimentId, currentIteration);
+    
+    if ('x_offset_score' in stats):
+        printF(prefix + "X offset sizes: %s" % (str(stats['x_offset_size'])), experimentId, currentIteration);
+        for size in stats['x_offset_score'].keys():
+            printF(prefix + "X offset = %d: %.2f percent" % (size, stats['x_offset_score'][size]*100.), experimentId, currentIteration);
+    
+    if ('symbol_score' in stats):
+        printF(prefix + "Symbol sizes: %s" % (", ".join(["%s: %s" % (dataset.findSymbol[s], stats['symbol_size'][dataset.findSymbol[s]]) for s in sorted(dataset.findSymbol.keys())])), experimentId, currentIteration);
+        for i in sorted(dataset.findSymbol.keys()):
+            symbol = dataset.findSymbol[i];
+            printF(prefix + "Symbol %d: %.2f percent" % (i, stats['symbol_score'][symbol]*100.), experimentId, currentIteration);
+    
+    for i in sorted(dataset.findSymbol.keys()):
+        printF(prefix + "Symbol confusion row %d: %s" % (i, str(stats['symbol_confusion'][i,:])), experimentId, currentIteration);
     
 #     printF(prefix + "! Samples correct: %s" % str(map(lambda (x,y): "%d,%d" % (int(x), int(y)),stats['samplesCorrect'])), experimentId, currentIteration);
     
@@ -82,7 +101,7 @@ def test(model, dataset, parameters, max_length, print_samples=False,
         total = sample_size;
     
     # Set up statistics
-    stats = set_up_statistics(dataset.output_dim, model.n_max_digits);
+    stats = set_up_statistics(dataset.output_dim, model.n_max_digits, dataset.oneHot.keys());
     total_labels_used = {k: 0 for k in range(30)};
     
     # Predict
@@ -135,7 +154,7 @@ def test(model, dataset, parameters, max_length, print_samples=False,
     
     printF("Total testing error: %.2f" % totalError, experimentId, currentIteration);
     
-    stats = model.total_statistics(stats, total_labels_used=total_labels_used, digits=False);
+    stats = model.total_statistics(stats, dataset, total_labels_used=total_labels_used, digits=False);
     print_stats(stats, parameters);
     
     if (returnTestSamples):
@@ -162,9 +181,14 @@ if __name__ == '__main__':
                    'Mean data health': 'Average data health',
                    'Stddev data health': 'Stddev data health',
                    'Mean model health': 'Average model health',
-                   'Stddev model health': 'Stddev model health'};
+                   'Stddev model health': 'Stddev model health',
+                   'X left': 'X on left hand side score',
+                   'X right': 'X on right hand side score',
+                   'X equals': 'X on equals sign score'};
     for size in range(20):
-        score_types['Size %d' % size] = 'Score by prediction size = %d:' % size;
+        score_types['Size %d' % size] = 'Score by input size = %d:' % size;
+    for symbolId in range(20):
+        score_types['Symbol %d' % symbolId] = 'Symbol %d:' % symbolId;
     for trueSize in range(20):
         for nrCorrect in range(20):
             score_types['T %d C %d' % (trueSize, nrCorrect)] = 'Prediction size %d nr correct %d' % (trueSize, nrCorrect);
@@ -276,7 +300,7 @@ if __name__ == '__main__':
         
         
         for r in range(parameters['repetitions']):
-            stats = set_up_statistics(dataset.output_dim, model.n_max_digits);
+            stats = set_up_statistics(dataset.output_dim, model.n_max_digits, dataset.oneHot.keys());
             total_error = 0.0;
             # Print repetition progress and save to raw results file
             printF("Batch %d (repetition %d of %d, dataset 1 of 1) (samples processed after batch: %d)" % \

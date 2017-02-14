@@ -1191,16 +1191,34 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if (data is not None):
                     expression = dataset.indicesToStr(np.argmax(data[j], axis=1));
                 
+                x_location = expression.index("x");
+                if ('=' in expression):
+                    equals_location = expression.index("=");
+                    if (x_location < equals_location):
+                        equals_location = 'left';
+                    else:
+                        equals_location = 'right';
+                else:
+                    equals_location = 'equals';
+                stats['x_hand_side_size'][equals_location] += 1;
+                stats['x_offset_size'][len(expression)-x_location] += 1;
+                
+                stats['symbol_confusion'][target_expressions[j],prediction[j]] += 1;
+                
                 # Check if cause sequence prediction is in dataset
                 if (prediction[j] == target_expressions[j]):
                     stats['correct'] += 1.0;
+                    stats['symbol_correct'][dataset.findSymbol[target_expressions[j]]] += 1;
+                    stats['x_hand_side_correct'][equals_location] += 1;
+                    stats['x_offset_correct'][len(expression)-x_location] += 1;
                     if (expression is not None):
-                        stats['prediction_size_correct'][len(expression)] += 1;
+                        stats['input_size_correct'][len(expression)] += 1;
            
                 stats['prediction_1_histogram'][int(prediction[j])] += 1;
                 stats['prediction_size'] += 1;
                 if (expression is not None):
-                    stats['prediction_sizes'][len(expression)] += 1;
+                    stats['input_sizes'][len(expression)] += 1;
+                stats['symbol_size'][dataset.findSymbol[target_expressions[j]]] += 1;
         else:
             dont_switch = False;
             if (len(prediction) <= 1):
@@ -1221,7 +1239,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             for j in range(0,test_n):
                 if (emptySamples is not None and j in emptySamples):
                     continue;
-    
+                
                 if (intervention_locations[0,j] >= len(labels_to_use[j][causeIndex]) - 1):
                     stats['skipped_because_intervention_location'] += 1;
                     continue;
@@ -1240,7 +1258,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if (not self.only_cause_expression):
                     effectExpressionPrediction = dataset.indicesToStr(prediction[effectIndex][j], ignoreEOS=parameters['dataset_type'] == 3);
 
-                stats['prediction_sizes'][len(causeExpressionPrediction)] += 1;
+                stats['prediction_sizes'][len(causeExpressionPrediction)-(intervention_locations[0,j]+1)] += 1;
+                stats['label_sizes'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1)] += 1;
+                stats['input_sizes'][intervention_locations[0,j]+1] += 1;
+                stats['label_size_input_size_confusion_size'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1),intervention_locations[0,j]+1] += 1;
     
                 # Prepare vars to save correct samples
                 topCorrect = False;
@@ -1252,6 +1273,32 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if (parameters['dataset_type'] == 3):
                     label_cause = label_cause[parameters['lag']:];
                     label_effect = label_effect[parameters['lag']:];
+                
+                scoredCorrectAlready = False;
+                if (self.only_cause_expression is not False):
+                    # Only for f-answ and f-seqs
+                    # Check for correct / semantically valid
+                    valid, correct, left_hand_valid, right_hand_valid = dataset.valid_correct_expression(prediction[causeIndex][j], dataset.digits,dataset.operators);
+                    if (valid):
+                        stats['syntactically_valid'] += 1;
+                    if (correct):
+                        stats['semantically_valid'] += 1;
+                        # Also score 
+                        stats['prediction_size_correct'][len(causeExpressionPrediction)-(intervention_locations[0,j]+1)] += 1.;
+                        stats['label_size_correct'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1)] += 1;
+                        stats['input_size_correct'][intervention_locations[0,j]+1] += 1.;
+                        stats['label_size_input_size_confusion_correct'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1),intervention_locations[0,j]+1] += 1;
+                        scoredCorrectAlready = True;
+                    if (intervention_locations[0,j] < labels_to_use[j][causeIndex].index('=')):
+                        stats['left_hand_valid_with_prediction_size'] += 1;
+                    if (left_hand_valid):
+                        stats['left_hand_valid'] += 1;
+                        if (intervention_locations[0,j] < labels_to_use[j][causeIndex].index('=')):
+                            stats['left_hand_valid_with_prediction_correct'] += 1;
+                        if (correct):
+                            stats['left_hand_valid_correct'] += 1;
+                    if (right_hand_valid):
+                        stats['right_hand_valid'] += 1;
     
                 # Check if cause sequence prediction is in dataset
                 causeMatchesLabel = False;
@@ -1323,7 +1370,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     stats['correct'] += 1.0;
                     stats['valid'] += 1.0;
                     stats['inDataset'] += 1.0;
-                    stats['prediction_size_correct'][len(causeExpressionPrediction)] += 1.;
+                    if (not scoredCorrectAlready):
+                        stats['prediction_size_correct'][len(causeExpressionPrediction)-(intervention_locations[0,j]+1)] += 1.;
+                        stats['label_size_correct'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1)] += 1;
+                        stats['input_size_correct'][intervention_locations[0,j]+1] += 1.;
     
                     # Do local scoring for seq2ndmarkov
                     if (self.seq2ndmarkov):
@@ -1370,8 +1420,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         else:
                             difference = 4; # Random digit outside of error margin computation range
                     stats['error_histogram'][difference] += 1;
-                    stats['correct_matrix_sizes'][len(label_cause)-intervention_locations[0,j]] += 1;
-                    stats['correct_matrix'][len(label_cause)-intervention_locations[0,j]][len(label_cause)-intervention_locations[0,j]-difference] += 1.;
+                    stats['correct_matrix_sizes'][len(label_cause)-(intervention_locations[0,j]+1)] += 1;
+                    stats['correct_matrix'][len(label_cause)-(intervention_locations[0,j]+1)][len(label_cause)-(intervention_locations[0,j]+1)-difference] += 1.;
     
                     # Do local scoring for seq2ndmarkov
                     if (self.seq2ndmarkov):

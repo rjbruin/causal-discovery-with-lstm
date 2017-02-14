@@ -57,15 +57,24 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
             printF(prefix + "Effect score including no effect: %.2f percent" % (stats['allEffectScore']*100), experimentId, currentIteration);
     
     if (parameters['dataset_type'] != 3):
-        printF(prefix + "Valid: %.2f percent" % (stats['validScore']*100), experimentId, currentIteration);
-        printF(prefix + "Local valid: %.2f percent" % (stats['localValidScore']*100), experimentId, currentIteration);
-        if (not parameters['only_cause_expression']):
-            printF(prefix + "Structure valid cause: %.2f percent" % (stats['structureValidScoreCause']*100), experimentId, currentIteration);
-            printF(prefix + "Structure valid effect: %.2f percent" % (stats['structureValidScoreEffect']*100), experimentId, currentIteration);
-            printF(prefix + "Structure valid top: %.2f percent" % (stats['structureValidScoreTop']*100), experimentId, currentIteration);
-            printF(prefix + "Structure valid bot: %.2f percent" % (stats['structureValidScoreBot']*100), experimentId, currentIteration);
-            printF(prefix + "Local valid cause: %.2f percent" % (stats['localValidScoreCause']*100), experimentId, currentIteration);
-            printF(prefix + "Local valid effect: %.2f percent" % (stats['localValidScoreEffect']*100), experimentId, currentIteration);
+        if (not parameters['answering']):
+            printF(prefix + "Valid: %.2f percent" % (stats['semantically_valid_score']*100), experimentId, currentIteration);
+        printF(prefix + "Syntactically valid: %.2f percent" % (stats['syntactically_valid_score']*100), experimentId, currentIteration);
+        if (not parameters['answering']):
+            printF(prefix + "Valid left hand side: %.2f percent" % (stats['left_hand_valid_score']*100), experimentId, currentIteration);
+            printF(prefix + "Valid right hand side: %.2f percent" % (stats['right_hand_valid_score']*100), experimentId, currentIteration);
+            printF(prefix + "Score with valid left hand side: %.2f percent" % (stats['left_hand_valid_correct_score']*100), experimentId, currentIteration);
+            printF(prefix + "Partially predicted left hand sides: %.2f percent" % ((stats['left_hand_valid_with_prediction_size']*100) / float(stats['prediction_size'])), experimentId, currentIteration);
+            printF(prefix + "Score with partially predicted left hand side: %.2f percent" % (stats['left_hand_valid_with_prediction_score']*100), experimentId, currentIteration);
+        
+#         printF(prefix + "Local valid: %.2f percent" % (stats['localValidScore']*100), experimentId, currentIteration);
+#         if (not parameters['only_cause_expression']):
+#             printF(prefix + "Structure valid cause: %.2f percent" % (stats['structureValidScoreCause']*100), experimentId, currentIteration);
+#             printF(prefix + "Structure valid effect: %.2f percent" % (stats['structureValidScoreEffect']*100), experimentId, currentIteration);
+#             printF(prefix + "Structure valid top: %.2f percent" % (stats['structureValidScoreTop']*100), experimentId, currentIteration);
+#             printF(prefix + "Structure valid bot: %.2f percent" % (stats['structureValidScoreBot']*100), experimentId, currentIteration);
+#             printF(prefix + "Local valid cause: %.2f percent" % (stats['localValidScoreCause']*100), experimentId, currentIteration);
+#             printF(prefix + "Local valid effect: %.2f percent" % (stats['localValidScoreEffect']*100), experimentId, currentIteration);
         printF(prefix + "Intervention locations:   %s" % (str(stats['intervention_locations'])), experimentId, currentIteration);
         if (parameters['test_in_dataset']):
             printF(prefix + "In dataset: %.2f percent" % (stats['inDatasetScore']*100), experimentId, currentIteration);
@@ -92,10 +101,14 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
 #     printF(prefix + "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
     printF(prefix + "Digit histogram:   %s" % (str(stats['prediction_histogram'])), experimentId, currentIteration);
     
-    if (parameters['dataset_type'] != 3 and 'prediction_size_score' in stats):
-        printF(prefix + "Prediction sizes: %s" % (str(stats['prediction_sizes'])), experimentId, currentIteration);
-        for size in stats['prediction_size_score'].keys():
-            printF(prefix + "Score by prediction size = %d: %.2f percent" % (size, stats['prediction_size_score'][size]*100.), experimentId, currentIteration);
+    if (parameters['dataset_type'] != 3 and 'label_size_score' in stats):
+        printF(prefix + "Label sizes: %s" % (str(stats['label_sizes'])), experimentId, currentIteration);
+        for size in stats['label_size_score'].keys():
+            printF(prefix + "Score by label size = %d: %.2f percent" % (size, stats['label_size_score'][size]*100.), experimentId, currentIteration);
+    if ('input_size_score' in stats):
+        printF(prefix + "Input sizes: %s" % (str(stats['input_sizes'])), experimentId, currentIteration);
+        for size in stats['input_size_score'].keys():
+            printF(prefix + "Score by input size = %d: %.2f percent" % (size, stats['input_size_score'][size]*100.), experimentId, currentIteration);
     
     printF(prefix + "Error margin 1 score: %.2f percent" % (stats['error_1_score']*100.), experimentId, currentIteration);
     printF(prefix + "Error margin 2 score: %.2f percent" % (stats['error_2_score']*100.), experimentId, currentIteration);
@@ -111,11 +124,15 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
     if (parameters['answering']):
         for trueSize in range(trueSizes+1):
             for nrCorrect in range(min(nrCorrects,trueSize)+1):
-                printF(prefix + "Prediction size %d nr correct %d: %.2f\n" % (trueSize, nrCorrect, stats['correct_matrix_scores'][trueSize][nrCorrect] * 100.), experimentId, currentIteration);
+                printF(prefix + "Label size %d nr correct %d: %.2f" % (trueSize, nrCorrect, stats['correct_matrix_scores'][trueSize][nrCorrect] * 100.), experimentId, currentIteration);
+    
+    if ('label_size_input_size_confusion_score' in stats):
+        for i in range(stats['label_size_input_size_confusion_score'].shape[0]):
+            printF(prefix + "Label / input size row %d: %s" % (i, str(stats['label_size_input_size_confusion_score'][i,:])), experimentId, currentIteration);
     
     if (parameters['dataset_type'] != 3):
-        printF(prefix + "Unique labels predicted: %d\n" % stats['unique_labels_predicted'], experimentId, currentIteration);
-        printF(prefix + "Skipped because of zero prediction length: %d\n" % stats['skipped_because_intervention_location'], experimentId, currentIteration);
+        printF(prefix + "Unique labels predicted: %d" % stats['unique_labels_predicted'], experimentId, currentIteration);
+        printF(prefix + "Skipped because of zero prediction length: %d" % stats['skipped_because_intervention_location'], experimentId, currentIteration);
     
 #     printF(prefix + "! Samples correct: %s" % str(map(lambda (x,y): "%d,%d" % (int(x), int(y)),stats['samplesCorrect']));
     
@@ -326,7 +343,7 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
         total = sample_size;
     
     # Set up statistics
-    stats = set_up_statistics(dataset.output_dim, model.n_max_digits);
+    stats = set_up_statistics(dataset.output_dim, model.n_max_digits, dataset.oneHot.keys());
     total_labels_used = {k: 0 for k in range(30)};
     
     # Predict
@@ -424,7 +441,7 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
     printF("Total testing error: %.2f" % totalError, experimentId, currentIteration);
     printF("Mean testing error: %.8f" % (totalError/float(k)), experimentId, currentIteration);
     
-    stats = model.total_statistics(stats, total_labels_used=total_labels_used);
+    stats = model.total_statistics(stats, dataset, total_labels_used=total_labels_used);
     print_stats(stats, parameters, experimentId, currentIteration);
     
     if (returnTestSamples):
@@ -477,12 +494,18 @@ if __name__ == '__main__':
                    'Mean data health': 'Average data health',
                    'Stddev data health': 'Stddev data health',
                    'Mean model health': 'Average model health',
-                   'Stddev model health': 'Stddev model health'};
+                   'Stddev model health': 'Stddev model health',
+                   'Syntax': 'Syntactically valid',
+                   'Syntax (l)': 'Valid left hand side',
+                   'Syntax (r)': 'Valid right hand side',
+                   'Valid with valid left': 'Score with valid left hand side'};
     for size in range(20):
-        score_types['Size %d' % size] = 'Score by prediction size = %d:' % size;
+        score_types['Pred.size %d' % size] = 'Score by prediction size = %d' % size;
+    for size in range(20):
+        score_types['Inpt.size %d' % size] = 'Score by input size = %d' % size;
     for trueSize in range(20):
         for nrCorrect in range(20):
-            score_types['T %d C %d' % (trueSize, nrCorrect)] = 'Prediction size %d nr correct %d' % (trueSize, nrCorrect);
+            score_types['T %d C %d' % (trueSize, nrCorrect)] = 'Label size %d nr correct %d' % (trueSize, nrCorrect);
     trackerreporter.init('http://rjbruin.nl/experimenttracker/api/',api_key);
     
     cmdargs = sys.argv[1:];
@@ -491,6 +514,8 @@ if __name__ == '__main__':
     newparameters = [];
     if (allparameters[0]['debug']):
         newparameters = allparameters;
+        for i in range(len(allparameters)):
+            allparameters[i]['basename'] = allparameters[i]['name'];
     else:
         for i in range(len(allparameters)):
             iterative = False;
@@ -624,7 +649,7 @@ if __name__ == '__main__':
         test_error_stack = deque();
         last_test_error_avg = 0.0;
         for r in range(parameters['repetitions']):
-            stats = set_up_statistics(dataset.output_dim, model.n_max_digits);
+            stats = set_up_statistics(dataset.output_dim, model.n_max_digits, dataset.oneHot.keys());
             total_error = 0.0;
             # Print repetition progress and save to raw results file
             printF("Batch %d (repetition %d of %d, dataset 1 of 1) (samples processed after batch: %d)" % \

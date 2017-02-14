@@ -86,7 +86,7 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset
 
     return dataset, rnn;
 
-def set_up_statistics(output_dim, n_max_digits):
+def set_up_statistics(output_dim, n_max_digits, symbols):
     return {'correct': 0.0, 'valid': 0.0, 'inDataset': 0.0,
             'structureCorrectCause': 0.0, 'structureCorrectEffect': 0.0,
             'structureValidCause': 0.0, 'structureValidEffect': 0.0,
@@ -121,5 +121,25 @@ def set_up_statistics(output_dim, n_max_digits):
             'samplesCorrect': [],
             'prediction_sizes': {k: 0 for k in range(20)},
             'prediction_size_correct': {k: 0. for k in range(20)},
+            'label_sizes': {k: 0 for k in range(20)},
+            'label_size_correct': {k: 0. for k in range(20)},
+            'input_sizes': {k: 0 for k in range(20)},
+            'input_size_correct': {k: 0. for k in range(20)},
+            'label_size_input_size_confusion_size': np.zeros((20,20), dtype='int16'),
+            'label_size_input_size_confusion_correct': np.zeros((20,20), dtype='int16'),
             'correct_matrix': np.zeros((n_max_digits,n_max_digits), dtype='int16'),
-            'correct_matrix_sizes': np.zeros((n_max_digits), dtype='int16')};
+            'correct_matrix_sizes': np.zeros((n_max_digits), dtype='int16'),
+            'x_hand_side_size': {'left': 0, 'right': 0, 'equals': 0},
+            'x_hand_side_correct': {'left': 0, 'right': 0, 'equals': 0},
+            'x_offset_size': {k: 0 for k in range(20)},
+            'x_offset_correct': {k: 0 for k in range(20)},
+            'syntactically_valid': 0,
+            'semantically_valid': 0,
+            'left_hand_valid': 0,
+            'left_hand_valid_correct': 0,
+            'left_hand_valid_with_prediction_size': 0,
+            'left_hand_valid_with_prediction_correct': 0,
+            'right_hand_valid': 0,
+            'symbol_correct': {k: 0 for k in symbols},
+            'symbol_size': {k: 0 for k in symbols},
+            'symbol_confusion': np.zeros((len(symbols), len(symbols)), dtype='int16')};

@@ -728,13 +728,55 @@ class GeneratedExpressionDataset(object):
         return True;
     
     def valid_expression(self, expression, nr_digits, nr_operators):
+        """
+        Valid = syntactically valid.
+        """
+        expression = self.indicesToStr(expression, ignoreEOS=False)
+        try:
+            equals_index = expression.index("=");
+            _ = ExpressionNode.fromStr(expression[:equals_index]);
+            # Check if right hand side contains only digits
+            for sym in expression[equals_index+1:]:
+                if (self.oneHot[sym] >= self.digits):
+                    return False;
+            return True;
+        except Exception:
+            return False;
+    
+    def valid_correct_expression(self, expression, nr_digits, nr_operators):
+        """
+        Check syntactic validity (valid), semantic validity (correct) for 
+        entire expression and separate sides
+        """
+        valid = False;
+        correct = False;
+        left_hand_side_valid = False;
+        right_hand_side_valid = False;
+        
         expression = self.indicesToStr(expression, ignoreEOS=False)
         try:
             equals_index = expression.index("=");
             node = ExpressionNode.fromStr(expression[:equals_index]);
-            return node.getValue() == int(expression[equals_index+1:]);
+            left_hand_side_valid = True;
         except Exception:
-            return False;
+            pass
+        try:    
+            # Check if right hand side contains only digits
+            for sym in expression[equals_index+1:]:
+                if (self.oneHot[sym] >= self.digits):
+                    raise ValueError();
+            right_hand_side_valid = True;
+        except Exception:
+            pass
+        
+        if (left_hand_side_valid and right_hand_side_valid):
+            valid = True;
+            try:
+                correct = node.getValue() == int(expression[equals_index+1:]);
+            except Exception:
+                pass
+        
+        return valid, correct, left_hand_side_valid, right_hand_side_valid;
     
     def valid_doubleoperator(self, expression_encoded, nr_digits, nr_operators):
         for i in range(1,len(expression_encoded),2):
