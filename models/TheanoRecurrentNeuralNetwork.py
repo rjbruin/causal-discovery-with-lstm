@@ -631,7 +631,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         # ERROR COMPUTATION AND PROPAGATION
         coding_dist = right_hand;
-        cat_cross = -T.sum(label[self.lag:] * T.log(coding_dist), axis=coding_dist.ndim-1);
+        cat_cross = -T.mean(label[self.lag:] * T.log(coding_dist), axis=coding_dist.ndim-1);
         mean_cross_per_sample = T.mean(cat_cross, axis=0);
         error = T.mean(mean_cross_per_sample[:nrSamples]);
 

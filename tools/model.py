@@ -55,8 +55,8 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset
                                          GO_symbol_index=dataset.GO_symbol_index);
     elif (not noModel):
         rnn = TheanoRecurrentNeuralNetwork(dataset.data_dim, parameters['hidden_dim'], dataset.output_dim,
+                                         parameters['minibatch_size'],
                                          lstm=parameters['lstm'],
-                                         minibatch_size=parameters['minibatch_size'],
                                          n_max_digits=parameters['n_max_digits'],
                                          decoder=parameters['decoder'] and parameters['use_encoder'] and \
                                                  not parameters['homogeneous'],
