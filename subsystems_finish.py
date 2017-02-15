@@ -127,8 +127,10 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
                 printF(prefix + "Label size %d nr correct %d: %.2f" % (trueSize, nrCorrect, stats['correct_matrix_scores'][trueSize][nrCorrect] * 100.), experimentId, currentIteration);
     
     if ('label_size_input_size_confusion_score' in stats):
+        np.set_printoptions(precision=8);
         for i in range(stats['label_size_input_size_confusion_score'].shape[0]):
             printF(prefix + "Label / input size row %d: %s" % (i, str(stats['label_size_input_size_confusion_score'][i,:])), experimentId, currentIteration);
+        np.set_printoptions(precision=3);
     
     if (parameters['dataset_type'] != 3):
         printF(prefix + "Unique labels predicted: %d" % stats['unique_labels_predicted'], experimentId, currentIteration);

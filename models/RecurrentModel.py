@@ -109,7 +109,7 @@ class RecurrentModel(object):
                     stats['input_size_score'][size] = val / float(stats['input_sizes'][size]);
                 else:
                     stats['input_size_score'][size] = 0.
-            stats['label_size_input_size_confusion_score'] = np.zeros((20,20), dtype='int8');
+            stats['label_size_input_size_confusion_score'] = np.zeros((20,20), dtype='float32');
             for l in range(20):
                 for i in range(20):
                     if (stats['label_size_input_size_confusion_size'][l,i] > 0):
