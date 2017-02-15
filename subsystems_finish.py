@@ -140,7 +140,7 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
     
     printF("\n",experimentId, currentIteration);
 
-def processSampleDiscreteProcess(line, data_dim, oneHot):
+def processSampleDiscreteProcess(line, data_dim, oneHot, EOS_symbol_index):
     """
     Data is ndarray of size (nr lines, sequence length, nr input vars).
     Targets is same as data.
@@ -156,7 +156,7 @@ def processSampleDiscreteProcess(line, data_dim, oneHot):
     for i in range(len(sample2)):
         encoding[i,oneHot[sample2[i]]+data_dim] = 1.0;
     
-    return encoding, (sample1, sample2);
+    return encoding, encoding, (sample1, sample2);
 
 def load_data(parameters, processor, dataset_model):
     f = open(os.path.join(parameters['dataset'],'all.txt'));
@@ -165,9 +165,9 @@ def load_data(parameters, processor, dataset_model):
     label_index = {};
     i = 0;
     for line in f:
-        data, labels = processor(line.strip(), dataset_model.data_dim, dataset_model.oneHot);
+        packedData = processor(line.strip(), dataset_model.data_dim, dataset_model.oneHot, dataset_model.EOS_symbol_index);
 #         dataset_data.append((data, labels));
-        dataset_data[line.strip()] = (data, labels);
+        dataset_data[line.strip()] = packedData;
         label_index[i] = line.strip();
         i += 1;
     
@@ -192,7 +192,7 @@ def batch_health(data):
     
     return indices;
 
-def get_batch_unprefixed(isTrain, dataset_data, label_index, parameters):    
+def get_batch_unprefixed(isTrain, dataset_model, dataset_data, label_index, parameters):    
     # Reseed the random generator to prevent generating identical batches
     np.random.seed();
     
@@ -201,22 +201,28 @@ def get_batch_unprefixed(isTrain, dataset_data, label_index, parameters):
     test_sample_range = [parameters['test_offset']*dataset_size,parameters['test_offset']*dataset_size+parameters['test_size']*dataset_size];
     
     data = [];
+    targets = [];
     labels = [];
-    while (len(data) < model.minibatch_size):
+    expressions = [];
+    while (len(data) < parameters['minibatch_size']):
         # Get random sample
         sampleIndex = np.random.randint(0,dataset_size);
         while ((isTrain and sampleIndex >= test_sample_range[0] and sampleIndex < test_sample_range[1]) or
                (not isTrain and sampleIndex < test_sample_range[0] and sampleIndex >= test_sample_range[1])):
             sampleIndex = np.random.randint(0,dataset_size);
         # Append to data
-        encoded, sampleLabels = dataset_data[label_index[sampleIndex]];
+        encoded, encodedTargets, sampleLabels = dataset_data[label_index[sampleIndex]];
         data.append(encoded);
-        labels.append(sampleLabels);
+        targets.append(encodedTargets);
+        labels.append(np.argmax(encodedTargets));
+        expressions.append(sampleLabels);
     
     # Make data ndarray
-    data = np.array(data);
+#     data = np.array(data);
+    data = dataset_model.fill_ndarray(data, 1, fixed_length=parameters['n_max_digits']);
+    targets = np.array(targets, dtype='float32');
     
-    return data, labels, batch_health(data);
+    return data, targets, labels, expressions, batch_health(data);
 
 def get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length, 
                        debug=False, base_offset=12, 
@@ -323,8 +329,8 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, parameter
               seq2ndmarkov=False, bothcause=False, homogeneous=False,
               answering=False):    
     if (parameters['simple_data_loading']):
-        data, expressions, health = get_batch_unprefixed(isTrain, dataset_data, label_index, parameters);
-        return data, data, data, expressions, np.zeros((data.shape[0])), True, parameters['minibatch_size'], health;
+        data, targets, labels, expressions, health = get_batch_unprefixed(isTrain, dataset, dataset_data, label_index, parameters);
+        return data, targets, labels, expressions, np.zeros((data.shape[0])), True, parameters['minibatch_size'], health;
     else:
         data, targets, labels, expressions, interventionLocations, topcause, nrSamples = \
             get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length, debug, 

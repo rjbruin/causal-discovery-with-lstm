@@ -12,6 +12,8 @@ from tools.arguments import processCommandLineArguments;
 from tools.model import constructModels, set_up_statistics;
 from tools.gpu import using_gpu; # @UnresolvedImport
 
+from subsystems_finish import get_batch_unprefixed, load_data;
+
 import numpy as np;
 import theano;\
 import copy;
@@ -19,6 +21,23 @@ from profiler import profiler
 
 import trackerreporter;
 from tools.arguments import processKeyValue
+
+def processSampleFindX(line, data_dim, oneHot, EOS_symbol_index):
+    expression, _ = line.strip().split(";");
+    
+    x_position = np.random.randint(0,len(expression));
+    x = expression[x_position];
+    expression = expression[:x_position] + 'x' + expression[x_position+1:];
+    
+    expression_embeddings = np.zeros((len(expression)+1,data_dim));
+    for i, literal in enumerate(expression):
+        expression_embeddings[i,oneHot[literal]] = 1.0;
+    expression_embeddings[i+1,EOS_symbol_index] = 1.0;
+    
+    target_embedding = np.zeros((data_dim));
+    target_embedding[oneHot[x]] = 1.;
+    
+    return expression_embeddings, target_embedding, expression;
 
 def print_stats(stats, parameters, prefix=''):
     # Print statistics
@@ -58,7 +77,7 @@ def print_stats(stats, parameters, prefix=''):
     
     printF("\n", experimentId, currentIteration);
 
-def get_batch(isTrain, dataset, model, debug=False):    
+def get_batch_regular(isTrain, dataset, model, debug=False):    
     # Reseed the random generator to prevent generating identical batches
     np.random.seed();
     
@@ -87,6 +106,15 @@ def get_batch(isTrain, dataset, model, debug=False):
     
     return data, targets, labels, expressions, nrSamples;
 
+def get_batch(isTrain, dataset, model, dataset_data, label_index, debug=False):    
+    if (parameters['simple_data_loading']):
+        data, targets, labels, expressions, health = get_batch_unprefixed(isTrain, dataset, dataset_data, label_index, parameters);
+        return data, targets, labels, expressions, parameters['minibatch_size'], health;
+    else:
+        data, targets, labels, expressions, nrSamples = \
+            get_batch_regular(isTrain, dataset, model, debug);
+        return data, targets, labels, expressions, nrSamples, 0;
+
 def test(model, dataset, parameters, max_length, print_samples=False, 
          sample_size=False, returnTestSamples=False):
     # Test
@@ -112,7 +140,7 @@ def test(model, dataset, parameters, max_length, print_samples=False,
     while k < total:
         # Get data from batch
         test_data, test_targets, test_labels, test_expressions, \
-            nrSamples = get_batch(False, dataset, model, debug=parameters['debug']);
+            nrSamples, health = get_batch(False, dataset, model, dataset_data, label_index, debug=parameters['debug']);
         
         predictions, other = model.predict(test_data, test_targets, 
                                            nrSamples=nrSamples); 
@@ -276,6 +304,9 @@ if __name__ == '__main__':
         if (not using_gpu()):
             printF("WARNING! RUNNING WITHOUT GPU USAGE!", experimentId, currentIteration);
         
+        # Set simple loading processor
+        processor = processSampleFindX;
+        
         # Construct models
         dataset, model = constructModels(parameters, 0, {});
         
@@ -297,6 +328,10 @@ if __name__ == '__main__':
             repetition_size = min(parameters['max_training_size'],repetition_size);
         next_testing_threshold = parameters['test_interval'] * repetition_size;
         
+        dataset_data = None;
+        label_index = None;
+        if (parameters['simple_data_loading']):
+            dataset_data, label_index = load_data(parameters, processor, dataset);
         
         
         for r in range(parameters['repetitions']):
@@ -314,8 +349,8 @@ if __name__ == '__main__':
             while k < repetition_size:
                 profiler.start('train batch');
                 profiler.start('get train batch');
-                data, target, test_labels, target_expressions, nrSamples = \
-                    get_batch(True, dataset, model, 
+                data, target, test_labels, target_expressions, nrSamples, health = \
+                    get_batch(True, dataset, model, dataset_data, label_index, 
                               debug=parameters['debug']);
                 profiler.stop('get train batch');
                 
