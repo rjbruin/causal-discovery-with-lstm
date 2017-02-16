@@ -3,7 +3,7 @@
         "name": "f-subs-dp",
         "dataset": "./data/discreteprocess",
         "repetitions": "500",
-        "sample_testing_size": "100000"
+        "sample_testing_size": "100000",
         "finish_subsystems": "True",
         "n_max_digits": "20",
         "intervention_base_offset": "18",
