@@ -475,7 +475,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 #                 learned_cell_3 = outputs[5];
         else:
             init_values = ({'initial': hidden_top[-1], 'taps': [-1]}, 
-                           {'initial': cell[-1], 'taps': [-1]});
+                           {'initial': cell_top[-1], 'taps': [-1]});
             if (self.doubleLayer):
                 init_values = ({'initial': hidden_top[-1], 'taps': [-1]},
                                {'initial': hidden_2_top[-1], 'taps': [-1]},
@@ -485,7 +485,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 #                 init_values = ({'initial': hidden[-1], 'taps': [-1]},
 #                                {'initial': hidden_2_top[-1], 'taps': [-1]},
 #                                {'initial': hidden_3_top[-1], 'taps': [-1]},
-#                                {'initial': cell[-1], 'taps': [-1]}, 
+#                                {'initial': cell_top[-1], 'taps': [-1]}, 
 #                                {'initial': cell_2_top[-1], 'taps': [-1]}, 
 #                                {'initial': cell_3_top[-1], 'taps': [-1]});
             outputs_1, _ = theano.scan(fn=encode_function,
@@ -509,7 +509,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
             if (not self.only_cause_expression):
                 init_values = ({'initial': hidden_bot[-1], 'taps': [-1]},
-                               {'initial': cell[-1], 'taps': [-1]});
+                               {'initial': cell_bot[-1], 'taps': [-1]});
                 if (self.doubleLayer):
                     init_values = ({'initial': hidden_bot[-1], 'taps': [-1]},
                                    {'initial': hidden_2_bot[-1], 'taps': [-1]},
