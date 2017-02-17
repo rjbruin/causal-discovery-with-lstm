@@ -67,7 +67,7 @@ if __name__ == '__main__':
     length = 20;
     max_lag = 8;
     inputrange = [0,9];
-    weightsrange = [1,2];
+    weightsrange = [-2,3];
     progressPrintInterval = 10000;
     
     # Noise settings
