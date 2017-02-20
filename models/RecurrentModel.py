@@ -141,7 +141,7 @@ class RecurrentModel(object):
             stats['syntactically_valid_score'] = stats['syntactically_valid'] / float(stats['prediction_size']);
             stats['semantically_valid_score'] = stats['semantically_valid'] / float(stats['prediction_size']);
             stats['left_hand_valid_score'] = stats['left_hand_valid'] / float(stats['prediction_size']);
-            stats['left_hand_valid_correct_score'] = stats['left_hand_valid_correct'] / float(stats['prediction_size']);
+            stats['left_hand_valid_correct_score'] = stats['left_hand_valid_correct'] / float(stats['left_hand_valid']);
             stats['right_hand_valid_score'] = stats['right_hand_valid'] / float(stats['prediction_size']);
             
             if (stats['left_hand_valid_with_prediction_size'] > 0):
