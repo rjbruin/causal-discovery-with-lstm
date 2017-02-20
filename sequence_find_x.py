@@ -180,6 +180,7 @@ def test(model, dataset, parameters, max_length, print_samples=False,
     
     profiler.profile();
     
+    print("Test: %d" % k);
     printF("Total testing error: %.2f" % totalError, experimentId, currentIteration);
     printF("Mean testing error: %.8f" % (totalError/float(k)), experimentId, currentIteration);
     
@@ -373,6 +374,7 @@ if __name__ == '__main__':
                 k += nrSamples;
             
             # Report on error
+            print("Train: %d" % k);
             printF("Total error: %.2f" % total_error, experimentId, currentIteration);
             printF("Mean error: %.8f" % (total_error/float(k)), experimentId, currentIteration);
             
