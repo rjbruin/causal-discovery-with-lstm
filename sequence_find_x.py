@@ -181,6 +181,7 @@ def test(model, dataset, parameters, max_length, print_samples=False,
     profiler.profile();
     
     printF("Total testing error: %.2f" % totalError, experimentId, currentIteration);
+    printF("Mean testing error: %.8f" % (totalError/float(k)), experimentId, currentIteration);
     
     stats = model.total_statistics(stats, dataset, total_labels_used=total_labels_used, digits=False);
     print_stats(stats, parameters);
@@ -373,6 +374,7 @@ if __name__ == '__main__':
             
             # Report on error
             printF("Total error: %.2f" % total_error, experimentId, currentIteration);
+            printF("Mean error: %.8f" % (total_error/float(k)), experimentId, currentIteration);
             
             # Intermediate testing if this was not the last iteration of training
             # and we have passed the testing threshold
