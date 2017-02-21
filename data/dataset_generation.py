@@ -132,19 +132,20 @@ class ExpressionNode(object):
             
             return output;
 
-def generateExpressions(baseFilePath, n, test_percentage, filters, minRecursionDepth=1, maxRecursionDepth=2, terminalProb=0.5, maxIntValue=10, verbose=False):
+def generateExpressions(baseFilePath, n, filters, minRecursionDepth=1, maxRecursionDepth=2, terminalProb=0.5, maxIntValue=10, mutation_prob=0.1, verbose=False):
     savedExpressions = {};
     sequential_fails = 0;
     fail_limit = 1000000000;
+    all_symbols = map(str, range(10)) + ['+', '-', '*', '_'];
     
     print("Generating expressions...");
     while len(savedExpressions) < n and sequential_fails < fail_limit:
         expression = ExpressionNode.randomExpression(0, minRecursionDepth, maxRecursionDepth, terminalProb, maxIntValue=maxIntValue);
         full_expression = str(expression) + "=" + str(int(expression.getValue()));
         # Check if expression already exists
-#         if (full_expression in savedExpressions):
-#             sequential_fails += 1;
-#             continue;
+        if (full_expression in savedExpressions):
+            sequential_fails += 1;
+            continue;
         if (verbose):
             print(str(expression) + " = " + str(expression.getValue()));
         fail = False;
@@ -156,11 +157,26 @@ def generateExpressions(baseFilePath, n, test_percentage, filters, minRecursionD
                 break;
         if (not fail):
             savedExpressions[full_expression] = True;
+            
+#             if (np.random.random() < 0.1):
+#                 # Randomly mutate one symbol
+#                 index = np.random.randint(0,len(full_expression));
+#                 full_expression = full_expression[:index] + all_symbols[np.random.randint(0,len(all_symbols))] + full_expression[index+1:];
         
             if len(savedExpressions) % (n/100) == 0:
                 print("%.0f percent generated" % (len(savedExpressions)*100/float(n)));
     
-    writeToFiles(savedExpressions, baseFilePath, test_percentage);
+    print("Mutating...");
+    mutatedExpressions = [];
+    for expression in savedExpressions:
+        if (np.random.random() < mutation_prob):
+            # Randomly mutate one symbol
+            index = np.random.randint(0,len(expression));
+            expression = expression[:index] + all_symbols[np.random.randint(0,len(all_symbols))] + expression[index+1:];
+        mutatedExpressions.append(expression);
+    
+    print("Writing to file...");
+    writeToFiles(mutatedExpressions, baseFilePath, isList=True);
     
 def generateAllExpressions(baseFilePath, test_percentage, filters, minRecursionDepth=1, maxRecursionDepth=2, maxIntValue=10):
     print("Generating expressions for level 2 and deeper...");
@@ -199,33 +215,25 @@ def generateAllExpressions(baseFilePath, test_percentage, filters, minRecursionD
     
     writeToFiles(filteredExpressions, baseFilePath, test_percentage, isList=True);
 
-def writeToFiles(expressions,baseFilePath,test_percentage,isList=False):
-    # Define train/test split
-    train_n = int(len(expressions) - (len(expressions) * test_percentage));
-    
+def writeToFiles(expressions,baseFilePath,isList=False):
     if (not isList):
         expressions = expressions.keys();
     
-    # Generate training file
-    f = open(baseFilePath + '/train.txt','w');
-    f.write("\n".join(expressions[:train_n]));
-    f.close();
-    
-    # Generate training file
-    f = open(baseFilePath + '/test.txt','w');
-    f.write("\n".join(expressions[train_n:]));
+    # Generate file
+    f = open(baseFilePath + '/all.txt','w');
+    f.write("\n".join(expressions));
     f.close();
 
 if __name__ == '__main__':
     # Settings
-    folder = 'expressions_limited_digits_shallow';
-    test_size = 0.10;
+    folder = 'expressions_shallow_noisy';
     n = 1000000;
     currentRecursionDepth = 0;
     minRecursionDepth = 1;
     maxRecursionDepth = 3;
-    maxIntValue = 3;
-    terminalProb = 0.4;
+    maxIntValue = 10;
+    terminalProb = 0.5;
+    mutation_prob = 0.1;
     filters = [lambda x: x.getValue() % 1.0 == 0, # Value must be integer
                #lambda x: x.getValue() < 10, # Value must be single-digit
                lambda x: x.getValue() >= 0
@@ -244,4 +252,4 @@ if __name__ == '__main__':
         raise ValueError("Test part of dataset already present");
     
     #generateAllExpressions(folder, test_size, filters, minRecursionDepth, maxRecursionDepth, maxIntValue);
-    generateExpressions(folder, n, test_size, filters, minRecursionDepth=minRecursionDepth, maxRecursionDepth=maxRecursionDepth, terminalProb=terminalProb, maxIntValue=maxIntValue, verbose=False);
+    generateExpressions(folder, n, filters, minRecursionDepth=minRecursionDepth, maxRecursionDepth=maxRecursionDepth, terminalProb=terminalProb, maxIntValue=maxIntValue, mutation_prob=mutation_prob, verbose=False);
