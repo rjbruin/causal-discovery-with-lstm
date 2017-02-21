@@ -230,7 +230,7 @@ if __name__ == '__main__':
     n = 1000000;
     currentRecursionDepth = 0;
     minRecursionDepth = 1;
-    maxRecursionDepth = 3;
+    maxRecursionDepth = 2;
     maxIntValue = 10;
     terminalProb = 0.5;
     mutation_prob = 0.1;
