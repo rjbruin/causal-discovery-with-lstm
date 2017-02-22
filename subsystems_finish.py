@@ -364,6 +364,8 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
     elif (sample_size != False):
         total = sample_size;
     
+    print("DEBUG total = %d" % total);
+    
     # Set up statistics
     stats = set_up_statistics(dataset.output_dim, model.n_max_digits, dataset.oneHot.keys());
     total_labels_used = {k: 0 for k in range(30)};
@@ -476,7 +478,7 @@ def validate(model, dataset, dataset_data, label_index, parameters, max_length, 
     # Test
     printF("Validating...", experimentId, currentIteration);
         
-    total = parameters['val_size'];
+    total = parameters['val_size']*np.sum(dataset.lengths.values());
     printing_interval = 1000;
     if (sample_size != False):
         total = sample_size;
