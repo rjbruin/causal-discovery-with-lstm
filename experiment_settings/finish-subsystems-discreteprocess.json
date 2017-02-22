@@ -15,6 +15,9 @@
         "minibatch_size": "64",
         "rnn_version": "1",
         "lag": "8",
-        "simple_data_loading": "True"
+        "simple_data_loading": "True",
+        "early_stopping": "True",
+        "early_stopping_errors": "8",
+        "early_stopping_epsilon": "0.5"
     }
 ]
