@@ -173,6 +173,24 @@ def load_data(parameters, processor, dataset_model):
     
     return dataset_data, label_index;
 
+def get_sample_index(which_part, dataset_size, parameters):
+    """
+    Which_part: 0 = train, 1 = test, 2 = validation.
+    Validation set offset is always right after test_offset.
+    """
+    val_offset = (parameters['test_offset'] + parameters['test_size']) * dataset_size;
+    
+    test_sample_range = [parameters['test_offset']*dataset_size,parameters['test_offset']*dataset_size+parameters['test_size']*dataset_size];
+    val_offset_range = [val_offset*dataset_size,val_offset*dataset_size+parameters['val_size']*dataset_size];
+    
+    sampleIndex = np.random.randint(0,dataset_size);
+    while ((which_part == 0 and sampleIndex >= test_sample_range[0] and sampleIndex < val_offset_range[1]) or
+           (which_part == 1 and sampleIndex < test_sample_range[0] and sampleIndex >= test_sample_range[1]) or
+           (which_part == 2 and sampleIndex < val_offset_range[0] and sampleIndex >= val_offset_range[1])):
+        sampleIndex = np.random.randint(0,dataset_size);
+    
+    return sampleIndex;
+
 def dataset_health(dataset_set, label_index, n=100):
     # Draw n random samples to inspect
     dataset_size = len(label_index.keys());
@@ -192,13 +210,12 @@ def batch_health(data):
     
     return indices;
 
-def get_batch_unprefixed(isTrain, dataset_model, dataset_data, label_index, parameters):    
+def get_batch_unprefixed(which_part, dataset_model, dataset_data, label_index, parameters):    
     # Reseed the random generator to prevent generating identical batches
     np.random.seed();
     
     # Set range to sample from
     dataset_size = len(label_index.keys());
-    test_sample_range = [parameters['test_offset']*dataset_size,parameters['test_offset']*dataset_size+parameters['test_size']*dataset_size];
     
     data = [];
     targets = [];
@@ -206,10 +223,7 @@ def get_batch_unprefixed(isTrain, dataset_model, dataset_data, label_index, para
     expressions = [];
     while (len(data) < parameters['minibatch_size']):
         # Get random sample
-        sampleIndex = np.random.randint(0,dataset_size);
-        while ((isTrain and sampleIndex >= test_sample_range[0] and sampleIndex < test_sample_range[1]) or
-               (not isTrain and sampleIndex < test_sample_range[0] and sampleIndex >= test_sample_range[1])):
-            sampleIndex = np.random.randint(0,dataset_size);
+        sampleIndex = get_sample_index(which_part, dataset_size, parameters);
         # Append to data
         encoded, encodedTargets, sampleLabels = dataset_data[label_index[sampleIndex]];
         data.append(encoded);
@@ -362,7 +376,7 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
     while k < total:
         # Get data from batch
         test_data, test_targets, _, test_expressions, \
-            interventionLocations, topcause, nrSamples, _ = get_batch(False, dataset, model, 
+            interventionLocations, topcause, nrSamples, _ = get_batch(1, dataset, model, 
                                                                       intervention_range, 
                                                                       max_length, 
                                                                       parameters, dataset_data, label_index, 
@@ -457,6 +471,63 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
     else:
         return stats, totalError;
 
+def validate(model, dataset, dataset_data, label_index, parameters, max_length, base_offset, intervention_range, print_samples=False, 
+             sample_size=False, homogeneous=False):
+    # Test
+    printF("Validating...", experimentId, currentIteration);
+        
+    total = parameters['val_size'];
+    printing_interval = 1000;
+    if (sample_size != False):
+        total = sample_size;
+    
+    # Predict
+    printed_samples = False;
+    totalError = 0.0;
+    k = 0;
+    while k < total:
+        # Get data from batch
+        val_data, val_targets, _, val_expressions, \
+            interventionLocations, topcause, nrSamples, _ = get_batch(2, dataset, model, 
+                                                                      intervention_range, 
+                                                                      max_length, 
+                                                                      parameters, dataset_data, label_index, 
+                                                                      debug=parameters['debug'],
+                                                                      base_offset=base_offset,
+                                                                      seq2ndmarkov=parameters['dataset_type'] == 1,
+                                                                      bothcause=parameters['bothcause'],
+                                                                      homogeneous=parameters['homogeneous'],
+                                                                      answering=parameters['answering']);
+        for l in interventionLocations:
+            stats['intervention_locations'][l] += 1;
+            
+        # Make intervention locations into matrix
+        interventionLocations = addOtherInterventionLocations(interventionLocations, topcause);
+        
+        predictions, other = model.predict(val_data, val_targets, 
+                                           interventionLocations=interventionLocations,
+                                           nrSamples=nrSamples); 
+        totalError += other['error'];
+        
+        if (parameters['only_cause_expression']):
+            prediction_1 = predictions;
+            predictions = [predictions];
+        else:
+            prediction_1 = predictions[0];
+            prediction_2 = predictions[1];
+
+        if (stats['prediction_size'] % printing_interval == 0):
+            printF("# %d / %d" % (stats['prediction_size'], total), experimentId, currentIteration);
+        
+        k += nrSamples;
+    
+    profiler.profile();
+    
+    printF("Total validation error: %.2f" % totalError, experimentId, currentIteration);
+    printF("Mean validation error: %.8f" % (totalError/float(k)), experimentId, currentIteration);
+    
+    return stats, totalError;
+
 if __name__ == '__main__':
     theano.config.floatX = 'float32';
     np.set_printoptions(precision=3, threshold=10000000);
@@ -471,6 +542,8 @@ if __name__ == '__main__':
                    'Training loss (m)': 'Mean error',
                    'Testing loss': 'Total testing error',
                    'Testing loss (m)': 'Mean testing error',
+                   'Validation loss': 'Total validation error',
+                   'Validation loss (m)': 'Mean validation error',
                    'Digit precision': 'Digit-based score',
                    'Digit (1) precision': 'Digit-based (1) score',
                    'Digit (2) precision': 'Digit-based (2) score',
@@ -654,8 +727,8 @@ if __name__ == '__main__':
         model.plotWeights("%s_0" % (name));
         
         intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
-        test_error_stack = deque();
-        last_test_error_avg = 0.0;
+        val_error_stack = deque();
+        last_val_error_avg = 0.0;
         for r in range(parameters['repetitions']):
             stats = set_up_statistics(dataset.output_dim, model.n_max_digits, dataset.oneHot.keys());
             total_error = 0.0;
@@ -674,7 +747,7 @@ if __name__ == '__main__':
                 profiler.start('train batch');
                 profiler.start('get train batch');
                 data, target, _, target_expressions, interventionLocations, topcause, nrSamples, health = \
-                    get_batch(True, dataset, model, 
+                    get_batch(0, dataset, model, 
                               parameters['intervention_range'], model.n_max_digits, 
                               parameters, dataset_data, label_index,
                               debug=parameters['debug'],
@@ -725,6 +798,9 @@ if __name__ == '__main__':
                 sampleSize = False;
             _, testError = test(model, dataset, dataset_data, label_index, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
                                 sample_size=sampleSize, homogeneous=parameters['homogeneous']);
+            if (parameters['early_stopping']):
+                _, valError = validate(model, dataset, dataset_data, label_index, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
+                                   homogeneous=parameters['homogeneous']);
             
             # Save weights to pickles
             save_modulo = 50;
@@ -736,19 +812,19 @@ if __name__ == '__main__':
             
             # Check for early stopping
             if (parameters['early_stopping']):
-                testErrorMovingAverageN = parameters['early_stopping_errors'];
-                testErrorEpsilon = parameters['early_stopping_epsilon'];
-                test_error_stack.append(testError);
-                if (len(test_error_stack) >= testErrorMovingAverageN):
-                    if (len(test_error_stack) > testErrorMovingAverageN):
-                        test_error_stack.popleft();
+                valErrorMovingAverageN = parameters['early_stopping_errors'];
+                valErrorEpsilon = parameters['early_stopping_epsilon'];
+                val_error_stack.append(valError);
+                if (len(val_error_stack) >= valErrorMovingAverageN):
+                    if (len(val_error_stack) > valErrorMovingAverageN):
+                        val_error_stack.popleft();
                     # Only check for early stopping after queue is large enough
-                    avg_error = np.mean(test_error_stack);
-                    error_diff = np.abs(avg_error - last_test_error_avg);
-                    if (error_diff < testErrorEpsilon):
+                    avg_error = np.mean(val_error_stack);
+                    error_diff = np.abs(avg_error - last_val_error_avg);
+                    if (error_diff < valErrorEpsilon):
                         printF("STOPPING EARLY at iteration %d with average error %.2f and difference %.2f!" % (r+1, avg_error, error_diff), experimentId, currentIteration);
                         break;
-                    last_test_error_avg = avg_error;
+                    last_val_error_avg = avg_error;
         
         printF("Training finished!", experimentId, currentIteration);
     
