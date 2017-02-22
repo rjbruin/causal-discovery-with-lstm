@@ -364,8 +364,6 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
     elif (sample_size != False):
         total = sample_size;
     
-    print("DEBUG total = %d" % total);
-    
     # Set up statistics
     stats = set_up_statistics(dataset.output_dim, model.n_max_digits, dataset.oneHot.keys());
     total_labels_used = {k: 0 for k in range(30)};
