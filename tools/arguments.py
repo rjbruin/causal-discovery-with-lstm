@@ -94,7 +94,8 @@ argumentProcessors = {'name': processString,
                       'nocrosslinks_hidden_factor': processFloat,
                       'early_stopping': processBool,
                       'early_stopping_errors': processInt,
-                      'early_stopping_epsilon': processFloat
+                      'early_stopping_epsilon': processFloat,
+                      'val_size': processFloat
                       }
 defaults = {'output_name': "",
             'report_to_tracker': True,
@@ -159,7 +160,8 @@ defaults = {'output_name': "",
             'nocrosslinks_hidden_factor': 1.,
             'early_stopping': False,
             'early_stopping_errors': 5,
-            'early_stopping_epsilon': 1.
+            'early_stopping_epsilon': 1.,
+            'val_size': 0.1
             }
 
 def processKeyValue(key,value):

@@ -766,7 +766,7 @@ class GeneratedExpressionDataset(object):
         try:    
             # Check if right hand side is not empty
             if (len(expression[equals_index+1:]) == 0):
-                return False;
+                raise ValueError();
             # Check if right hand side contains only digits
             for sym in expression[equals_index+1:]:
                 if (self.oneHot[sym] >= self.digits):
