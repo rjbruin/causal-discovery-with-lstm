@@ -14,7 +14,7 @@ if __name__ == '__main__':
     ignoreSymbols = [';'];
     symbols = [str(i) for i in range(10)] + ['+','-','*','/','(',')','='];
     
-    sources = ["/train.txt", "/test.txt"];
+    sources = ["/all.txt"];
     
     for part in sources:
         s = source + part;

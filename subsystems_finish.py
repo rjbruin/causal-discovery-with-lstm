@@ -823,6 +823,9 @@ if __name__ == '__main__':
                     error_diff = np.abs(avg_error - last_val_error_avg);
                     if (error_diff < valErrorEpsilon):
                         printF("STOPPING EARLY at iteration %d with average error %.2f and difference %.2f!" % (r+1, avg_error, error_diff), experimentId, currentIteration);
+                        # Perform final testing - will report stats for the same iteration so will overwrite in tracker
+                        _, testError = test(model, dataset, dataset_data, label_index, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
+                                            sample_size=False, homogeneous=parameters['homogeneous']);
                         break;
                     last_val_error_avg = avg_error;
         
