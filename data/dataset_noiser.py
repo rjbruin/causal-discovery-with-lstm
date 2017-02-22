@@ -10,7 +10,7 @@ import numpy as np;
 if __name__ == '__main__':
     source = sys.argv[1];
     target = sys.argv[2];
-    triggerProb = 0.01;
+    triggerProb = 0.1;
     ignoreSymbols = [';'];
     symbols = [str(i) for i in range(10)] + ['+','-','*','/','(',')','='];
     

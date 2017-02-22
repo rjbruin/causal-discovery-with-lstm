@@ -478,7 +478,7 @@ def validate(model, dataset, dataset_data, label_index, parameters, max_length, 
     # Test
     printF("Validating...", experimentId, currentIteration);
         
-    total = parameters['val_size']*np.sum(dataset.lengths.values());
+    total = parameters['val_size']*np.sum(dataset.lengths);
     printing_interval = 1000;
     if (sample_size != False):
         total = sample_size;
