@@ -163,7 +163,7 @@ class GeneratedExpressionDataset(object):
             if (test_offset == 0.):
                 append_to_train = False;
             # Check for n is to make the code work with max_training_size
-            while (line != "" and n < self.lengths[self.TRAIN]):
+            while (line != "" and n < data_length):
                 result = line.split(";");
                 if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV and not self.bothcause):
                     expression, expression_prime, topcause = result;
