@@ -405,13 +405,15 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
             prediction_2 = predictions[1];
         
         profiler.start("test batch stats");
-        stats, labels_used = model.batch_statistics(stats, predictions, 
+        stats, labels_used, notInDataset = model.batch_statistics(stats, predictions, 
                                        test_expressions, interventionLocations, 
                                        other, nrSamples, dataset, test_expressions,
                                        dataset_data, parameters,
                                        topcause=topcause or parameters['bothcause'], # If bothcause then topcause = 1
                                        testInDataset=parameters['test_in_dataset'],
                                        bothcause=parameters['bothcause']);
+        for exp in notInDataset:
+            printF("NID " + exp, experimentId, currentIteration);
         
         for j in range(nrSamples):
             if (parameters['only_cause_expression'] is not False):

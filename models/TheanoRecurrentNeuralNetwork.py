@@ -1182,6 +1182,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         strings) that should be used to lookup the candidate labels for SGD (in
         finish_expression_find_labels)
         """
+        notInDataset = [];
+        
         if (self.rnn_version == TheanoRecurrentNeuralNetwork.RNN_DECODESINGLEPREDICTION):
             for j in range(0,test_n):
                 if (emptySamples is not None and j in emptySamples):
@@ -1389,6 +1391,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     # Determine validity of sample if it is not correct
                     if ((causeValid and self.only_cause_expression is not False) or (causeValid and effectValid and effectMatch)):
                         stats['valid'] += 1.0;
+                        
                     if (testInDataset and not training):
                         primeToUse = None;
                         if (self.only_cause_expression is False):
@@ -1397,6 +1400,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             stats['inDataset'] += 1.0;
                         elif (dataset.expressionsByPrefix.exists(causeExpressionPrediction, prime=primeToUse)):
                             stats['inDataset'] += 1.0;
+                        elif (scoredCorrectAlready):
+                            notInDataset.append(causeExpressionPrediction);
 #                         def storageChecker(causeExpressionPrediction, primeToUse, dataset_data, dataset):
 #                             if (dataset.testExpressionsByPrefix.exists(causeExpressionPrediction, prime=primeToUse)):
 #                                 return True;
@@ -1500,7 +1505,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     
                 stats['prediction_size'] += 1;
 
-        return stats, labels_to_use;
+        return stats, labels_to_use, notInDataset;
 
     @staticmethod
     def string_difference(string1, string2):
