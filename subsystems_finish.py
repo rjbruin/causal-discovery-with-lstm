@@ -178,7 +178,7 @@ def get_sample_index(which_part, dataset_size, parameters):
     Which_part: 0 = train, 1 = test, 2 = validation.
     Validation set offset is always right after test_offset.
     """
-    val_offset = (parameters['test_offset'] + parameters['test_size']) * dataset_size;
+    val_offset = (parameters['test_offset'] + parameters['test_size']);
     
     test_sample_range = [parameters['test_offset']*dataset_size,parameters['test_offset']*dataset_size+parameters['test_size']*dataset_size];
     val_offset_range = [val_offset*dataset_size,val_offset*dataset_size+parameters['val_size']*dataset_size];
