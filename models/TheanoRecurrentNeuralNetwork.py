@@ -1280,6 +1280,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if (self.only_cause_expression is not False):
                     # Only for f-answ and f-seqs
                     # Check for correct / semantically valid
+                    stats['correct_matrix_sizes'][len(label_cause)-(intervention_locations[0,j]+1)] += 1;
                     valid, correct, left_hand_valid, right_hand_valid = dataset.valid_correct_expression(prediction[causeIndex][j], dataset.digits,dataset.operators);
                     if (valid):
                         stats['syntactically_valid'] += 1;
@@ -1290,6 +1291,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         stats['label_size_correct'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1)] += 1;
                         stats['input_size_correct'][intervention_locations[0,j]+1] += 1.;
                         stats['label_size_input_size_confusion_correct'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1),intervention_locations[0,j]+1] += 1;
+                        stats['correct_matrix'][len(label_cause)-(intervention_locations[0,j]+1)][len(label_cause)-(intervention_locations[0,j]+1)] += 1.;
                         scoredCorrectAlready = True;
                     if (intervention_locations[0,j] < labels_to_use[j][causeIndex].index('=')):
                         stats['left_hand_valid_with_prediction_size'] += 1;
@@ -1376,6 +1378,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         stats['prediction_size_correct'][len(causeExpressionPrediction)-(intervention_locations[0,j]+1)] += 1.;
                         stats['label_size_correct'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1)] += 1;
                         stats['input_size_correct'][intervention_locations[0,j]+1] += 1.;
+                        stats['correct_matrix_sizes'][len(label_cause)-(intervention_locations[0,j]+1)] += 1;
+                        stats['correct_matrix'][len(label_cause)-(intervention_locations[0,j]+1)][len(label_cause)-(intervention_locations[0,j]+1)] += 1.;
     
                     # Do local scoring for seq2ndmarkov
                     if (self.seq2ndmarkov):
