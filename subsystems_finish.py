@@ -124,12 +124,12 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
     if (parameters['answering']):
         for trueSize in range(trueSizes+1):
             for nrCorrect in range(min(nrCorrects,trueSize)+1):
-                printF(prefix + "Label size %d nr correct %d: %.2f" % (trueSize, nrCorrect, stats['correct_matrix_scores'][trueSize][nrCorrect] * 100.), experimentId, currentIteration);
+                printF(prefix + "Label size %d nr correct %d: %.2f" % (trueSize, nrCorrect, stats['correct_matrix_scores'][trueSize,nrCorrect] * 100.), experimentId, currentIteration);
     
     if ('label_size_input_size_confusion_score' in stats):
         np.set_printoptions(precision=8);
         for i in range(stats['label_size_input_size_confusion_score'].shape[0]):
-            printF(prefix + "Label / input size row %d: %s" % (i, str(stats['label_size_input_size_confusion_score'][i,:])), experimentId, currentIteration);
+            printF(prefix + "Label / input size row %d: %s" % (i, np.array2string(stats['label_size_input_size_confusion_score'][i,:]).replace('\n', '')), experimentId, currentIteration);
         np.set_printoptions(precision=3);
     
     if (parameters['dataset_type'] != 3):
