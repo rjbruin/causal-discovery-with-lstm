@@ -1260,11 +1260,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if (not self.only_cause_expression):
                     effectExpressionPrediction = dataset.indicesToStr(prediction[effectIndex][j], ignoreEOS=parameters['dataset_type'] == 3);
 
-                stats['prediction_sizes'][len(causeExpressionPrediction)-(intervention_locations[0,j]+1)] += 1;
-                stats['label_sizes'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1)] += 1;
-                stats['input_sizes'][intervention_locations[0,j]+1] += 1;
-                stats['label_size_input_size_confusion_size'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1),intervention_locations[0,j]+1] += 1;
-    
                 # Prepare vars to save correct samples
                 topCorrect = False;
                 botCorrect = False;
@@ -1275,12 +1270,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if (parameters['dataset_type'] == 3):
                     label_cause = label_cause[parameters['lag']:];
                     label_effect = label_effect[parameters['lag']:];
+
+                stats['prediction_sizes'][len(causeExpressionPrediction)-(intervention_locations[0,j]+1)] += 1;
+                stats['label_sizes'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1)] += 1;
+                stats['input_sizes'][intervention_locations[0,j]+1] += 1;
+                stats['label_size_input_size_confusion_size'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1),intervention_locations[0,j]+1] += 1;
+                stats['correct_matrix_sizes'][len(label_cause)-(intervention_locations[0,j]+1)] += 1;
                 
                 scoredCorrectAlready = False;
                 if (self.only_cause_expression is not False):
                     # Only for f-answ and f-seqs
                     # Check for correct / semantically valid
-                    stats['correct_matrix_sizes'][len(label_cause)-(intervention_locations[0,j]+1)] += 1;
                     valid, correct, left_hand_valid, right_hand_valid = dataset.valid_correct_expression(prediction[causeIndex][j], dataset.digits,dataset.operators);
                     if (valid):
                         stats['syntactically_valid'] += 1;
@@ -1291,7 +1291,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         stats['label_size_correct'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1)] += 1;
                         stats['input_size_correct'][intervention_locations[0,j]+1] += 1.;
                         stats['label_size_input_size_confusion_correct'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1),intervention_locations[0,j]+1] += 1;
-                        stats['correct_matrix'][len(label_cause)-(intervention_locations[0,j]+1)][len(label_cause)-(intervention_locations[0,j]+1)] += 1.;
+                        stats['correct_matrix'][len(label_cause)-(intervention_locations[0,j]+1),len(label_cause)-(intervention_locations[0,j]+1)] += 1.;
                         scoredCorrectAlready = True;
                     if (intervention_locations[0,j] < labels_to_use[j][causeIndex].index('=')):
                         stats['left_hand_valid_with_prediction_size'] += 1;
@@ -1378,8 +1378,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         stats['prediction_size_correct'][len(causeExpressionPrediction)-(intervention_locations[0,j]+1)] += 1.;
                         stats['label_size_correct'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1)] += 1;
                         stats['input_size_correct'][intervention_locations[0,j]+1] += 1.;
-                        stats['correct_matrix_sizes'][len(label_cause)-(intervention_locations[0,j]+1)] += 1;
-                        stats['correct_matrix'][len(label_cause)-(intervention_locations[0,j]+1)][len(label_cause)-(intervention_locations[0,j]+1)] += 1.;
+                        stats['correct_matrix'][len(label_cause)-(intervention_locations[0,j]+1),len(label_cause)-(intervention_locations[0,j]+1)] += 1.;
     
                     # Do local scoring for seq2ndmarkov
                     if (self.seq2ndmarkov):
@@ -1429,7 +1428,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         else:
                             difference = 4; # Random digit outside of error margin computation range
                     stats['error_histogram'][difference] += 1;
-                    stats['correct_matrix_sizes'][len(label_cause)-(intervention_locations[0,j]+1)] += 1;
                     stats['correct_matrix'][len(label_cause)-(intervention_locations[0,j]+1)][len(label_cause)-(intervention_locations[0,j]+1)-difference] += 1.;
     
                     # Do local scoring for seq2ndmarkov
