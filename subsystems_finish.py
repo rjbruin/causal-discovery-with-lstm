@@ -8,6 +8,7 @@ import time;
 import sys, os;
 from math import floor;
 from collections import deque;
+import subprocess;
 
 from tools.file import save_to_pickle, load_from_pickle_with_filename;
 from tools.arguments import processCommandLineArguments;
@@ -124,7 +125,7 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
     if (parameters['answering']):
         for trueSize in range(trueSizes+1):
             for nrCorrect in range(min(nrCorrects,trueSize)+1):
-                printF(prefix + "Label size %d nr correct %d: %.2f" % (trueSize, nrCorrect, stats['correct_matrix_scores'][trueSize,nrCorrect] * 100.), experimentId, currentIteration);
+                printF(prefix + "Label size %d nr correct %d: %.2f (%d)" % (trueSize, nrCorrect, stats['correct_matrix_scores'][trueSize,nrCorrect] * 100., stats['correct_matrix'][trueSize,nrCorrect]), experimentId, currentIteration);
     
     if ('label_size_input_size_confusion_score' in stats):
         np.set_printoptions(precision=8);
@@ -353,9 +354,6 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, parameter
 
 def test(model, dataset, dataset_data, label_index, parameters, max_length, base_offset, intervention_range, print_samples=False, 
          sample_size=False, homogeneous=False, returnTestSamples=False):
-    # Test
-    printF("Testing...", experimentId, currentIteration);
-        
     total = dataset.lengths[dataset.TEST];
     printing_interval = 1000;
     if (parameters['max_testing_size'] is not False):
@@ -363,6 +361,9 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
         printing_interval = 100;
     elif (sample_size != False):
         total = sample_size;
+    
+    # Test
+    printF("Testing... %d from %d" % (total, len(dataset.testExpressionsByPrefix.expressions)), experimentId, currentIteration);
     
     # Set up statistics
     stats = set_up_statistics(dataset.output_dim, model.n_max_digits, dataset.oneHot.keys());
@@ -412,8 +413,6 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
                                        topcause=topcause or parameters['bothcause'], # If bothcause then topcause = 1
                                        testInDataset=parameters['test_in_dataset'],
                                        bothcause=parameters['bothcause']);
-        for exp in notInDataset:
-            printF("NID " + exp, experimentId, currentIteration);
         
         for j in range(nrSamples):
             if (parameters['only_cause_expression'] is not False):
@@ -669,6 +668,9 @@ if __name__ == '__main__':
             if (parameters['report_to_tracker']):
                 trackerreporter.fromExperimentOutput(experimentId, s, atProgress=currentIt, atDataset=1);
         
+        # Print Git hash
+        printF(subprocess.check_output(['git','rev-parse','HEAD']).strip(), experimentId, currentIteration);
+        
         # Warn for unusual parameters
         if (parameters['max_training_size'] is not False):
             printF("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!", experimentId, currentIteration);
@@ -735,8 +737,8 @@ if __name__ == '__main__':
             stats = set_up_statistics(dataset.output_dim, model.n_max_digits, dataset.oneHot.keys());
             total_error = 0.0;
             # Print repetition progress and save to raw results file
-            printF("Batch %d (repetition %d of %d, dataset 1 of 1) (samples processed after batch: %d)" % \
-                    (r+1,r+1,parameters['repetitions'],(r+1)*repetition_size), experimentId, currentIteration);
+            printF("Batch %d (repetition %d of %d, dataset 1 of 1) (samples processed after batch: %d from %d)" % \
+                    (r+1,r+1,parameters['repetitions'],(r+1)*repetition_size, len(dataset.expressionsByPrefix.expressions)), experimentId, currentIteration);
             currentIteration = r+1;
             currentDataset = 1;
             

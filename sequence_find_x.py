@@ -6,6 +6,7 @@ Created on 9 sep. 2016
 
 import time;
 import sys, os;
+import subprocess;
 
 from tools.file import save_to_pickle, load_from_pickle_with_filename;
 from tools.arguments import processCommandLineArguments;
@@ -299,6 +300,9 @@ if __name__ == '__main__':
             printf.close();
             if (parameters['report_to_tracker']):
                 trackerreporter.fromExperimentOutput(experimentId, s, atProgress=currentIt, atDataset=1);
+        
+        # Print Git hash
+        printF(subprocess.check_output(['git','rev-parse','HEAD']).strip(), experimentId, currentIteration);
         
         # Warn for unusual parameters
         if (parameters['max_training_size'] is not False):

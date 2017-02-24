@@ -1428,7 +1428,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         else:
                             difference = 4; # Random digit outside of error margin computation range
                     stats['error_histogram'][difference] += 1;
-                    stats['correct_matrix'][len(label_cause)-(intervention_locations[0,j]+1)][len(label_cause)-(intervention_locations[0,j]+1)-difference] += 1.;
+                    stats['correct_matrix'][len(label_cause)-(intervention_locations[0,j]+1),len(label_cause)-(intervention_locations[0,j]+1)-difference] += 1.;
     
                     # Do local scoring for seq2ndmarkov
                     if (self.seq2ndmarkov):

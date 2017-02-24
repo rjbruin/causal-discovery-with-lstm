@@ -223,7 +223,8 @@ class RecurrentModel(object):
             if (stats['correct_matrix_sizes'][i] == 0):
                 stats['correct_matrix_scores'][i,:] = np.zeros(stats['correct_matrix_scores'].shape[1]);
             else:
-                stats['correct_matrix_scores'][i,:] = stats['correct_matrix'][i,:] / float(stats['correct_matrix_sizes'][i]);
+#                 stats['correct_matrix_scores'][i,:] = stats['correct_matrix'][i,:] / float(stats['correct_matrix_sizes'][i]);
+                stats['correct_matrix_scores'][i,:] = stats['correct_matrix'][i,:] / np.sum(stats['correct_matrix'][i,:]);
 #         stats['correct_matrix_scores'] = (stats['correct_matrix'] / stats['correct_matrix_sizes'].reshape(1,stats['correct_matrix_sizes'].shape[0]).astype('float32')) * 100.;
         
         return stats;
