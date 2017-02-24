@@ -668,9 +668,6 @@ if __name__ == '__main__':
             if (parameters['report_to_tracker']):
                 trackerreporter.fromExperimentOutput(experimentId, s, atProgress=currentIt, atDataset=1);
         
-        # Print Git hash
-        printF(subprocess.check_output(['git','rev-parse','HEAD']).strip(), experimentId, currentIteration);
-        
         # Warn for unusual parameters
         if (parameters['max_training_size'] is not False):
             printF("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!", experimentId, currentIteration);
