@@ -1279,41 +1279,36 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 
                 scoredCorrectAlready = False;
                 if (self.only_cause_expression is not False):
-                    # Only for f-answ and f-seqs
-                    # Check for correct / semantically valid
-                    valid, correct, left_hand_valid, right_hand_valid = dataset.valid_correct_expression(prediction[causeIndex][j], dataset.digits,dataset.operators);
-                    if (valid):
-                        stats['syntactically_valid'] += 1;
-                    if (correct):
-                        stats['semantically_valid'] += 1;
-                        # Also score 
-                        stats['prediction_size_correct'][len(causeExpressionPrediction)-(intervention_locations[0,j]+1)] += 1.;
-                        stats['label_size_correct'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1)] += 1;
-                        stats['input_size_correct'][intervention_locations[0,j]+1] += 1.;
-                        stats['label_size_input_size_confusion_correct'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1),intervention_locations[0,j]+1] += 1;
-                        stats['correct_matrix'][len(label_cause)-(intervention_locations[0,j]+1),len(label_cause)-(intervention_locations[0,j]+1)] += 1.;
-                        scoredCorrectAlready = True;
-                    if (intervention_locations[0,j] < labels_to_use[j][causeIndex].index('=')):
-                        stats['left_hand_valid_with_prediction_size'] += 1;
-                    if (left_hand_valid):
-                        stats['left_hand_valid'] += 1;
-                        if (intervention_locations[0,j] < labels_to_use[j][causeIndex].index('=')):
-                            stats['left_hand_valid_with_prediction_correct'] += 1;
+                    if (parameters['answering'] == False):
+                        # Only for f-seqs
+                        # Check for correct / semantically valid
+                        valid, correct, left_hand_valid, right_hand_valid = dataset.valid_correct_expression(prediction[causeIndex][j], dataset.digits,dataset.operators);
+                        if (valid):
+                            stats['syntactically_valid'] += 1;
                         if (correct):
-                            stats['left_hand_valid_correct'] += 1;
-                    if (right_hand_valid):
-                        stats['right_hand_valid'] += 1;
+                            stats['semantically_valid'] += 1;
+                            # Also score 
+                            stats['prediction_size_correct'][len(causeExpressionPrediction)-(intervention_locations[0,j]+1)] += 1.;
+                            stats['label_size_correct'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1)] += 1;
+                            stats['input_size_correct'][intervention_locations[0,j]+1] += 1.;
+                            stats['label_size_input_size_confusion_correct'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1),intervention_locations[0,j]+1] += 1;
+                            stats['correct_matrix'][len(label_cause)-(intervention_locations[0,j]+1),len(label_cause)-(intervention_locations[0,j]+1)] += 1.;
+                            scoredCorrectAlready = True;
+                        if (intervention_locations[0,j] < labels_to_use[j][causeIndex].index('=')):
+                            stats['left_hand_valid_with_prediction_size'] += 1;
+                        if (left_hand_valid):
+                            stats['left_hand_valid'] += 1;
+                            if (intervention_locations[0,j] < labels_to_use[j][causeIndex].index('=')):
+                                stats['left_hand_valid_with_prediction_correct'] += 1;
+                            if (correct):
+                                stats['left_hand_valid_correct'] += 1;
+                        if (right_hand_valid):
+                            stats['right_hand_valid'] += 1;
     
                 # Check if cause sequence prediction is in dataset
                 causeMatchesLabel = False;
                 if (causeExpressionPrediction == label_cause):
                     stats['structureCorrectCause'] += 1.0;
-                    if (topcause):
-                        topCorrect = True;
-                        stats['structureCorrectTop'] += 1.0;
-                    else:
-                        botCorrect = True;
-                        stats['structureCorrectBot'] += 1.0;
                     causeMatchesLabel = True;
     
                 causeValid = False;
@@ -1321,10 +1316,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if (dataset.valid_checker(prediction[causeIndex][j],dataset.digits,dataset.operators)):
                     causeValid = True;
                     stats['structureValidCause'] += 1.0;
-                    if (topcause):
-                        stats['structureValidTop'] += 1.0;
-                    else:
-                        stats['structureValidBot'] += 1.0;
                 
                 effectMatchesLabel = False;
                 effectValid = False;
@@ -1332,12 +1323,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     # Check if effect sequence prediction is in dataset
                     if (effectExpressionPrediction == label_effect):
                         stats['structureCorrectEffect'] += 1.0;
-                        if (topcause):
-                            topCorrect = True;
-                            stats['structureCorrectBot'] += 1.0;
-                        else:
-                            botCorrect = True;
-                            stats['structureCorrectTop'] += 1.0;
                         effectMatchesLabel = True;
         
                     if (parameters['dataset_type'] != 3):
@@ -1345,30 +1330,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         if (dataset.valid_checker(prediction[effectIndex][j],dataset.digits,dataset.operators)):
                             effectValid = True;
                             stats['structureValidEffect'] += 1.0;
-                            if (topcause):
-                                stats['structureValidBot'] += 1.0;
-                            else:
-                                stats['structureValidTop'] += 1.0;
     
-                # Check if effect prediction is valid
-                effectMatch = False;
-                if (parameters['dataset_type'] != 3):
-                    if (not self.only_cause_expression):
-                        effect = dataset.effect_matcher(prediction[causeIndex][j][:eos_location],
-                                                        prediction[effectIndex][j][:eos_location],
-                                                        self.digits,self.operators,topcause);
-                        if (effect == 1 or effect == 2):
-                            stats['effectCorrect'] += 1.0;
-                            if (effect == 2):
-                                stats['noEffect'] += 1.0;
-                            effectMatch = True;
-                else:
-                    effectMatch = True;
-    
-                # Determine sample in dataset
+                # If correct = prediction matches label
                 if ((causeMatchesLabel and self.only_cause_expression is not False) or (causeMatchesLabel and effectMatchesLabel)):
-                    stats['structureCorrect'] += 1.0;
-                if ((causeMatchesLabel and self.only_cause_expression is not False) or (causeMatchesLabel and effectMatchesLabel and effectMatch)):
                     if (self.only_cause_expression is False):
                         stats['samplesCorrect'].append((True,True));
                     stats['correct'] += 1.0;
@@ -1388,13 +1352,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             stats['localValidCause'] += float(len(causeExpressionPrediction)/3);
                             stats['localValidEffect'] += float(len(effectExpressionPrediction)/3);
                 else:
+                    # If not correct
                     # Save sample correct
                     if (self.only_cause_expression is False):
                         stats['samplesCorrect'].append((topCorrect,botCorrect));
                     # Determine validity of sample if it is not correct
-                    if ((causeValid and self.only_cause_expression is not False) or (causeValid and effectValid and effectMatch)):
+                    if ((causeValid and self.only_cause_expression is not False) or (causeValid and effectValid)):
                         stats['valid'] += 1.0;
-                        
+                    
+                    # Test whether sample appears in dataset
                     if (testInDataset and not training):
                         primeToUse = None;
                         if (self.only_cause_expression is False):
@@ -1405,28 +1371,30 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             stats['inDataset'] += 1.0;
                         elif (scoredCorrectAlready):
                             notInDataset.append(causeExpressionPrediction);
-#                         def storageChecker(causeExpressionPrediction, primeToUse, dataset_data, dataset):
-#                             if (dataset.testExpressionsByPrefix.exists(causeExpressionPrediction, prime=primeToUse)):
-#                                 return True;
-#                             elif (dataset.expressionsByPrefix.exists(causeExpressionPrediction, prime=primeToUse)):
-#                                 return True;
-#                             return False;
-#                         if (parameters['dataset_type'] == 3):
-#                             def storageChecker(causeExpressionPrediction, primeToUse, dataset_data, dataset):
-#                                 if (dataset_data)
     
+                    # Compute difference between prediction and label
                     difference1 = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction, label_cause);
                     if (not self.only_cause_expression):
                         difference2 = TheanoRecurrentNeuralNetwork.string_difference(effectExpressionPrediction, label_effect);
                     else:
                         difference2 = 0;
                     difference = difference1 + difference2;
+                    
+                    # Difference can be larger than the answer size because the 
+                    # prediction can be shorter or longer than the label
+                    # This truncates difference to not overflow
+                    if (difference > len(label_cause)-(intervention_locations[0,j]+1)):
+                        difference = len(label_cause)-(intervention_locations[0,j]+1);
+                    
+                    # Catch glitches where difference = 0 but sample is incorrect
                     if (difference == 0):
                         if (not self.ignoreZeroDifference):
-                            raise ValueError("Difference is 0 but sample is not correct! causeIndex: %d, cause: %s, effect: %s, difference1: %d, difference2: %d, cause matches label: %d, effect matches label: %d, effectMatch: %d" %
-                                            (causeIndex, causeExpressionPrediction, effectExpressionPrediction, difference1, difference2, int(causeMatchesLabel), int(effectMatchesLabel), int(effectMatch)));
+                            raise ValueError("Difference is 0 but sample is not correct! causeIndex: %d, cause: %s, effect: %s, difference1: %d, difference2: %d, cause matches label: %d, effect matches label: %d" %
+                                            (causeIndex, causeExpressionPrediction, effectExpressionPrediction, difference1, difference2, int(causeMatchesLabel), int(effectMatchesLabel)));
                         else:
                             difference = 4; # Random digit outside of error margin computation range
+                    
+                    # Compute error histogram and correct_matrix using difference
                     stats['error_histogram'][difference] += 1;
                     stats['correct_matrix'][len(label_cause)-(intervention_locations[0,j]+1),len(label_cause)-(intervention_locations[0,j]+1)-difference] += 1.;
     
