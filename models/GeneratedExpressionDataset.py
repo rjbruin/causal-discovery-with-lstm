@@ -202,10 +202,10 @@ class GeneratedExpressionDataset(object):
                 # Reassess whether to switch target dataset part
                 if (not test_set_done):
                     if (append_to_train):
-                        if (n / float(self.lengths[self.TRAIN]) >= test_offset and test_size > 0.):
+                        if (n / float(data_length) >= test_offset and test_size > 0.):
                             append_to_train = False;
                     else:
-                        if (n / float(self.lengths[self.TRAIN]) >= test_offset + test_size):
+                        if (n / float(data_length) >= test_offset + test_size):
                             test_set_done = True;
                             append_to_train = True;
             f.close();
