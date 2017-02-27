@@ -208,7 +208,7 @@ if __name__ == '__main__':
                    'Testing loss': 'Total testing error',
                    'Testing loss (m)': 'Mean testing error',
                    'Train Precision': 'TRAIN Score',
-                   'Unique predictions': 'Unique labels predicted',
+                   'Unique labels': 'Unique labels predicted',
                    'Mean data health': 'Average data health',
                    'Stddev data health': 'Stddev data health',
                    'Mean model health': 'Average model health',

@@ -246,7 +246,7 @@ def get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length,
     # Reseed the random generator to prevent generating identical batches
     np.random.seed();
     
-    if (isTrain):
+    if (isTrain == 0):
         storage = dataset.expressionsByPrefix;
         if (seq2ndmarkov and not parameters['only_cause_expression']):
             storage_bot = dataset.expressionsByPrefixBot;
@@ -569,7 +569,7 @@ if __name__ == '__main__':
                    'Local validity (e)': 'Local valid effect',
                    'In dataset': 'In dataset',
                    'Skipped': 'Skipped because of zero prediction length',
-                   'Unique predictions': 'Unique labels predicted',
+                   'Unique labels': 'Unique labels predicted',
                    'f-subs prediction score': 'f-subs prediction score',
                    'f-subs prediction cause score': 'f-subs prediction score (c)',
                    'f-subs prediction effect score': 'f-subs prediction score (e)',
