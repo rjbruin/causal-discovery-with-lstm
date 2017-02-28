@@ -250,10 +250,12 @@ def get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length,
         storage = dataset.expressionsByPrefix;
         if (seq2ndmarkov and not parameters['only_cause_expression']):
             storage_bot = dataset.expressionsByPrefixBot;
-    else:
+    elif (isTrain == 1):
         storage = dataset.testExpressionsByPrefix;
         if (seq2ndmarkov and not parameters['only_cause_expression']):
             storage_bot = dataset.testExpressionsByPrefixBot;
+    else:
+        storage = dataset.validateExpressionsByPrefix;
     
     batch = [];
     interventionLocations = [];
@@ -356,8 +358,7 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
          sample_size=False, homogeneous=False, returnTestSamples=False):
     total = dataset.lengths[dataset.TEST];
     printing_interval = 1000;
-    if (parameters['max_testing_size'] is not False):
-        total = parameters['max_testing_size'];
+    if (parameters['max_dataset_size'] is not False):
         printing_interval = 100;
     elif (sample_size != False):
         total = sample_size;
@@ -474,16 +475,15 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
 
 def validate(model, dataset, dataset_data, label_index, parameters, max_length, base_offset, intervention_range, print_samples=False, 
              sample_size=False, homogeneous=False):
-    # Test
-    printF("Validating...", experimentId, currentIteration);
-        
     total = parameters['val_size']*np.sum(dataset.lengths);
     printing_interval = 1000;
     if (sample_size != False):
         total = sample_size;
+        
+    # Validate
+    printF("Validating... %d from %d" % (total, parameters['val_size']*np.sum(dataset.lengths)), experimentId, currentIteration);
     
     # Predict
-    printed_samples = False;
     totalError = 0.0;
     k = 0;
     while k < total:
@@ -669,8 +669,8 @@ if __name__ == '__main__':
                 trackerreporter.fromExperimentOutput(experimentId, s, atProgress=currentIt, atDataset=1);
         
         # Warn for unusual parameters
-        if (parameters['max_training_size'] is not False):
-            printF("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!", experimentId, currentIteration);
+        if (parameters['max_dataset_size'] is not False):
+            printF("WARNING! RUNNING WITH LIMIT ON DATASET SIZE!", experimentId, currentIteration);
         if (not using_gpu()):
             printF("WARNING! RUNNING WITHOUT GPU USAGE!", experimentId, currentIteration);
         
@@ -714,8 +714,6 @@ if __name__ == '__main__':
         
         # Compute batching variables
         repetition_size = dataset.lengths[dataset.TRAIN];
-        if (parameters['max_training_size'] is not False):
-            repetition_size = min(parameters['max_training_size'],repetition_size);
         next_testing_threshold = parameters['test_interval'] * repetition_size;
         
         dataset_data = None;

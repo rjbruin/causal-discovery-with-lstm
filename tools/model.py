@@ -20,8 +20,7 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset
         dataset = GeneratedExpressionDataset(train_path, config_path,
                                              test_batch_size=parameters['test_batch_size'],
                                              train_batch_size=parameters['train_batch_size'],
-                                             max_training_size=parameters['max_training_size'],
-                                             max_testing_size=parameters['max_testing_size'],
+                                             max_dataset_size=parameters['max_dataset_size'],
                                              sample_testing_size=parameters['sample_testing_size'],
                                              use_GO_symbol=parameters['decoder'],
                                              finishExpressions=parameters['finish_expressions'],
@@ -35,6 +34,7 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset
                                              debug=parameters['debug'],
                                              test_size=parameters['test_size'],
                                              test_offset=parameters['test_offset'],
+                                             val_size=parameters['val_size'] if parameters['early_stopping'] or parameters['force_validation'] else 0.,
                                              repairExpressions=parameters['sequence_repairing'],
                                              find_x=parameters['rnn_version'] == 2,
                                              preload=not parameters['simple_data_loading']);

@@ -24,19 +24,18 @@ class GeneratedExpressionDataset(object):
     def __init__(self, source, configSource, 
                  preload=True,
                  test_batch_size=10000, train_batch_size=10000,
-                 max_training_size=False, max_testing_size=False,
+                 max_dataset_size=False,
                  sample_testing_size=False, 
                  use_GO_symbol=False, 
                  finishExpressions=False, repairExpressions=False, find_x=False,
                  reverse=False, copyMultipleExpressions=False,
                  operators=4, digits=10, only_cause_expression=False,
                  dataset_type=0, bothcause=False, debug=False,
-                 test_size=0.1, test_offset=0., linearProcess=False):
+                 test_size=0.1, test_offset=0., val_size=0.1, linearProcess=False):
         self.source = source;
         self.test_batch_size = test_batch_size;
         self.train_batch_size = train_batch_size;
-        self.max_training_size = max_training_size;
-        self.max_testing_size = max_testing_size;
+        self.max_dataset_size = max_dataset_size;
         self.sample_testing_size = sample_testing_size;
         self.only_cause_expression = only_cause_expression;
         self.dataset_type = dataset_type;
@@ -134,12 +133,11 @@ class GeneratedExpressionDataset(object):
         # dimension are equal
         self.output_dim = self.data_dim;
         
-        data_length, _, _ = self.filemeta(self.source, self.max_training_size);
-        self.lengths = [data_length * (1. - test_size), data_length * test_size];
-        if (self.max_training_size is not False):
-            self.lengths[self.TRAIN] = self.max_training_size;
-        if (self.max_testing_size is not False):
-            self.lengths[self.TEST] = self.max_testing_size;
+        data_length, _, _ = self.filemeta(self.source, self.max_dataset_size);
+        if (self.max_dataset_size is not False):
+            data_length = self.max_dataset_size;
+        self.lengths = [data_length * (1. - (test_size+val_size)), data_length * test_size, data_length * val_size];
+        
         # Set test batch settings
         self.train_done = False;
         self.test_done = False;
@@ -152,16 +150,21 @@ class GeneratedExpressionDataset(object):
         self.testExpressionsByPrefix = SequencesByPrefix();
         if (not self.only_cause_expression): 
             self.testExpressionsByPrefixBot = SequencesByPrefix();
+        self.validateExpressionLengths = Counter();
+        self.validateExpressionsByPrefix = SequencesByPrefix();
         
         if (preload):    
             f = open(self.source,'r');
             line = f.readline().strip();
             n = 0;
             
-            append_to_train = True;
-            test_set_done = False;
+            # Set to which part to begin to append samples to
+            append_to_part = 0; # 0 = training, 1 = testing, 2 = validation
             if (test_offset == 0.):
-                append_to_train = False;
+                append_to_part = 1;
+            # We don't need to check for validation as that always follows test part directly
+            # so it cannot occur at the start of the dataset
+            
             # Check for n is to make the code work with max_training_size
             while (line != "" and n < data_length):
                 result = line.split(";");
@@ -177,7 +180,7 @@ class GeneratedExpressionDataset(object):
                     expression = expression_prime;
                     expression_prime = "";
                 
-                if (append_to_train):
+                if (append_to_part == 0):
                     if (not self.only_cause_expression and \
                             (topcause == '0' or \
                             self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
@@ -186,7 +189,7 @@ class GeneratedExpressionDataset(object):
                     if (topcause == '1'):
                         self.expressionsByPrefix.add(expression, expression_prime);
                     self.expressionLengths[len(expression)] += 1;
-                else:
+                elif (append_to_part == 1):
                     if (not self.only_cause_expression and \
                             (topcause == '0' or \
                             self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
@@ -195,19 +198,31 @@ class GeneratedExpressionDataset(object):
                     if (topcause == '1'):
                         self.testExpressionsByPrefix.add(expression, expression_prime);
                     self.testExpressionLengths[len(expression)] += 1;
+                else:
+                    if (not self.only_cause_expression and \
+                            (topcause == '0' or \
+                            self.dataset_type == GeneratedExpressionDataset.DATASET_EXPRESSIONS or \
+                            self.bothcause)):
+                        self.validateExpressionsByPrefixBot.add(expression_prime, expression);
+                    if (topcause == '1'):
+                        self.validateExpressionsByPrefix.add(expression, expression_prime);
+                    self.validateExpressionLengths[len(expression)] += 1;
                 
                 line = f.readline().strip();
                 n += 1;
                 
                 # Reassess whether to switch target dataset part
-                if (not test_set_done):
-                    if (append_to_train):
-                        if (n / float(data_length) >= test_offset and test_size > 0.):
-                            append_to_train = False;
-                    else:
-                        if (n / float(data_length) >= test_offset + test_size):
-                            test_set_done = True;
-                            append_to_train = True;
+                val_offset = test_offset + test_size; # Validation part always follows directly after test part
+                currentFraction = n / float(data_length); # All variables are expressed in fractions, so we need to compare with a fraction
+                if (test_size > 0. and currentFraction >= test_offset and currentFraction < test_offset + test_size):
+                    # If test part exists and we are in the part, append to test
+                    append_to_part = 1;
+                elif (val_size > 0. and currentFraction >= val_offset and currentFraction < val_offset + val_size):
+                    # If val part exists and we are in the part, append to val
+                    append_to_part = 2;
+                else:
+                    # Else, append to train
+                    append_to_part = 0;
             f.close();
     
     def filemeta(self, source, max_length=False):
