@@ -53,7 +53,7 @@ def print_stats(stats, parameters, prefix=''):
     printF(prefix + "X on right hand side score: %.2f percent" % (stats['x_hand_side_score']['right']*100), experimentId, currentIteration);
     printF(prefix + "X on equals sign score: %.2f percent" % (stats['x_hand_side_score']['equals']*100), experimentId, currentIteration);
     
-    printF(prefix + "Unique labels predicted: %d" % stats['unique_labels_predicted'], experimentId, currentIteration);
+    printF(prefix + "Unique labels used: %d" % stats['unique_labels_predicted'], experimentId, currentIteration);
     
     if ('input_size_score' in stats):
         printF(prefix + "Input sizes: %s" % (str(stats['input_sizes'])), experimentId, currentIteration);
@@ -183,7 +183,6 @@ def test(model, dataset, parameters, max_length, print_samples=False,
     
     profiler.profile();
     
-    print(total_labels_used);
     print("Test: %d" % k);
     printF("Total testing error: %.2f" % totalError, experimentId, currentIteration);
     printF("Mean testing error: %.8f" % (totalError/float(k)), experimentId, currentIteration);
@@ -211,7 +210,7 @@ if __name__ == '__main__':
                    'Testing loss': 'Total testing error',
                    'Testing loss (m)': 'Mean testing error',
                    'Train Precision': 'TRAIN Score',
-                   'Unique labels': 'Unique labels predicted',
+                   'Unique labels': 'Unique labels used',
                    'Mean data health': 'Average data health',
                    'Stddev data health': 'Stddev data health',
                    'Mean model health': 'Average model health',

@@ -134,7 +134,7 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
         np.set_printoptions(precision=3);
     
     if (parameters['dataset_type'] != 3):
-        printF(prefix + "Unique labels predicted: %d" % stats['unique_labels_predicted'], experimentId, currentIteration);
+        printF(prefix + "Unique labels used: %d" % stats['unique_labels_predicted'], experimentId, currentIteration);
         printF(prefix + "Skipped because of zero prediction length: %d" % stats['skipped_because_intervention_location'], experimentId, currentIteration);
     
 #     printF(prefix + "! Samples correct: %s" % str(map(lambda (x,y): "%d,%d" % (int(x), int(y)),stats['samplesCorrect']));
@@ -571,7 +571,7 @@ if __name__ == '__main__':
                    'Local validity (e)': 'Local valid effect',
                    'In dataset': 'In dataset',
                    'Skipped': 'Skipped because of zero prediction length',
-                   'Unique labels': 'Unique labels predicted',
+                   'Unique labels': 'Unique labels used',
                    'f-subs prediction score': 'f-subs prediction score',
                    'f-subs prediction cause score': 'f-subs prediction score (c)',
                    'f-subs prediction effect score': 'f-subs prediction score (e)',
