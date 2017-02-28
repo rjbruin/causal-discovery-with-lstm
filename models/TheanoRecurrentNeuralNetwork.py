@@ -1249,7 +1249,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 else:
                     equals_location = 'equals';
                 stats['x_hand_side_size'][equals_location] += 1;
-                stats['x_offset_size'][len(expression)-x_location] += 1;
+                stats['x_offset_size'][len(expression)-(x_location+1)] += 1;
                 
                 stats['symbol_confusion'][target_expressions[j],prediction[j]] += 1;
                 
@@ -1258,7 +1258,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     stats['correct'] += 1.0;
                     stats['symbol_correct'][dataset.findSymbol[target_expressions[j]]] += 1;
                     stats['x_hand_side_correct'][equals_location] += 1;
-                    stats['x_offset_correct'][len(expression)-x_location] += 1;
+                    stats['x_offset_correct'][len(expression)-(x_location+1)] += 1;
                     if (expression is not None):
                         stats['input_size_correct'][len(expression)] += 1;
            

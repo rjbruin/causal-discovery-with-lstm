@@ -69,9 +69,10 @@ if __name__ == '__main__':
     inputrange = [0,9];
     weightsrange = [-2,3];
     progressPrintInterval = 10000;
+    crosslinks = False;
     
     # Noise settings
-    noise_prob = 0.01;
+    noise_prob = 0.;
     
     # DEBUG
 #     n = 1000;
@@ -98,7 +99,7 @@ if __name__ == '__main__':
     if (not stop):
         f = open(os.path.join(foldername, 'all.txt'), 'w');
         
-        weights1, weights2, weights1to2, weights2to1 = generateWeights(length, max_lag, weightsrange);
+        weights1, weights2, weights1to2, weights2to1 = generateWeights(length, max_lag, weightsrange, crosslinks=crosslinks);
         sampleStorage = {};
         
         # Generate linear processes and write to file
