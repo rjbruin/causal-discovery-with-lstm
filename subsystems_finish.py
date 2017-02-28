@@ -799,7 +799,7 @@ if __name__ == '__main__':
                 sampleSize = False;
             _, testError = test(model, dataset, dataset_data, label_index, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
                                 sample_size=sampleSize, homogeneous=parameters['homogeneous']);
-            if (parameters['early_stopping']):
+            if (parameters['early_stopping'] or parameters['force_validation']):
                 _, valError = validate(model, dataset, dataset_data, label_index, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
                                    homogeneous=parameters['homogeneous']);
             
