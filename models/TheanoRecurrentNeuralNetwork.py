@@ -1142,7 +1142,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         ax.set_axis_off();
         
 #         plt.show();
-        plt.savefig(os.path.join('.','figures',name));
+        plt.savefig(os.path.join('.','figures',name+'.png'));
 
     def sgd(self, dataset, data, label, learning_rate, emptySamples=None,
             expressions=None,
