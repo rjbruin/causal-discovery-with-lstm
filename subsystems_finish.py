@@ -368,7 +368,7 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
     
     # Set up statistics
     stats = set_up_statistics(dataset.output_dim, model.n_max_digits, dataset.oneHot.keys());
-    total_labels_used = {k: 0 for k in range(30)};
+    total_labels_used = {};
     
     # Predict
     printed_samples = False;
@@ -417,9 +417,11 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
         
         for j in range(nrSamples):
             if (parameters['only_cause_expression'] is not False):
-                total_labels_used[labels_used[j][0]] = True;
+                if (labels_used[j][0] not in total_labels_used):
+                    total_labels_used[labels_used[j][0]] = True;
             else:
-                total_labels_used[labels_used[j][0]+";"+labels_used[j][1]] = True;
+                if (labels_used[j][0]+";"+labels_used[j][1] not in total_labels_used):
+                    total_labels_used[labels_used[j][0]+";"+labels_used[j][1]] = True;
             
             # Save predictions to testSamples
             if (returnTestSamples):

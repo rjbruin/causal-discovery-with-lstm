@@ -132,7 +132,7 @@ def test(model, dataset, parameters, max_length, print_samples=False,
     
     # Set up statistics
     stats = set_up_statistics(dataset.output_dim, model.n_max_digits, dataset.oneHot.keys());
-    total_labels_used = {k: 0 for k in range(30)};
+    total_labels_used = {};
     
     # Predict
     printed_samples = False;
@@ -149,13 +149,14 @@ def test(model, dataset, parameters, max_length, print_samples=False,
         totalError += other['summed_error'];
         
         profiler.start("test batch stats");
-        stats, _ = model.batch_statistics(stats, predictions, 
-                                       test_labels, None,
-                                       other, nrSamples, dataset, 
-                                       None, None, parameters, data=test_data);
+        stats, _, _ = model.batch_statistics(stats, predictions, 
+                                             test_labels, None,
+                                             other, nrSamples, dataset, 
+                                             None, None, parameters, data=test_data);
         
         for j in range(nrSamples):
-            total_labels_used[test_labels[j]] = True;
+            if (test_labels[j] not in total_labels_used):
+                total_labels_used[test_labels[j]] = True;
             
             # Save predictions to testSamples
             if (returnTestSamples):

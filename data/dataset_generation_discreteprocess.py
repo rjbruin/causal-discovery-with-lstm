@@ -72,7 +72,7 @@ if __name__ == '__main__':
     crosslinks = False;
     
     # Noise settings
-    noise_prob = 0.;
+    noise_prob = 0.01;
     
     # DEBUG
 #     n = 1000;
