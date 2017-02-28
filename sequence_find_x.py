@@ -82,10 +82,12 @@ def get_batch_regular(isTrain, dataset, model, debug=False):
     # Reseed the random generator to prevent generating identical batches
     np.random.seed();
     
-    if (isTrain):
+    if (isTrain == 0):
         storage = dataset.expressionsByPrefix;
-    else:
+    elif (isTrain == 1):
         storage = dataset.testExpressionsByPrefix;
+    else:
+        storage = dataset.validationExpressionsByPrefix;
     
     batch = [];
     nrSamples = 0;
@@ -123,8 +125,7 @@ def test(model, dataset, parameters, max_length, print_samples=False,
         
     total = dataset.lengths[dataset.TEST];
     printing_interval = 1000;
-    if (parameters['max_testing_size'] is not False):
-        total = parameters['max_testing_size'];
+    if (parameters['max_dataset_size'] is not False):
         printing_interval = 100;
     elif (sample_size != False):
         total = sample_size;
@@ -141,11 +142,11 @@ def test(model, dataset, parameters, max_length, print_samples=False,
     while k < total:
         # Get data from batch
         test_data, test_targets, test_labels, test_expressions, \
-            nrSamples, health = get_batch(False, dataset, model, dataset_data, label_index, debug=parameters['debug']);
+            nrSamples, health = get_batch(1, dataset, model, dataset_data, label_index, debug=parameters['debug']);
         
         predictions, other = model.predict(test_data, test_targets, 
                                            nrSamples=nrSamples); 
-        totalError += other['error'];
+        totalError += other['summed_error'];
         
         profiler.start("test batch stats");
         stats, _ = model.batch_statistics(stats, predictions, 
@@ -181,6 +182,7 @@ def test(model, dataset, parameters, max_length, print_samples=False,
     
     profiler.profile();
     
+    print(total_labels_used);
     print("Test: %d" % k);
     printF("Total testing error: %.2f" % totalError, experimentId, currentIteration);
     printF("Mean testing error: %.8f" % (totalError/float(k)), experimentId, currentIteration);
@@ -302,8 +304,8 @@ if __name__ == '__main__':
                 trackerreporter.fromExperimentOutput(experimentId, s, atProgress=currentIt, atDataset=1);
         
         # Warn for unusual parameters
-        if (parameters['max_training_size'] is not False):
-            printF("WARNING! RUNNING WITH LIMIT ON TRAINING SIZE!", experimentId, currentIteration);
+        if (parameters['max_dataset_size'] is not False):
+            printF("WARNING! RUNNING WITH LIMIT ON DATASET SIZE!", experimentId, currentIteration);
         if (not using_gpu()):
             printF("WARNING! RUNNING WITHOUT GPU USAGE!", experimentId, currentIteration);
         
@@ -327,8 +329,6 @@ if __name__ == '__main__':
         
         # Compute batching variables
         repetition_size = dataset.lengths[dataset.TRAIN];
-        if (parameters['max_training_size'] is not False):
-            repetition_size = min(parameters['max_training_size'],repetition_size);
         next_testing_threshold = parameters['test_interval'] * repetition_size;
         
         dataset_data = None;
@@ -353,7 +353,7 @@ if __name__ == '__main__':
                 profiler.start('train batch');
                 profiler.start('get train batch');
                 data, target, test_labels, target_expressions, nrSamples, health = \
-                    get_batch(True, dataset, model, dataset_data, label_index, 
+                    get_batch(0, dataset, model, dataset_data, label_index, 
                               debug=parameters['debug']);
                 profiler.stop('get train batch');
                 
