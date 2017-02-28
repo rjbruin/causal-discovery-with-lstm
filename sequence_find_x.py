@@ -361,7 +361,7 @@ if __name__ == '__main__':
                 profiler.start('train sgd');
                 outputs = model.sgd(dataset, data, target, parameters['learning_rate'],
                                       nrSamples=nrSamples);
-                total_error += outputs[0];
+                total_error += outputs[1];
                 profiler.stop('train sgd');
                 
                 # Print batch progress

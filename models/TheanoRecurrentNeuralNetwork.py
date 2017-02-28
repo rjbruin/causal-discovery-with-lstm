@@ -355,17 +355,20 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         cat_cross = -T.sum(label * T.log(coding_dist), axis=coding_dist.ndim-1);
         mean_cross_per_sample = T.sum(cat_cross, axis=0) / (self.n_max_digits - (intervention_locations + 1.));
         error = T.mean(mean_cross_per_sample[:nrSamples]);
+        summed_error = T.sum(mean_cross_per_sample[:nrSamples]);
 
         # Defining prediction function
         if (not self.only_cause_expression):
             self._predict = theano.function([X, label, intervention_locations, nrSamples], [prediction_1,
                                                                                 prediction_2,
                                                                                 right_hand,
-                                                                                error], on_unused_input='ignore');
+                                                                                error,
+                                                                                summed_error], on_unused_input='ignore');
         else:
             self._predict = theano.function([X, label, intervention_locations, nrSamples], [prediction_1,
                                                                                 right_hand,
-                                                                                error], on_unused_input='ignore');
+                                                                                error,
+                                                                                summed_error], on_unused_input='ignore');
 
         # Defining stochastic gradient descent
         variables = filter(lambda name: name != 'hbY', self.vars.keys());
@@ -385,7 +388,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         # Defining SGD functuin
         self._sgd = theano.function([X, label, intervention_locations, nrSamples],
-                                        [error],
+                                        [error, summed_error],
                                     updates=updates,
                                     allow_input_downcast=True,
                                     on_unused_input='ignore')
@@ -637,17 +640,20 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         cat_cross = -T.mean(label[self.lag:,:,self.data_dim:] * T.log(coding_dist), axis=coding_dist.ndim-1);
         mean_cross_per_sample = T.mean(cat_cross, axis=0);
         error = T.mean(mean_cross_per_sample[:nrSamples]);
+        summed_error = T.sum(mean_cross_per_sample[:nrSamples]);
 
         # Defining prediction function
         if (not self.only_cause_expression):
             self._predict = theano.function([X, label, nrSamples], [prediction_1,
                                                                                 prediction_2,
                                                                                 right_hand,
-                                                                                error], on_unused_input='ignore');
+                                                                                error,
+                                                                                summed_error], on_unused_input='ignore');
         else:
             self._predict = theano.function([X, label, nrSamples], [prediction_1,
                                                                                 right_hand,
-                                                                                error], on_unused_input='ignore');
+                                                                                error,
+                                                                                summed_error], on_unused_input='ignore');
 
         # Defining stochastic gradient descent
         variables = filter(lambda name: name != 'hbY', self.vars.keys());
@@ -667,7 +673,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         # Defining SGD functuin
         self._sgd = theano.function([X, label, nrSamples],
-                                        [error],
+                                        [error, summed_error],
                                     updates=updates,
                                     allow_input_downcast=True,
                                     on_unused_input='ignore');
@@ -731,10 +737,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         coding_dist = right_hand;
         cat_cross = -T.sum(label * T.log(coding_dist), axis=coding_dist.ndim-1);
         error = T.mean(cat_cross);
+        summed_error = T.sum(cat_cross);
         
         # Defining prediction function
         self._predict = theano.function([X, label, nrSamples], 
-                                        [prediction, right_hand, error], 
+                                        [prediction, right_hand, error, summed_error], 
                                          on_unused_input='ignore');
         
         # Defining stochastic gradient descent
@@ -755,7 +762,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         # Defining SGD functuin
         self._sgd = theano.function([X, label, nrSamples],
-                                    [error],
+                                    [error, summed_error],
                                     updates=updates,
                                     allow_input_downcast=True,
                                     on_unused_input='ignore');
@@ -1180,17 +1187,17 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         if (not self.only_cause_expression and self.rnn_version != TheanoRecurrentNeuralNetwork.RNN_DECODESINGLEPREDICTION):
             if (self.rnn_version == TheanoRecurrentNeuralNetwork.RNN_DECODESELFFEEDING):
-                prediction_1, prediction_2, right_hand, error = \
+                prediction_1, prediction_2, right_hand, error, summed_error = \
                         self._predict(encoding_label, prediction_label, interventionLocations, nrSamples);
             else:
-                prediction_1, prediction_2, right_hand, error = \
+                prediction_1, prediction_2, right_hand, error, summed_error = \
                         self._predict(encoding_label, prediction_label, nrSamples);
         else:
             if (self.rnn_version == TheanoRecurrentNeuralNetwork.RNN_DECODESELFFEEDING):
-                prediction_1, right_hand, error = \
+                prediction_1, right_hand, error, summed_error = \
                         self._predict(encoding_label, prediction_label, interventionLocations, nrSamples);
             else:
-                prediction_1, right_hand, error = \
+                prediction_1, right_hand, error, summed_error = \
                         self._predict(encoding_label, prediction_label, nrSamples);
 
         # Swap sentence index and datapoints back
@@ -1201,9 +1208,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             right_hand = np.swapaxes(right_hand, 0, 1);
 
         if (not self.only_cause_expression and self.rnn_version != TheanoRecurrentNeuralNetwork.RNN_DECODESINGLEPREDICTION):
-            return [prediction_1, prediction_2], {'right_hand': right_hand, 'error': error};
+            return [prediction_1, prediction_2], {'right_hand': right_hand, 'error': error, 'summed_error': summed_error};
         else:
-            return prediction_1, {'right_hand': right_hand, 'error': error};
+            return prediction_1, {'right_hand': right_hand, 'error': error, 'summed_error': summed_error};
 
     def getVars(self):
         return self.vars.items();

@@ -397,7 +397,7 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
         predictions, other = model.predict(test_data, test_targets, 
                                            interventionLocations=interventionLocations,
                                            nrSamples=nrSamples); 
-        totalError += other['error'];
+        totalError += other['summed_error'];
         
         if (parameters['only_cause_expression']):
             prediction_1 = predictions;
@@ -508,7 +508,7 @@ def validate(model, dataset, dataset_data, label_index, parameters, max_length, 
         predictions, other = model.predict(val_data, val_targets, 
                                            interventionLocations=interventionLocations,
                                            nrSamples=nrSamples); 
-        totalError += other['error'];
+        totalError += other['summed_error'];
         
         if (parameters['only_cause_expression']):
             prediction_1 = predictions;
@@ -768,7 +768,7 @@ if __name__ == '__main__':
                                       nrSamples=model.minibatch_size, expressions=target_expressions,
                                       interventionLocations=interventionLocations,
                                       topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
-                total_error += outputs[0];
+                total_error += outputs[1];
                 profiler.stop('train sgd');
                 
                 # Print batch progress
