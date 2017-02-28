@@ -69,6 +69,7 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset
                                          only_cause_expression=parameters['only_cause_expression'],
                                          seq2ndmarkov=parameters['dataset_type'] == 1,
                                          doubleLayer=parameters['double_layer'],
+                                         tripleLayer=parameters['triple_layer'],
                                          dropoutProb=parameters['dropout_prob'],
                                          outputBias=parameters['output_bias'],
                                          crosslinks=parameters['crosslinks'],

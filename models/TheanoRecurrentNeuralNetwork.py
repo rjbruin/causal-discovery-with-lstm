@@ -37,7 +37,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  decoder=False, verboseOutputter=None, finishExpressions=True,
                  optimizer=0, learning_rate=0.01,
                  operators=4, digits=10, only_cause_expression=False, seq2ndmarkov=False,
-                 doubleLayer=False, dropoutProb=0., outputBias=False,
+                 doubleLayer=False, tripleLayer=False, dropoutProb=0., outputBias=False,
                  crosslinks=True, appendAbstract=False, useAbstract=False, relu=False,
                  ignoreZeroDifference=False, peepholes=False, lstm_biases=False, lag=None,
                  rnn_version=0, nocrosslinks_hidden_factor=1.):
@@ -61,6 +61,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.verboseOutputter = verboseOutputter;
         self.finishExpressions = finishExpressions;
         self.doubleLayer = doubleLayer;
+        self.tripleLayer = tripleLayer;
+        if (self.tripleLayer):
+            self.doubleLayer = False;
         self.dropoutProb = dropoutProb;
         self.outputBias = outputBias;
         self.crosslinks = crosslinks;
@@ -138,7 +141,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             self.varSettings.append(('hWh',self.hidden_dim,self.hidden_dim));
             self.varSettings.append(('hbh',False,self.hidden_dim));
 
-        if (self.doubleLayer):
+        if (self.doubleLayer or self.tripleLayer):
             if (self.lstm):
                 self.varSettings.append(('hWf2',self.hidden_dim,self.hidden_dim));
                 self.varSettings.append(('XWf2',self.hidden_dim,self.hidden_dim));
@@ -163,31 +166,31 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 self.varSettings.append(('Xbh2',False,self.hidden_dim));
                 self.varSettings.append(('hWh2',self.hidden_dim,self.hidden_dim));
                 self.varSettings.append(('hbh2',False,self.hidden_dim));
-#         if (self.tripleLayer):
-#             if (self.lstm):
-#                 self.varSettings.append(('hWf3',self.hidden_dim,self.hidden_dim));
-#                 self.varSettings.append(('XWf3',self.hidden_dim,self.hidden_dim));
-#                 self.varSettings.append(('hWi3',self.hidden_dim,self.hidden_dim));
-#                 self.varSettings.append(('XWi3',self.hidden_dim,self.hidden_dim));
-#                 self.varSettings.append(('hWc3',self.hidden_dim,self.hidden_dim));
-#                 self.varSettings.append(('XWc3',self.hidden_dim,self.hidden_dim));
-#                 self.varSettings.append(('hWo3',self.hidden_dim,self.hidden_dim));
-#                 self.varSettings.append(('XWo3',self.hidden_dim,self.hidden_dim));
-#                 if (self.peepholes):
-#                     # Peephole connections for forget, input and output gate
-#                     self.varSettings.append(('Pf3',False,self.hidden_dim));
-#                     self.varSettings.append(('Pi3',False,self.hidden_dim));
-#                     self.varSettings.append(('Po3',False,self.hidden_dim));
-#                 if (self.lstm_biases):     
-#                     self.varSettings.append(('bc3',False,self.hidden_dim));
-#                     self.varSettings.append(('bf3',False,self.hidden_dim));
-#                     self.varSettings.append(('bi3',False,self.hidden_dim));
-#                     self.varSettings.append(('bo3',False,self.hidden_dim));
-#             else:
-#                 self.varSettings.append(('XWh3',self.hidden_dim,self.hidden_dim));
-#                 self.varSettings.append(('Xbh3',False,self.hidden_dim));
-#                 self.varSettings.append(('hWh3',self.hidden_dim,self.hidden_dim));
-#                 self.varSettings.append(('hbh3',False,self.hidden_dim));
+        if (self.tripleLayer):
+            if (self.lstm):
+                self.varSettings.append(('hWf3',self.hidden_dim,self.hidden_dim));
+                self.varSettings.append(('XWf3',self.hidden_dim,self.hidden_dim));
+                self.varSettings.append(('hWi3',self.hidden_dim,self.hidden_dim));
+                self.varSettings.append(('XWi3',self.hidden_dim,self.hidden_dim));
+                self.varSettings.append(('hWc3',self.hidden_dim,self.hidden_dim));
+                self.varSettings.append(('XWc3',self.hidden_dim,self.hidden_dim));
+                self.varSettings.append(('hWo3',self.hidden_dim,self.hidden_dim));
+                self.varSettings.append(('XWo3',self.hidden_dim,self.hidden_dim));
+                if (self.peepholes):
+                    # Peephole connections for forget, input and output gate
+                    self.varSettings.append(('Pf3',False,self.hidden_dim));
+                    self.varSettings.append(('Pi3',False,self.hidden_dim));
+                    self.varSettings.append(('Po3',False,self.hidden_dim));
+                if (self.lstm_biases):     
+                    self.varSettings.append(('bc3',False,self.hidden_dim));
+                    self.varSettings.append(('bf3',False,self.hidden_dim));
+                    self.varSettings.append(('bi3',False,self.hidden_dim));
+                    self.varSettings.append(('bo3',False,self.hidden_dim));
+            else:
+                self.varSettings.append(('XWh3',self.hidden_dim,self.hidden_dim));
+                self.varSettings.append(('Xbh3',False,self.hidden_dim));
+                self.varSettings.append(('hWh3',self.hidden_dim,self.hidden_dim));
+                self.varSettings.append(('hbh3',False,self.hidden_dim));
 
         self.varSettings.append(('hWY',self.hidden_dim,self.actual_prediction_output_dim));
         self.varSettings.append(('hbY',False,self.actual_prediction_output_dim));
@@ -217,8 +220,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         decode_function = self.lstm_interventional_single;
         if (self.doubleLayer):
             decode_function = self.lstm_interventional_double;
-#         if (self.tripleLayer):
-#             decode_function = self.lstm_predict_triple if self.lstm else self.rnn_predict_triple;
+        if (self.tripleLayer):
+            decode_function = self.lstm_interventional_triple;
 
         if (self.dropoutProb > 0.):
             self.random_stream = T.shared_randomstreams.RandomStreams(seed=np.random.randint(10000));
@@ -229,27 +232,27 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         hidden = [T.zeros((self.minibatch_size,self.hidden_dim))];
         cell = [T.zeros((self.minibatch_size,self.hidden_dim))];
-        if (self.doubleLayer):
+        if (self.doubleLayer or self.tripleLayer):
             hidden_2 = [T.zeros((self.minibatch_size,self.hidden_dim))];
             cell_2 = [T.zeros((self.minibatch_size,self.hidden_dim))];
-#         if (self.tripleLayer):
-#             hidden_3 = [T.zeros((self.minibatch_size,self.hidden_dim))];
-#             cell_3 = [T.zeros((self.minibatch_size,self.hidden_dim))];
+        if (self.tripleLayer):
+            hidden_3 = [T.zeros((self.minibatch_size,self.hidden_dim))];
+            cell_3 = [T.zeros((self.minibatch_size,self.hidden_dim))];
         if (not self.crosslinks or self.only_cause_expression is not False):
             hidden_top = hidden;
             cell_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
             hidden_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
             cell_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
-            if (self.doubleLayer):
+            if (self.doubleLayer or self.tripleLayer):
                 hidden_2_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
                 cell_2_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
                 hidden_2_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
                 cell_2_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
-#             if (self.tripleLayer):
-#                 hidden_3_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
-#                 cell_3_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
-#                 hidden_3_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
-#                 cell_3_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
+            if (self.tripleLayer):
+                hidden_3_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
+                cell_3_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
+                hidden_3_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
+                cell_3_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
 
         # DECODING PHASE
         if (self.crosslinks and not self.only_cause_expression):
@@ -264,15 +267,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                {'initial': cell[-1], 'taps': [-1]}, 
                                {'initial': cell_2[-1], 'taps': [-1]}, 
                                {'initial': 0., 'taps': [-1]});
-#             if (self.tripleLayer):
-#                 init_values = ({'initial': T.zeros((self.minibatch_size,self.actual_data_dim)), 'taps': [-1]},
-#                                {'initial': hidden[-1], 'taps': [-1]},
-#                                {'initial': hidden_2[-1], 'taps': [-1]},
-#                                {'initial': hidden_3[-1], 'taps': [-1]},
-#                                {'initial': cell[-1], 'taps': [-1]}, 
-#                                {'initial': cell_2[-1], 'taps': [-1]}, 
-#                                {'initial': cell_3[-1], 'taps': [-1]},
-#                                {'initial': 0., 'taps': [-1]});
+            if (self.tripleLayer):
+                init_values = ({'initial': T.zeros((self.minibatch_size,self.actual_data_dim)), 'taps': [-1]},
+                               {'initial': hidden[-1], 'taps': [-1]},
+                               {'initial': hidden_2[-1], 'taps': [-1]},
+                               {'initial': hidden_3[-1], 'taps': [-1]},
+                               {'initial': cell[-1], 'taps': [-1]}, 
+                               {'initial': cell_2[-1], 'taps': [-1]}, 
+                               {'initial': cell_3[-1], 'taps': [-1]},
+                               {'initial': 0., 'taps': [-1]});
             outputs, _ = theano.scan(fn=decode_function,
                                      sequences=label,
                                      outputs_info=init_values,
@@ -291,15 +294,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                {'initial': cell_top[-1], 'taps': [-1]},
                                {'initial': cell_2_top[-1], 'taps': [-1]},
                                {'initial': 0., 'taps': [-1]});
-#             if (self.tripleLayer):
-#                 init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
-#                                {'initial': hidden[-1], 'taps': [-1]},
-#                                {'initial': hidden_2_top[-1], 'taps': [-1]},
-#                                {'initial': hidden_3_top[-1], 'taps': [-1]},
-#                                {'initial': cell[-1], 'taps': [-1]}, 
-#                                {'initial': cell_2_top[-1], 'taps': [-1]}, 
-#                                {'initial': cell_3_top[-1], 'taps': [-1]},
-#                                {'initial': 0., 'taps': [-1]});
+            if (self.tripleLayer):
+                init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
+                               {'initial': hidden_top[-1], 'taps': [-1]},
+                               {'initial': hidden_2_top[-1], 'taps': [-1]},
+                               {'initial': hidden_3_top[-1], 'taps': [-1]},
+                               {'initial': cell_top[-1], 'taps': [-1]}, 
+                               {'initial': cell_2_top[-1], 'taps': [-1]}, 
+                               {'initial': cell_3_top[-1], 'taps': [-1]},
+                               {'initial': 0., 'taps': [-1]});
             outputs_1, _ = theano.scan(fn=decode_function,
                                      sequences=label,
                                      outputs_info=init_values,
@@ -319,15 +322,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                    {'initial': cell_bot[-1], 'taps': [-1]},
                                    {'initial': cell_2_bot[-1], 'taps': [-1]},
                                    {'initial': 0., 'taps': [-1]});
-#                 if (self.tripleLayer):
-#                     init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
-#                                    {'initial': hidden_bot[-1], 'taps': [-1]},
-#                                    {'initial': hidden_2_bot[-1], 'taps': [-1]},
-#                                    {'initial': hidden_3_bot[-1], 'taps': [-1]},
-#                                    {'initial': cell_bot[-1], 'taps': [-1]},
-#                                    {'initial': cell_2_bot[-1], 'taps': [-1]},
-#                                    {'initial': cell_3_bot[-1], 'taps': [-1]},
-#                                    {'initial': 0., 'taps': [-1]});
+                if (self.tripleLayer):
+                    init_values = ({'initial': T.zeros((self.minibatch_size,self.data_dim)), 'taps': [-1]},
+                                   {'initial': hidden_bot[-1], 'taps': [-1]},
+                                   {'initial': hidden_2_bot[-1], 'taps': [-1]},
+                                   {'initial': hidden_3_bot[-1], 'taps': [-1]},
+                                   {'initial': cell_bot[-1], 'taps': [-1]},
+                                   {'initial': cell_2_bot[-1], 'taps': [-1]},
+                                   {'initial': cell_3_bot[-1], 'taps': [-1]},
+                                   {'initial': 0., 'taps': [-1]});
                 outputs_2, _ = theano.scan(fn=decode_function,
                                          sequences=label,
                                          outputs_info=init_values,
@@ -881,6 +884,42 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         new_sentence_index = sentence_index + 1.;      
 
         return Y_output, hidden_1, hidden_2, cell, cell_2, new_sentence_index;
+
+    def lstm_interventional_triple(self, given_X, previous_output, previous_hidden_1,
+                            previous_hidden_2, previous_hidden_3, previous_cell_1, previous_cell_2, previous_cell_3,  
+                            sentence_index, intervention_locations,
+                            hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, Pf, Pi, Po, bc, bf, bi, bo,
+                            hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2,
+                            hWf3, XWf3, hWi3, XWi3, hWc3, XWc3, hWo3, XWo3, Pf3, Pi3, Po3, bc3, bf3, bi3, bo3, 
+                            hWY, hbY, sd, ed):
+        hidden_1, cell = self.lstm_cell(previous_output, previous_hidden_1, previous_cell_1, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, \
+                                      Pf, Pi, Po, bc, bf, bi, bo, sd, ed);
+        hidden_1 = self.lstm_dropout(hidden_1, self.hidden_dim);
+        hidden_2, cell_2 = self.lstm_cell(hidden_1, previous_hidden_2, previous_cell_2, hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, \
+                                        XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2, 0, self.hidden_dim);
+        hidden_2 = self.lstm_dropout(hidden_2, self.hidden_dim);
+        hidden_3, cell_3 = self.lstm_cell(hidden_2, previous_hidden_3, previous_cell_3, hWf3, XWf3, hWi3, XWi3, hWc3, XWc3, hWo3, \
+                                        XWo3, Pf3, Pi3, Po3, bc3, bf3, bi3, bo3, 0, self.hidden_dim);
+        hidden_3 = self.lstm_dropout(hidden_3, self.hidden_dim);
+        
+        # Use given intervention locations to determine whether to use label
+        # or previous prediction. This should allow for flexible minibatching
+        comparison_top = T.le(sentence_index,intervention_locations[0]).reshape((T.constant(self.minibatch_size), T.constant(1)), ndim=2);
+        if (not self.only_cause_expression):
+            comparison_bot = T.le(sentence_index,intervention_locations[1]).reshape((T.constant(self.minibatch_size), T.constant(1)), ndim=2);
+        
+        Y_output = self.lstm_output(hidden_3, hWY, hbY);
+        Y_output = self.lstm_dropout(Y_output, self.decoding_output_dim);
+        
+        # Filter for intervention location
+        if (not self.only_cause_expression):
+            Y_output = T.concatenate([T.switch(comparison_top,given_X[:,:self.data_dim],Y_output[:,:self.data_dim]), T.switch(comparison_bot,given_X[:,self.data_dim:],Y_output[:,self.data_dim:])], axis=1)[:,sd:ed];
+        else:
+            Y_output = T.switch(comparison_top,given_X,Y_output)[:,sd:ed];
+
+        new_sentence_index = sentence_index + 1.;      
+
+        return Y_output, hidden_1, hidden_2, hidden_3, cell, cell_2, cell_3, new_sentence_index;
 
     def lstm_double(self, given_X, previous_hidden_1,
                     previous_hidden_2, previous_cell_1, previous_cell_2, 
