@@ -529,7 +529,7 @@ def validate(model, dataset, dataset_data, label_index, parameters, max_length, 
     printF("Total validation error: %.2f" % totalError, experimentId, currentIteration);
     printF("Mean validation error: %.8f" % (totalError/float(k)), experimentId, currentIteration);
     
-    return stats, totalError;
+    return stats, totalError, totalError/float(k);
 
 if __name__ == '__main__':
     theano.config.floatX = 'float32';
@@ -729,6 +729,7 @@ if __name__ == '__main__':
         
         intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
         val_error_stack = deque();
+        mean_error_stack = deque();
         last_val_error_avg = 0.0;
         for r in range(parameters['repetitions']):
             stats = set_up_statistics(dataset.output_dim, model.n_max_digits, dataset.oneHot.keys());
@@ -800,8 +801,8 @@ if __name__ == '__main__':
             _, testError = test(model, dataset, dataset_data, label_index, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
                                 sample_size=sampleSize, homogeneous=parameters['homogeneous']);
             if (parameters['early_stopping'] or parameters['force_validation']):
-                _, valError = validate(model, dataset, dataset_data, label_index, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
-                                   homogeneous=parameters['homogeneous']);
+                _, valError, meanValError = validate(model, dataset, dataset_data, label_index, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
+                                                     homogeneous=parameters['homogeneous']);
             
             # Save weights to pickles
             save_modulo = 50;
@@ -815,20 +816,21 @@ if __name__ == '__main__':
             if (parameters['early_stopping']):
                 valErrorMovingAverageN = parameters['early_stopping_errors'];
                 valErrorEpsilon = parameters['early_stopping_epsilon'];
-                val_error_stack.append(valError);
+                val_error_stack.append(meanValError);
                 if (len(val_error_stack) >= valErrorMovingAverageN):
                     if (len(val_error_stack) > valErrorMovingAverageN):
                         val_error_stack.popleft();
                     # Only check for early stopping after queue is large enough
                     avg_error = np.mean(val_error_stack);
-                    error_diff = np.abs(avg_error - last_val_error_avg);
-                    if (error_diff < valErrorEpsilon):
-                        printF("STOPPING EARLY at iteration %d with average error %.2f and difference %.2f!" % (r+1, avg_error, error_diff), experimentId, currentIteration);
-                        # Perform final testing - will report stats for the same iteration so will overwrite in tracker
-                        _, testError = test(model, dataset, dataset_data, label_index, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
-                                            sample_size=False, homogeneous=parameters['homogeneous']);
-                        break;
-                    last_val_error_avg = avg_error;
+                    if (len(mean_error_stack) >= parameters['early_stopping_offset']):
+                        error_diff = np.abs(avg_error - mean_error_stack.popleft());
+                        if (error_diff < valErrorEpsilon):
+                            printF("STOPPING EARLY at iteration %d with average error %.2f and difference %.2f!" % (r+1, avg_error, error_diff), experimentId, currentIteration);
+                            # Perform final testing - will report stats for the same iteration so will overwrite in tracker
+                            _, testError = test(model, dataset, dataset_data, label_index, parameters, model.n_max_digits, parameters['intervention_base_offset'], parameters['intervention_range'], print_samples=parameters['debug'], 
+                                                sample_size=False, homogeneous=parameters['homogeneous']);
+                            break;
+                    mean_error_stack.append(avg_error);
         
         printF("Training finished!", experimentId, currentIteration);
     

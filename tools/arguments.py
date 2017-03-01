@@ -95,6 +95,7 @@ argumentProcessors = {'name': processString,
                       'early_stopping': processBool,
                       'early_stopping_errors': processInt,
                       'early_stopping_epsilon': processFloat,
+                      'early_stopping_offset': processInt,
                       'val_size': processFloat,
                       'force_validation': processBool
                       }
@@ -160,8 +161,9 @@ defaults = {'output_name': "",
             'simple_data_loading': False,
             'nocrosslinks_hidden_factor': 1.,
             'early_stopping': False,
-            'early_stopping_errors': 5,
-            'early_stopping_epsilon': 1.,
+            'early_stopping_errors': 40,
+            'early_stopping_epsilon': 0.001,
+            'early_stopping_offset': 40,
             'val_size': 0.1,
             'force_validation': False
             }
