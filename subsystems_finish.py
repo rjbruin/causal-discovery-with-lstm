@@ -584,7 +584,7 @@ if __name__ == '__main__':
                    'Syntax (r)': 'Valid right hand side',
                    'Valid with valid left': 'Score with valid left hand side'};
     for size in range(20):
-        score_types['Pred.size %d' % size] = 'Score by prediction size = %d' % size;
+        score_types['Label.size %d' % size] = 'Score by label size = %d' % size;
     for size in range(20):
         score_types['Inpt.size %d' % size] = 'Score by input size = %d' % size;
     for trueSize in range(20):
