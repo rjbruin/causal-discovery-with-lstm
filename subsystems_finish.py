@@ -66,7 +66,9 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
             printF(prefix + "Valid right hand side: %.2f percent" % (stats['right_hand_valid_score']*100), experimentId, currentIteration);
             printF(prefix + "Score with valid left hand side: %.2f percent" % (stats['left_hand_valid_correct_score']*100), experimentId, currentIteration);
             printF(prefix + "Partially predicted left hand sides: %.2f percent" % ((stats['left_hand_valid_with_prediction_size']*100) / float(stats['prediction_size'])), experimentId, currentIteration);
+            printF(prefix + "Valid left hand with partially predicted left hand side: %.2f percent" % (stats['valid_left_hand_with_prediction_score']*100.), experimentId, currentIteration);
             printF(prefix + "Score with partially predicted left hand side: %.2f percent" % (stats['left_hand_valid_with_prediction_score']*100), experimentId, currentIteration);
+            printF(prefix + "Score with partially predicted valid left hand side: %.2f percent" % (stats['valid_left_hand_valid_with_prediction_score']*100), experimentId, currentIteration);
         
 #         printF(prefix + "Local valid: %.2f percent" % (stats['localValidScore']*100), experimentId, currentIteration);
 #         if (not parameters['only_cause_expression']):
@@ -583,7 +585,9 @@ if __name__ == '__main__':
                    'Syntax (l)': 'Valid left hand side',
                    'Syntax (r)': 'Valid right hand side',
                    'Valid with valid left': 'Score with valid left hand side',
-                   'Partial left hand score': 'Score with partially predicted left hand side'};
+                   'Partial valid left hand': 'Valid left hand with partially predicted left hand side',
+                   'Partial left hand score': 'Score with partially predicted left hand side',
+                   'Partial valid left hand score': 'Score with partially predicted valid left hand side'};
     for size in range(20):
         score_types['Label.size %d' % size] = 'Score by label size = %d' % size;
     for size in range(20):

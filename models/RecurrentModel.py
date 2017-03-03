@@ -149,8 +149,14 @@ class RecurrentModel(object):
             
             if (stats['left_hand_valid_with_prediction_size'] > 0):
                 stats['left_hand_valid_with_prediction_score'] = stats['left_hand_valid_with_prediction_correct'] / float(stats['left_hand_valid_with_prediction_size']);
+                stats['valid_left_hand_with_prediction_score'] = stats['valid_left_hand_valid_with_prediction_size'] / float(stats['left_hand_valid_with_prediction_size']);
             else:
                 stats['left_hand_valid_with_prediction_score'] = 0.;
+                stats['valid_left_hand_with_prediction_score'] = 0.;
+            if (stats['valid_left_hand_valid_with_prediction_size'] > 0):
+                stats['valid_left_hand_valid_with_prediction_score'] = stats['valid_left_hand_valid_with_prediction_correct'] / float(stats['valid_left_hand_valid_with_prediction_size']);
+            else:
+                stats['valid_left_hand_valid_with_prediction_score'] = 0.;
             
             
             stats['symbol_score'] = {};

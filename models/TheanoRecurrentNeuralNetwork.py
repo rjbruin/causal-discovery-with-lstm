@@ -1368,10 +1368,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             scoredCorrectAlready = True;
                         if (intervention_locations[0,j] < labels_to_use[j][causeIndex].index('=')):
                             stats['left_hand_valid_with_prediction_size'] += 1;
+                            if (left_hand_valid):
+                                stats['valid_left_hand_valid_with_prediction_size'] += 1;
+                                if (correct):
+                                    stats['valid_left_hand_valid_with_prediction_correct'] += 1;
+                                    stats['left_hand_valid_with_prediction_correct'] += 1;
                         if (left_hand_valid):
                             stats['left_hand_valid'] += 1;
-                            if (intervention_locations[0,j] < labels_to_use[j][causeIndex].index('=')):
-                                stats['left_hand_valid_with_prediction_correct'] += 1;
                             if (correct):
                                 stats['left_hand_valid_correct'] += 1;
                         if (right_hand_valid):
