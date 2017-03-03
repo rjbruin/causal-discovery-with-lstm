@@ -582,7 +582,8 @@ if __name__ == '__main__':
                    'Syntax': 'Syntactically valid',
                    'Syntax (l)': 'Valid left hand side',
                    'Syntax (r)': 'Valid right hand side',
-                   'Valid with valid left': 'Score with valid left hand side'};
+                   'Valid with valid left': 'Score with valid left hand side',
+                   'Partial left hand score': 'Score with partially predicted left hand side'};
     for size in range(20):
         score_types['Label.size %d' % size] = 'Score by label size = %d' % size;
     for size in range(20):
