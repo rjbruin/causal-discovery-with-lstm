@@ -690,6 +690,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         encode_function = self.lstm_cell;
         if (self.doubleLayer):
             encode_function = self.lstm_double_no_output;
+        if (self.tripleLayer):
+            encode_function = self.lstm_triple_no_output;
         
         if (self.dropoutProb > 0.):
             self.random_stream = T.shared_randomstreams.RandomStreams(seed=np.random.randint(10000));
@@ -700,11 +702,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         hidden = [T.zeros((self.minibatch_size,self.hidden_dim))];
         cell = [T.zeros((self.minibatch_size,self.hidden_dim))];
-        if (self.doubleLayer):
+        if (self.doubleLayer or self.tripleLayer):
             hidden_2 = [T.zeros((self.minibatch_size,self.hidden_dim))];
             cell_2 = [T.zeros((self.minibatch_size,self.hidden_dim))];
-#         if (self.tripleLayer):
-#             hidden_3 = [T.zeros((self.minibatch_size,self.hidden_dim))];
+        if (self.tripleLayer):
+            hidden_3 = [T.zeros((self.minibatch_size,self.hidden_dim))];
+            cell_3 = [T.zeros((self.minibatch_size,self.hidden_dim))];
     
         # ENCODING PHASE
         init_values = ({'initial': hidden[-1], 'taps': [-1]},
@@ -714,10 +717,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                            {'initial': hidden_2[-1], 'taps': [-1]},
                            {'initial': cell[-1], 'taps': [-1]},
                            {'initial': cell_2[-1], 'taps': [-1]});
-#         if (self.tripleLayer):
-#             init_values = ({'initial': hidden[-1], 'taps': [-1]}, 
-#                            {'initial': hidden_2[-1], 'taps': [-1]},
-#                            {'initial': hidden_3[-1], 'taps': [-1]});
+        if (self.tripleLayer):
+            init_values = ({'initial': hidden[-1], 'taps': [-1]}, 
+                           {'initial': hidden_2[-1], 'taps': [-1]},
+                           {'initial': hidden_3[-1], 'taps': [-1]},
+                           {'initial': cell[-1], 'taps': [-1]},
+                           {'initial': cell_2[-1], 'taps': [-1]},
+                           {'initial': cell_3[-1], 'taps': [-1]});
         outputs, _ = theano.scan(fn=encode_function,
                                           sequences=X,
                                           outputs_info=init_values,
@@ -726,6 +732,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         encoding_hiddens = outputs[:1];
         if (self.doubleLayer):
             encoding_hiddens = outputs[:2];
+        if (self.tripleLayer):
+            encoding_hiddens = outputs[:3];
         right_hand = T.nnet.softmax(encoding_hiddens[-1][-1].dot(self.vars['hWY']) + self.vars['hbY']);
         right_hand_near_zeros = T.ones_like(right_hand) * 1e-15;
         right_hand = T.maximum(right_hand, right_hand_near_zeros);
@@ -958,6 +966,24 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         hidden_2 = self.lstm_dropout(hidden_2, self.hidden_dim);
 
         return hidden_1, hidden_2, cell, cell_2;
+    
+    def lstm_triple_no_output(self, current_X, previous_hidden_1, previous_hidden_2, previous_hidden_3,
+                              previous_cell_1, previous_cell_2, previous_cell_3,
+                              hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, Pf, Pi, Po, bc, bf, bi, bo,
+                              hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2,
+                              hWf3, XWf3, hWi3, XWi3, hWc3, XWc3, hWo3, XWo3, Pf3, Pi3, Po3, bc3, bf3, bi3, bo3, 
+                              sd, ed):
+        hidden_1, cell = self.lstm_cell(current_X, previous_hidden_1, previous_cell_1, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, \
+                                      Pf, Pi, Po, bc, bf, bi, bo, sd, ed);
+        hidden_1 = self.lstm_dropout(hidden_1, self.hidden_dim);
+        hidden_2, cell_2 = self.lstm_cell(hidden_1, previous_hidden_2, previous_cell_2, hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, \
+                                        XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2, 0, self.hidden_dim);
+        hidden_2 = self.lstm_dropout(hidden_2, self.hidden_dim);
+        hidden_3, cell_3 = self.lstm_cell(hidden_2, previous_hidden_3, previous_cell_3, hWf3, XWf3, hWi3, XWi3, hWc3, XWc3, hWo3, \
+                                        XWo3, Pf3, Pi3, Po3, bc3, bf3, bi3, bo3, 0, self.hidden_dim);
+        hidden_3 = self.lstm_dropout(hidden_3, self.hidden_dim);
+
+        return hidden_1, hidden_2, hidden_3, cell, cell_2, cell_3;
 
     def rnn_predict_single(self, given_X, previous_output, previous_hidden, previous_cell, sentence_index, intervention_locations,
                             XWh, Xbh, hWh, hbh, hWY, hbY, sd, ed):
