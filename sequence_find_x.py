@@ -222,6 +222,8 @@ if __name__ == '__main__':
         score_types['Size %d' % size] = 'Score by input size = %d:' % size;
     for symbolId in range(20):
         score_types['Symbol %d' % symbolId] = 'Symbol %d:' % symbolId;
+    for offset in range(20):
+        score_types['X offset %d' % offset] = 'X offset = %d:' % offset;
     for trueSize in range(20):
         for nrCorrect in range(20):
             score_types['T %d C %d' % (trueSize, nrCorrect)] = 'Prediction size %d nr correct %d' % (trueSize, nrCorrect);
