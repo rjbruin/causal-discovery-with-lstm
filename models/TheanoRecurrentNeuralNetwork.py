@@ -410,9 +410,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (self.doubleLayer):
             encode_function = self.lstm_double_no_output;
             decode_function = self.lstm_double;
-#         if (self.tripleLayer):
-#             encode_function = self.lstm_predict_triple_no_output;
-#             decode_function = self.lstm_predict_triple if self.lstm else self.rnn_predict_triple;
+        if (self.tripleLayer):
+            encode_function = self.lstm_triple_no_output;
+            decode_function = self.lstm_triple;
 
         if (self.dropoutProb > 0.):
             self.random_stream = T.shared_randomstreams.RandomStreams(seed=np.random.randint(10000));
@@ -427,9 +427,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (self.doubleLayer):
             hidden_2 = [T.zeros((self.minibatch_size,self.hidden_dim))];
             cell_2 = [T.zeros((self.minibatch_size,self.hidden_dim))];
-#         if (self.tripleLayer):
-#             hidden_3 = [T.zeros((self.minibatch_size,self.hidden_dim))];
-#             cell_3 = [T.zeros((self.minibatch_size,self.hidden_dim))];
+        if (self.tripleLayer):
+            hidden_3 = [T.zeros((self.minibatch_size,self.hidden_dim))];
+            cell_3 = [T.zeros((self.minibatch_size,self.hidden_dim))];
         if (not self.crosslinks or self.only_cause_expression is not False):
             hidden_top = hidden;
             cell_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
@@ -440,11 +440,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 cell_2_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
                 hidden_2_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
                 cell_2_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
-#             if (self.tripleLayer):
-#                 hidden_3_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
-#                 cell_3_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
-#                 hidden_3_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
-#                 cell_3_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
+            if (self.tripleLayer):
+                hidden_3_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
+                cell_3_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
+                hidden_3_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
+                cell_3_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
 
         # ENCODING PHASE (process random prefix of sample)
         if (self.crosslinks and not self.only_cause_expression):
@@ -455,13 +455,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                {'initial': hidden_2[-1], 'taps': [-1]},
                                {'initial': cell[-1], 'taps': [-1]}, 
                                {'initial': cell_2[-1], 'taps': [-1]});
-#             if (self.tripleLayer):
-#                 init_values = ({'initial': hidden[-1], 'taps': [-1]},
-#                                {'initial': hidden_2[-1], 'taps': [-1]},
-#                                {'initial': hidden_3[-1], 'taps': [-1]},
-#                                {'initial': cell[-1], 'taps': [-1]}, 
-#                                {'initial': cell_2[-1], 'taps': [-1]}, 
-#                                {'initial': cell_3[-1], 'taps': [-1]});
+            if (self.tripleLayer):
+                init_values = ({'initial': hidden[-1], 'taps': [-1]},
+                               {'initial': hidden_2[-1], 'taps': [-1]},
+                               {'initial': hidden_3[-1], 'taps': [-1]},
+                               {'initial': cell[-1], 'taps': [-1]}, 
+                               {'initial': cell_2[-1], 'taps': [-1]}, 
+                               {'initial': cell_3[-1], 'taps': [-1]});
             outputs, _ = theano.scan(fn=encode_function,
                                      sequences=label[:self.lag-1],
                                      outputs_info=init_values,
@@ -473,12 +473,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 learned_hidden_2 = outputs[1];
                 learned_cell = outputs[2];
                 learned_cell_2 = outputs[3];
-#             if (self.tripleLayer):
-#                 learned_hidden_2 = outputs[1];
-#                 learned_hidden_3 = outputs[2];
-#                 learned_cell = outputs[3];
-#                 learned_cell_2 = outputs[4];
-#                 learned_cell_3 = outputs[5];
+            if (self.tripleLayer):
+                learned_hidden_2 = outputs[1];
+                learned_hidden_3 = outputs[2];
+                learned_cell = outputs[3];
+                learned_cell_2 = outputs[4];
+                learned_cell_3 = outputs[5];
         else:
             init_values = ({'initial': hidden_top[-1], 'taps': [-1]}, 
                            {'initial': cell_top[-1], 'taps': [-1]});
@@ -487,13 +487,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                {'initial': hidden_2_top[-1], 'taps': [-1]},
                                {'initial': cell_top[-1], 'taps': [-1]},
                                {'initial': cell_2_top[-1], 'taps': [-1]});
-#             if (self.tripleLayer):
-#                 init_values = ({'initial': hidden[-1], 'taps': [-1]},
-#                                {'initial': hidden_2_top[-1], 'taps': [-1]},
-#                                {'initial': hidden_3_top[-1], 'taps': [-1]},
-#                                {'initial': cell_top[-1], 'taps': [-1]}, 
-#                                {'initial': cell_2_top[-1], 'taps': [-1]}, 
-#                                {'initial': cell_3_top[-1], 'taps': [-1]});
+            if (self.tripleLayer):
+                init_values = ({'initial': hidden_top[-1], 'taps': [-1]},
+                               {'initial': hidden_2_top[-1], 'taps': [-1]},
+                               {'initial': hidden_3_top[-1], 'taps': [-1]},
+                               {'initial': cell_top[-1], 'taps': [-1]}, 
+                               {'initial': cell_2_top[-1], 'taps': [-1]}, 
+                               {'initial': cell_3_top[-1], 'taps': [-1]});
             outputs_1, _ = theano.scan(fn=encode_function,
                                      sequences=label[:self.lag-1,:,:self.data_dim],
                                      outputs_info=init_values,
@@ -506,12 +506,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 learned_hidden_2_top = outputs_1[1];
                 learned_cell_top = outputs_1[2];
                 learned_cell_2_top = outputs_1[3];
-#             if (self.tripleLayer):
-#                 learned_hidden_2_top = outputs_1[1];
-#                 learned_hidden_3_top = outputs_1[2];
-#                 learned_cell_top = outputs_1[3];
-#                 learned_cell_2_top = outputs_1[4];
-#                 learned_cell_3_top = outputs_1[5];
+            if (self.tripleLayer):
+                learned_hidden_2_top = outputs_1[1];
+                learned_hidden_3_top = outputs_1[2];
+                learned_cell_top = outputs_1[3];
+                learned_cell_2_top = outputs_1[4];
+                learned_cell_3_top = outputs_1[5];
 
             if (not self.only_cause_expression):
                 init_values = ({'initial': hidden_bot[-1], 'taps': [-1]},
@@ -521,13 +521,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                    {'initial': hidden_2_bot[-1], 'taps': [-1]},
                                    {'initial': cell_bot[-1], 'taps': [-1]},
                                    {'initial': cell_2_bot[-1], 'taps': [-1]});
-#                 if (self.tripleLayer):
-#                     init_values = ({'initial': hidden_bot[-1], 'taps': [-1]},
-#                                    {'initial': hidden_2_bot[-1], 'taps': [-1]},
-#                                    {'initial': hidden_3_bot[-1], 'taps': [-1]},
-#                                    {'initial': cell_bot[-1], 'taps': [-1]},
-#                                    {'initial': cell_2_bot[-1], 'taps': [-1]},
-#                                    {'initial': cell_3_bot[-1], 'taps': [-1]});
+                if (self.tripleLayer):
+                    init_values = ({'initial': hidden_bot[-1], 'taps': [-1]},
+                                   {'initial': hidden_2_bot[-1], 'taps': [-1]},
+                                   {'initial': hidden_3_bot[-1], 'taps': [-1]},
+                                   {'initial': cell_bot[-1], 'taps': [-1]},
+                                   {'initial': cell_2_bot[-1], 'taps': [-1]},
+                                   {'initial': cell_3_bot[-1], 'taps': [-1]});
                 outputs_2, _ = theano.scan(fn=encode_function,
                                          sequences=label[:self.lag-1,:,self.data_dim:],
                                          outputs_info=init_values,
@@ -540,12 +540,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     learned_hidden_2_bot = outputs_2[1];
                     learned_cell_bot = outputs_2[2];
                     learned_cell_2_bot = outputs_2[3];
-#                 if (self.tripleLayer):
-#                     learned_hidden_2_bot = outputs_2[1];
-#                     learned_hidden_3_bot = outputs_2[2];
-#                     learned_cell_bot = outputs_2[3];
-#                     learned_cell_2_bot = outputs_2[4];
-#                     learned_cell_3_bot = outputs_2[5];
+                if (self.tripleLayer):
+                    learned_hidden_2_bot = outputs_2[1];
+                    learned_hidden_3_bot = outputs_2[2];
+                    learned_cell_bot = outputs_2[3];
+                    learned_cell_2_bot = outputs_2[4];
+                    learned_cell_3_bot = outputs_2[5];
 
         # DECODING PHASE
         if (self.crosslinks and not self.only_cause_expression):
@@ -558,14 +558,14 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                {'initial': learned_hidden_2[-1], 'taps': [-1]},
                                {'initial': learned_cell[-1], 'taps': [-1]}, 
                                {'initial': learned_cell_2[-1], 'taps': [-1]});
-#             if (self.tripleLayer):
-#                 init_values = (None,
-#                                {'initial': learned_hidden[-1], 'taps': [-1]},
-#                                {'initial': learned_hidden_2[-1], 'taps': [-1]},
-#                                {'initial': learned_hidden_3[-1], 'taps': [-1]},
-#                                {'initial': learned_cell[-1], 'taps': [-1]}, 
-#                                {'initial': learned_cell_2[-1], 'taps': [-1]}, 
-#                                {'initial': learned_cell_3[-1], 'taps': [-1]});
+            if (self.tripleLayer):
+                init_values = (None,
+                               {'initial': learned_hidden[-1], 'taps': [-1]},
+                               {'initial': learned_hidden_2[-1], 'taps': [-1]},
+                               {'initial': learned_hidden_3[-1], 'taps': [-1]},
+                               {'initial': learned_cell[-1], 'taps': [-1]}, 
+                               {'initial': learned_cell_2[-1], 'taps': [-1]}, 
+                               {'initial': learned_cell_3[-1], 'taps': [-1]});
             outputs, _ = theano.scan(fn=decode_function,
                                      sequences=label[self.lag-1:-1],
                                      outputs_info=init_values,
@@ -582,14 +582,14 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                {'initial': learned_hidden_2_top[-1], 'taps': [-1]},
                                {'initial': learned_cell_top[-1], 'taps': [-1]},
                                {'initial': learned_cell_2_top[-1], 'taps': [-1]});
-#             if (self.tripleLayer):
-#                 init_values = (None,
-#                                {'initial': learned_hidden[-1], 'taps': [-1]},
-#                                {'initial': learned_hidden_2_top[-1], 'taps': [-1]},
-#                                {'initial': learned_hidden_3_top[-1], 'taps': [-1]},
-#                                {'initial': learned_cell_top[-1], 'taps': [-1]}, 
-#                                {'initial': learned_cell_2_top[-1], 'taps': [-1]}, 
-#                                {'initial': learned_cell_3_top[-1], 'taps': [-1]});
+            if (self.tripleLayer):
+                init_values = (None,
+                               {'initial': learned_hidden_top[-1], 'taps': [-1]},
+                               {'initial': learned_hidden_2_top[-1], 'taps': [-1]},
+                               {'initial': learned_hidden_3_top[-1], 'taps': [-1]},
+                               {'initial': learned_cell_top[-1], 'taps': [-1]}, 
+                               {'initial': learned_cell_2_top[-1], 'taps': [-1]}, 
+                               {'initial': learned_cell_3_top[-1], 'taps': [-1]});
             outputs_1, _ = theano.scan(fn=decode_function,
                                      sequences=label[self.lag-1:-1,:,:self.data_dim],
                                      outputs_info=init_values,
@@ -608,14 +608,14 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                    {'initial': learned_hidden_2_bot[-1], 'taps': [-1]},
                                    {'initial': learned_cell_bot[-1], 'taps': [-1]},
                                    {'initial': learned_cell_2_bot[-1], 'taps': [-1]});
-#                 if (self.tripleLayer):
-#                     init_values = (None,
-#                                    {'initial': learned_hidden_bot[-1], 'taps': [-1]},
-#                                    {'initial': learned_hidden_2_bot[-1], 'taps': [-1]},
-#                                    {'initial': learned_hidden_3_bot[-1], 'taps': [-1]},
-#                                    {'initial': learned_cell_bot[-1], 'taps': [-1]},
-#                                    {'initial': learned_cell_2_bot[-1], 'taps': [-1]},
-#                                    {'initial': learned_cell_3_bot[-1], 'taps': [-1]});
+                if (self.tripleLayer):
+                    init_values = (None,
+                                   {'initial': learned_hidden_bot[-1], 'taps': [-1]},
+                                   {'initial': learned_hidden_2_bot[-1], 'taps': [-1]},
+                                   {'initial': learned_hidden_3_bot[-1], 'taps': [-1]},
+                                   {'initial': learned_cell_bot[-1], 'taps': [-1]},
+                                   {'initial': learned_cell_2_bot[-1], 'taps': [-1]},
+                                   {'initial': learned_cell_3_bot[-1], 'taps': [-1]});
                 outputs_2, _ = theano.scan(fn=decode_function,
                                          sequences=label[self.lag-1:-1,:,self.data_dim:],
                                          outputs_info=init_values,
@@ -966,6 +966,27 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         hidden_2 = self.lstm_dropout(hidden_2, self.hidden_dim);
 
         return hidden_1, hidden_2, cell, cell_2;
+    
+    def lstm_triple(self, given_X, previous_hidden_1, previous_hidden_2, previous_hidden_3,
+                    previous_cell_1, previous_cell_2, previous_cell_3, 
+                    hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, Pf, Pi, Po, bc, bf, bi, bo,
+                    hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2, 
+                    hWf3, XWf3, hWi3, XWi3, hWc3, XWc3, hWo3, XWo3, Pf3, Pi3, Po3, bc3, bf3, bi3, bo3,
+                    hWY, hbY, sd, ed):
+        hidden_1, cell = self.lstm_cell(given_X, previous_hidden_1, previous_cell_1, hWf, XWf, hWi, XWi, hWc, XWc, hWo, XWo, \
+                                      Pf, Pi, Po, bc, bf, bi, bo, sd, ed);
+        hidden_1 = self.lstm_dropout(hidden_1, self.hidden_dim);
+        hidden_2, cell_2 = self.lstm_cell(hidden_1, previous_hidden_2, previous_cell_2, hWf2, XWf2, hWi2, XWi2, hWc2, XWc2, hWo2, \
+                                        XWo2, Pf2, Pi2, Po2, bc2, bf2, bi2, bo2, 0, self.hidden_dim);
+        hidden_2 = self.lstm_dropout(hidden_2, self.hidden_dim);
+        hidden_3, cell_3 = self.lstm_cell(hidden_2, previous_hidden_3, previous_cell_3, hWf3, XWf3, hWi3, XWi3, hWc3, XWc3, hWo3, \
+                                        XWo3, Pf3, Pi3, Po3, bc3, bf3, bi3, bo3, 0, self.hidden_dim);
+        hidden_3 = self.lstm_dropout(hidden_3, self.hidden_dim);
+        
+        Y_output = self.lstm_output(hidden_3, hWY[:,sd:ed], hbY[sd:ed]);
+        Y_output = self.lstm_dropout(Y_output, self.decoding_output_dim);
+        
+        return Y_output, hidden_1, hidden_2, hidden_3, cell, cell_2, cell_3;
     
     def lstm_triple_no_output(self, current_X, previous_hidden_1, previous_hidden_2, previous_hidden_3,
                               previous_cell_1, previous_cell_2, previous_cell_3,
