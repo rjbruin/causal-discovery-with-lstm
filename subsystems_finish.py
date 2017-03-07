@@ -187,9 +187,9 @@ def get_sample_index(which_part, dataset_size, parameters):
     val_offset_range = [val_offset*dataset_size,val_offset*dataset_size+parameters['val_size']*dataset_size];
     
     sampleIndex = np.random.randint(0,dataset_size);
-    while ((which_part == 0 and sampleIndex >= test_sample_range[0] and sampleIndex < val_offset_range[1]) or
-           (which_part == 1 and sampleIndex < test_sample_range[0] and sampleIndex >= test_sample_range[1]) or
-           (which_part == 2 and sampleIndex < val_offset_range[0] and sampleIndex >= val_offset_range[1])):
+    while ((which_part == 0 and (sampleIndex >= test_sample_range[0] and sampleIndex < val_offset_range[1])) or
+           (which_part == 1 and (sampleIndex < test_sample_range[0] or sampleIndex >= test_sample_range[1])) or
+           (which_part == 2 and (sampleIndex < val_offset_range[0] or sampleIndex >= val_offset_range[1]))):
         sampleIndex = np.random.randint(0,dataset_size);
     
     return sampleIndex;
