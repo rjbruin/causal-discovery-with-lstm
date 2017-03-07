@@ -675,6 +675,9 @@ if __name__ == '__main__':
             if (parameters['report_to_tracker']):
                 trackerreporter.fromExperimentOutput(experimentId, s, atProgress=currentIt, atDataset=1);
         
+        # Print parameters
+        printF(str(parameters), experimentId, currentIteration);
+        
         # Warn for unusual parameters
         if (parameters['max_dataset_size'] is not False):
             printF("WARNING! RUNNING WITH LIMIT ON DATASET SIZE!", experimentId, currentIteration);
