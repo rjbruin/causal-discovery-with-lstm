@@ -97,7 +97,8 @@ argumentProcessors = {'name': processString,
                       'early_stopping_epsilon': processFloat,
                       'early_stopping_offset': processInt,
                       'val_size': processFloat,
-                      'force_validation': processBool
+                      'force_validation': processBool,
+                      'bottom_loss': processBool
                       }
 defaults = {'output_name': "",
             'report_to_tracker': True,
@@ -165,7 +166,8 @@ defaults = {'output_name': "",
             'early_stopping_epsilon': 0.001,
             'early_stopping_offset': 40,
             'val_size': 0.1,
-            'force_validation': False
+            'force_validation': False,
+            'bottom_loss': True
             }
 
 def processKeyValue(key,value):

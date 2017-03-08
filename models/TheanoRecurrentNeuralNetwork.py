@@ -40,7 +40,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  doubleLayer=False, tripleLayer=False, dropoutProb=0., outputBias=False,
                  crosslinks=True, appendAbstract=False, useAbstract=False, relu=False,
                  ignoreZeroDifference=False, peepholes=False, lstm_biases=False, lag=None,
-                 rnn_version=0, nocrosslinks_hidden_factor=1.):
+                 rnn_version=0, nocrosslinks_hidden_factor=1., bottom_loss=True):
         '''
         Initialize all Theano models.
         '''
@@ -73,6 +73,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.ignoreZeroDifference = ignoreZeroDifference;
         self.lag = lag;
         self.nocrosslinks_hidden_factor = nocrosslinks_hidden_factor;
+        self.bottom_loss = bottom_loss;
 
 #         self.peepholes = peepholes;
 #         self.lstm_biases = lstm_biases;
@@ -635,10 +636,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             prediction_2 = T.argmax(right_hand[:,:,self.data_dim:], axis=2);
 
         # ERROR COMPUTATION AND PROPAGATION
-        coding_dist = right_hand[:,:,self.data_dim:];
-        target_dist = label[self.lag:,:,self.data_dim:];
-#         coding_dist = right_hand;
-#         target_dist = label[self.lag:];
+        if (self.bottom_loss):
+            coding_dist = right_hand[:,:,self.data_dim:];
+            target_dist = label[self.lag:,:,self.data_dim:];
+        else:
+            coding_dist = right_hand;
+            target_dist = label[self.lag:];
         cat_cross = T.nnet.categorical_crossentropy(coding_dist, target_dist);
         error = T.mean(cat_cross);
         summed_error = T.sum(T.mean(cat_cross, axis=cat_cross.ndim-1));
