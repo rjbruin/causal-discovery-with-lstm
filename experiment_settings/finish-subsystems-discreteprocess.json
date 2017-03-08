@@ -10,14 +10,12 @@
         "intervention_range": "1",
         "optimizer": "1",
         "dataset_type": "3",
-        "learning_rate": "0.005",
+        "learning_rate": "0.001",
         "hidden_dim": "128",
         "minibatch_size": "64",
         "rnn_version": "1",
         "lag": "8",
         "simple_data_loading": "True",
-        "early_stopping": "True",
-        "early_stopping_errors": "8",
-        "early_stopping_epsilon": "0.5"
+        "early_stopping": "True"
     }
 ]

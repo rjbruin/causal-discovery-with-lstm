@@ -2,7 +2,7 @@
     {
         "name": "f-seqs-s",
         "dataset": "./data/subsystems_shallow",
-        "repetitions": "500",
+        "repetitions": "150",
         "finish_subsystems": "True",
         "n_max_digits": "17",
         "intervention_base_offset": "1",
@@ -12,6 +12,7 @@
         "hidden_dim": "128",
       	"minibatch_size": "64",
         "double_layer": "True",
-        "only_cause_expression": "1"
+        "only_cause_expression": "1",
+        "early_stopping": "True"
     }
 ]

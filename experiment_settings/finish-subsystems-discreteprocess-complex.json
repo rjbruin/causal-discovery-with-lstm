@@ -1,7 +1,7 @@
 [
     {
-        "name": "f-subs-dpn",
-        "dataset": "./data/discreteprocess_noisy",
+        "name": "f-subs-dpc",
+        "dataset": "./data/discreteprocess_complex",
         "repetitions": "500",
         "sample_testing_size": "100000",
         "finish_subsystems": "True",

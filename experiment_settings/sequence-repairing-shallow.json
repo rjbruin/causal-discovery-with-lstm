@@ -4,13 +4,14 @@
         "script": "sequence_repairing.py",
         "dataset": "./data/expressions_fill_x_shallow",
         "repetitions": "150",
-        "sample_testing_size": "10000",
+        "sample_testing_size": "100000",
         "sequence_repairing": "True",
         "n_max_digits": "17",
         "optimizer": "2",
         "learning_rate": "0.005",
         "hidden_dim": "128",
       	"minibatch_size": "64",
-        "double_layer": "True"
+        "double_layer": "True",
+        "early_stopping": "True"
     }
 ]

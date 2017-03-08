@@ -3,14 +3,15 @@
         "name": "f-fndx-s",
         "dataset": "./data/subsystems_shallow",
         "repetitions": "150",
-        "sample_testing_size": "10000",
+        "sample_testing_size": "100000",
         "rnn_version": "2",
         "n_max_digits": "17",
         "optimizer": "1",
-        "learning_rate": "0.005",
+        "learning_rate": "0.001",
         "hidden_dim": "128",
       	"minibatch_size": "64",
         "double_layer": "True",
-        "only_cause_expression": "1"
+        "only_cause_expression": "1",
+        "early_stopping": "True"
     }
 ]
