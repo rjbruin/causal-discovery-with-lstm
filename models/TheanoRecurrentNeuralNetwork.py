@@ -635,10 +635,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             prediction_2 = T.argmax(right_hand[:,:,self.data_dim:], axis=2);
 
         # ERROR COMPUTATION AND PROPAGATION
-#         coding_dist = right_hand[:,:,self.data_dim:];
-#         cat_cross = -T.mean(label[self.lag:,:,self.data_dim:] * T.log(coding_dist), axis=coding_dist.ndim-1);
-        coding_dist = right_hand;
-        cat_cross = T.nnet.categorical_crossentropy(coding_dist, label[self.lag:]);
+        coding_dist = right_hand[:,:,self.data_dim:];
+        target_dist = label[self.lag:,:,self.data_dim:];
+#         coding_dist = right_hand;
+#         target_dist = label[self.lag:];
+        cat_cross = T.nnet.categorical_crossentropy(coding_dist, target_dist);
         error = T.mean(cat_cross);
         summed_error = T.sum(T.mean(cat_cross, axis=cat_cross.ndim-1));
 #         cat_cross = -T.mean(label[self.lag:] * T.log(coding_dist), axis=coding_dist.ndim-1);
