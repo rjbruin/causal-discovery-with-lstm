@@ -366,7 +366,10 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
         total = sample_size;
     
     # Test
-    printF("Testing... %d from %d" % (total, len(dataset.testExpressionsByPrefix.expressions)), experimentId, currentIteration);
+    test_set_size = len(dataset.testExpressionsByPrefix.expressions);
+    if (parameters['simple_data_loading']):
+        test_set_size = parameters['test_size']*len(dataset_data);
+    printF("Testing... %d from %d" % (total, test_set_size), experimentId, currentIteration);
     
     # Set up statistics
     stats = set_up_statistics(dataset.output_dim, model.n_max_digits, dataset.oneHot.keys());
@@ -743,8 +746,14 @@ if __name__ == '__main__':
             stats = set_up_statistics(dataset.output_dim, model.n_max_digits, dataset.oneHot.keys());
             total_error = 0.0;
             # Print repetition progress and save to raw results file
+            train_set_size = len(dataset.expressionsByPrefix.expressions);
+            if (parameters['simple_data_loading']):
+                train_size = 1 - parameters['test_size'];
+                if (parameters['early_stopping'] or parameters['force_validation']):
+                    train_size -= parameters['val_size'];
+                train_set_size = train_size*len(dataset_data);
             printF("Batch %d (repetition %d of %d, dataset 1 of 1) (samples processed after batch: %d from %d)" % \
-                    (r+1,r+1,parameters['repetitions'],(r+1)*repetition_size, len(dataset.expressionsByPrefix.expressions)), experimentId, currentIteration);
+                    (r+1,r+1,parameters['repetitions'],(r+1)*repetition_size, train_set_size), experimentId, currentIteration);
             currentIteration = r+1;
             currentDataset = 1;
             

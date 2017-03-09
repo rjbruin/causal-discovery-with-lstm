@@ -57,7 +57,7 @@ def generateSample(length, max_lag, inputrange, weights1, weights2, weights1to2,
         sampleStorage[seedString] = True;
         sample = "".join(sample1) + ";" + "".join(sample2)
     else:
-        sample, sampleStorage = generateSample(length, max_lag, inputrange, weights1, weights2, weights1to2, weights2to1, sampleStorage);
+        sample, sampleStorage = generateSample(length, max_lag, inputrange, weights1, weights2, weights1to2, weights2to1, sampleStorage, noise_prob);
         
     return sample, sampleStorage;
 
@@ -69,10 +69,10 @@ if __name__ == '__main__':
     inputrange = [0,9];
     weightsrange = [-2,3];
     progressPrintInterval = 10000;
-    crosslinks = False;
+    crosslinks = True;
     
     # Noise settings
-    noise_prob = 0.01;
+    noise_prob = 0;
     
     # DEBUG
 #     n = 1000;
