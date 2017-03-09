@@ -1,6 +1,6 @@
 [
     {
-        "name": "f-subs-dpc",
+        "name": "f-subs-dps",
         "dataset": "./data/discreteprocess_short",
         "repetitions": "1000",
         "sample_testing_size": "100000",
