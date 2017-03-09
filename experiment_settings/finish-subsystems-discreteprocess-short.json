@@ -14,7 +14,7 @@
         "hidden_dim": "128",
         "minibatch_size": "64",
         "rnn_version": "1",
-        "lag": "8",
+        "lag": "3",
         "simple_data_loading": "True",
         "early_stopping": "True"
     }
