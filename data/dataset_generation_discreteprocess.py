@@ -7,22 +7,32 @@ Created on 17 jan. 2017
 import sys, os;
 import numpy as np;
 
-def generateWeights(length, max_lag, weightsrange, crosslinks=True):
+def generateWeights(length, max_lag, weightsrange, crosslinks=True, homogeneous_weights=False):
     weights1 = [];
     weights2 = [];
     weights1to2 = [];
     weights2to1 = [];
     
     # Determine stationary process
-    for _ in range(max_lag):
-        weights1.append(np.random.randint(weightsrange[0], weightsrange[1]));
-        weights2.append(np.random.randint(weightsrange[0], weightsrange[1]));
-        if (crosslinks):
-            weights1to2.append(np.random.randint(weightsrange[0], weightsrange[1]));
-            weights2to1.append(np.random.randint(weightsrange[0], weightsrange[1]));
+    for i in range(max_lag):
+        if (homogeneous_weights and i != 0):
+            weights1.append(weights1[-1]);
+            weights2.append(weights2[-1]);
+            if (crosslinks):
+                weights1to2.append(weights1to2[-1]);
+                weights2to1.append(weights2to1[-1]);
+            else:
+                weights1to2.append(0);
+                weights2to1.append(0);
         else:
-            weights1to2.append(0);
-            weights2to1.append(0);
+            weights1.append(np.random.randint(weightsrange[0], weightsrange[1]));
+            weights2.append(np.random.randint(weightsrange[0], weightsrange[1]));
+            if (crosslinks):
+                weights1to2.append(np.random.randint(weightsrange[0], weightsrange[1]));
+                weights2to1.append(np.random.randint(weightsrange[0], weightsrange[1]));
+            else:
+                weights1to2.append(0);
+                weights2to1.append(0);
     
     return weights1, weights2, weights1to2, weights2to1;
 
@@ -63,13 +73,14 @@ def generateSample(length, max_lag, inputrange, weights1, weights2, weights1to2,
 
 if __name__ == '__main__':
     # Define dataset settings
-    n = 500000;
+    n = 1000000;
     length = 20;
-    max_lag = 3;
+    max_lag = 8;
     inputrange = [0,9];
-    weightsrange = [-2,3];
+    weightsrange = [-1,2];
     progressPrintInterval = 10000;
     crosslinks = True;
+    homogeneous_weights = True;
     
     # Noise settings
     noise_prob = 0;
@@ -99,18 +110,7 @@ if __name__ == '__main__':
     if (not stop):
         f = open(os.path.join(foldername, 'all.txt'), 'w');
         
-        weights1, weights2, weights1to2, weights2to1 = generateWeights(length, max_lag, weightsrange, crosslinks=crosslinks);
-        sampleStorage = {};
-        
-        # Generate linear processes and write to file
-        for i in range(n):
-            sample, sampleStorage = generateSample(length, max_lag, inputrange, weights1, weights2, weights1to2, weights2to1, sampleStorage, noise_prob);
-            f.write(sample + "\n");
-            if (i % progressPrintInterval == 0):
-                print("%.2f%%..." % ((i/float(n))*100.))
-        
-        # Close file
-        f.close();
+        weights1, weights2, weights1to2, weights2to1 = generateWeights(length, max_lag, weightsrange, crosslinks=crosslinks, homogeneous_weights=homogeneous_weights);
         
         # Convert weights to string
         weights = [];
@@ -120,5 +120,18 @@ if __name__ == '__main__':
         weightsStr = "";
         if (len(weights) > 0):
             weightsStr = ";".join(weights) + "|";
+        
+        print(weights);
+        
+        sampleStorage = {};
+        # Generate linear processes and write to file
+        for i in range(n):
+            sample, sampleStorage = generateSample(length, max_lag, inputrange, weights1, weights2, weights1to2, weights2to1, sampleStorage, noise_prob);
+            f.write(sample + "\n");
+            if (i % progressPrintInterval == 0):
+                print("%.2f%%..." % ((i/float(n))*100.))
+        
+        # Close file
+        f.close();
         
         print(weights);

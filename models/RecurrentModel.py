@@ -157,6 +157,10 @@ class RecurrentModel(object):
                 stats['valid_left_hand_valid_with_prediction_score'] = stats['valid_left_hand_valid_with_prediction_correct'] / float(stats['valid_left_hand_valid_with_prediction_size']);
             else:
                 stats['valid_left_hand_valid_with_prediction_score'] = 0.;
+            if (stats['left_hand_given_size'] > 0):
+                stats['left_hand_given_score'] = stats['left_hand_given_correct'] / float(stats['left_hand_given_size']);
+            else:
+                stats['left_hand_given_score'] = 0.;
             
             
             stats['symbol_score'] = {};

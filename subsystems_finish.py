@@ -68,6 +68,7 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
             printF(prefix + "Partially predicted left hand sides: %.2f percent" % ((stats['left_hand_valid_with_prediction_size']*100) / float(stats['prediction_size'])), experimentId, currentIteration);
             printF(prefix + "Valid left hand with partially predicted left hand side: %.2f percent" % (stats['valid_left_hand_with_prediction_score']*100.), experimentId, currentIteration);
             printF(prefix + "Score with partially predicted left hand side: %.2f percent" % (stats['left_hand_valid_with_prediction_score']*100), experimentId, currentIteration);
+            printF(prefix + "Score with given left hand side: %.2f percent" % (stats['left_hand_given_score']*100), experimentId, currentIteration);
             printF(prefix + "Score with partially predicted valid left hand side: %.2f percent" % (stats['valid_left_hand_valid_with_prediction_score']*100), experimentId, currentIteration);
         
 #         printF(prefix + "Local valid: %.2f percent" % (stats['localValidScore']*100), experimentId, currentIteration);
@@ -590,7 +591,9 @@ if __name__ == '__main__':
                    'Valid with valid left': 'Score with valid left hand side',
                    'Partial valid left hand': 'Valid left hand with partially predicted left hand side',
                    'Partial left hand score': 'Score with partially predicted left hand side',
-                   'Partial valid left hand score': 'Score with partially predicted valid left hand side'};
+                   'Full left hand score': 'Score with given left hand side',
+                   'Partial valid left hand score': 'Score with partially predicted valid left hand side',
+                   'Partial left hand': 'Partially predicted left hand sides'};
     for size in range(20):
         score_types['Label.size %d' % size] = 'Score by label size = %d' % size;
     for size in range(20):

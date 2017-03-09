@@ -1401,6 +1401,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                 if (correct):
                                     stats['valid_left_hand_valid_with_prediction_correct'] += 1;
                                     stats['left_hand_valid_with_prediction_correct'] += 1;
+                        else:
+                            stats['left_hand_given_size'] += 1;
+                            if (correct):
+                                stats['left_hand_given_correct'] += 1;
                         if (left_hand_valid):
                             stats['left_hand_valid'] += 1;
                             if (correct):

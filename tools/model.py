@@ -143,6 +143,8 @@ def set_up_statistics(output_dim, n_max_digits, symbols):
             'left_hand_valid_with_prediction_correct': 0,
             'valid_left_hand_valid_with_prediction_size': 0,
             'valid_left_hand_valid_with_prediction_correct': 0,
+            'left_hand_given_size': 0,
+            'left_hand_given_correct': 0,
             'right_hand_valid': 0,
             'symbol_correct': {k: 0 for k in symbols},
             'symbol_size': {k: 0 for k in symbols},
