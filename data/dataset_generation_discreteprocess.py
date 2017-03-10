@@ -117,11 +117,15 @@ if __name__ == '__main__':
         for j in range(len(weights1)):
             weights.append("%d,%d,%d,%d" % (weights1[j], weights2[j], weights1to2[j], weights2to1[j]));
         
-        weightsStr = "";
-        if (len(weights) > 0):
-            weightsStr = ";".join(weights) + "|";
+#         weightsStr = "";
+#         if (len(weights) > 0):
+#             weightsStr = ";".join(weights) + "|";
         
         print(weights);
+        
+        f_weights = open(os.path.join(foldername, 'weights.txt'), 'w');
+        f_weights.write(str(weights));
+        f_weights.close();
         
         sampleStorage = {};
         # Generate linear processes and write to file
