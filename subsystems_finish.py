@@ -853,5 +853,6 @@ if __name__ == '__main__':
                     mean_error_stack.append(avg_error);
         
         printF("Training finished!", experimentId, currentIteration);
+        trackerreporter.experimentDone(experimentId);
     
     

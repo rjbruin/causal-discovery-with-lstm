@@ -51,35 +51,55 @@ def _create(name, totalProgress, totalDatasets, scoreTypes, scoreIdentifiers=Non
         print(e);
         raise ValueError("Posting experiment to tracker failed!");
 
-def _post(experiment_id, url, data):
-    """
-    Returns True if all calls in the stack + this call are posted successfully.
-    """
-    global stack;
+def _processStack(stack):
     stackLimit = 20;
-    
-    data['exp'] = experiments[experiment_id]['trackerID'];
-    data['key'] = API_KEY;
-    data['url'] = API_URL + url;
-    stack.append(data);
     
     newStack = [];
     success = True;
-    for data in stack[:stackLimit]:
+    for method, data in stack[:stackLimit]:
         try:
-            r = requests.post(data['url'], data, headers=REQUEST_HEADERS);
+            if (method == 'POST'):
+                r = requests.post(data['url'], data, headers=REQUEST_HEADERS);
+            elif (method == 'GET'):
+                r = requests.get(data['url'], params=data, headers=REQUEST_HEADERS);
             if (r.status_code != 200):
                 newStack.append(data);
             if (r.json() != False):
                 continue;
             else:
-                print("WARNING! Error in POST %s for experiment %d!" % (url, experiment_id));
+                print("WARNING! Error in POST %s for experiment %d!" % (data['url'], data['exp']));
                 success = False;
         except Exception as e:
             print(e);
-            return False;
+            return newStack, False;
+    return newStack, success;
+
+def _get(experiment_id, url, data):
+    """
+    Returns True if all calls in the stack + this call are posted successfully.
+    """
+    global stack;
     
-    stack = newStack;
+    data['exp'] = experiments[experiment_id]['trackerID'];
+    data['key'] = API_KEY;
+    data['url'] = API_URL + url;
+    stack.append(('GET',data));
+    
+    stack, success = _processStack(stack);
+    return success;
+
+def _post(experiment_id, url, data):
+    """
+    Returns True if all calls in the stack + this call are posted successfully.
+    """
+    global stack;
+    
+    data['exp'] = experiments[experiment_id]['trackerID'];
+    data['key'] = API_KEY;
+    data['url'] = API_URL + url;
+    stack.append(('POST',data));
+    
+    stack, success = _processStack(stack);
     return success;
 
 def initExperiment(name, totalProgress=False, totalDatasets=False,
@@ -115,6 +135,11 @@ def addScore(experiment_id, scoreType, value, atProgress=False, atDataset=False)
         data['atDataset'] = atDataset;
     
     response = _post(experiment_id, 'postScore.php', data);
+    return response != False;
+
+def experimentDone(experiment_id):
+    data = {'signal': 1};
+    response = _get(experiment_id, 'done.php', data);
     return response != False;
 
 def findScoreType(message, experimentId):

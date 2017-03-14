@@ -399,5 +399,6 @@ if __name__ == '__main__':
                 save_to_pickle('saved_models/%s_%d.model' % (name, r), saveVars, settings=parameters);
         
         printF("Training finished!", experimentId, currentIteration);
+        trackerreporter.experimentDone(experimentId);
     
     
