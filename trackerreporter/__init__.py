@@ -63,7 +63,7 @@ def _processStack(stack):
             elif (method == 'GET'):
                 r = requests.get(data['url'], params=data, headers=REQUEST_HEADERS);
             if (r.status_code != 200):
-                newStack.append(data);
+                newStack.append((method,data));
             if (r.json() != False):
                 continue;
             else:
