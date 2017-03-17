@@ -219,7 +219,7 @@ if __name__ == '__main__':
                    'X right': 'X on right hand side score',
                    'X equals': 'X on equals sign score'};
     for size in range(20):
-        score_types['Size %d' % size] = 'Score by input size = %d:' % size;
+        score_types['Inpt.size %d' % size] = 'Score by input size = %d:' % size;
     for symbolId in range(20):
         score_types['Symbol %d' % symbolId] = 'Symbol %d:' % symbolId;
     for offset in range(20):

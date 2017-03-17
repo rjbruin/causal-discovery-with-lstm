@@ -123,10 +123,10 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
     trueSizes = parameters['n_max_digits'];
     nrCorrects = parameters['n_max_digits'];
     if (parameters['answering']):
-        trueSizes = 4;
+        trueSizes = 5;
         nrCorrects = 6;
     if (parameters['answering']):
-        for trueSize in range(trueSizes+1):
+        for trueSize in range(1,trueSizes+1):
             for nrCorrect in range(min(nrCorrects,trueSize)+1):
                 printF(prefix + "Label size %d nr correct %d: %.2f (%d)" % (trueSize, nrCorrect, stats['correct_matrix_scores'][trueSize,nrCorrect] * 100., stats['correct_matrix'][trueSize,nrCorrect]), experimentId, currentIteration);
     
