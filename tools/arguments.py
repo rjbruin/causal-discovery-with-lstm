@@ -222,7 +222,8 @@ def processCommandLineArguments(arguments, parameters=None):
                     if (key in argumentProcessors):
                         multiple_parameters[i][key] = processKeyValue(key,val);
                     else:
-                        raise ValueError("Invalid argument provided: %s" % key);
+                        if (key not in ['basename', 'use_encoder', 'output_path']):
+                            raise ValueError("Invalid argument provided: %s" % key);
                     key = None;
                     val = None;
 

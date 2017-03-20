@@ -210,8 +210,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
     def decodeSelfFeedingRNN(self):
         # Set up inputs to prediction and SGD
-        # X is 3-dimensional: 1) index in sentence, 2) datapoint, 3) dimensionality of data
-        X = T.ftensor3('X');
         # label is 3-dimensional: 1) index in sentence, 2) datapoint, 3) dimensionality of data
         label = T.ftensor3('label');
         intervention_locations = T.imatrix();
@@ -360,13 +358,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         # Defining prediction function
         if (not self.only_cause_expression):
-            self._predict = theano.function([X, label, intervention_locations, nrSamples], [prediction_1,
+            self._predict = theano.function([label, intervention_locations, nrSamples], [prediction_1,
                                                                                 prediction_2,
                                                                                 right_hand,
                                                                                 error,
                                                                                 summed_error], on_unused_input='ignore');
         else:
-            self._predict = theano.function([X, label, intervention_locations, nrSamples], [prediction_1,
+            self._predict = theano.function([label, intervention_locations, nrSamples], [prediction_1,
                                                                                 right_hand,
                                                                                 error,
                                                                                 summed_error], on_unused_input='ignore');
@@ -388,7 +386,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
 
         # Defining SGD functuin
-        self._sgd = theano.function([X, label, intervention_locations, nrSamples],
+        self._sgd = theano.function([label, intervention_locations, nrSamples],
                                         [error, summed_error],
                                     updates=updates,
                                     allow_input_downcast=True,
@@ -1122,7 +1120,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 #         plt.show();
         plt.savefig(os.path.join('.','figures',name+'.png'));
 
-    def sgd(self, dataset, data, label, learning_rate, emptySamples=None,
+    def sgd(self, dataset, data, label=None, learning_rate=0.001, emptySamples=None,
             expressions=None,
             interventionLocations=0, topcause=True,
             bothcause=False, nrSamples=None):
@@ -1134,15 +1132,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             nrSamples = self.minibatch_size;
 
         data = np.swapaxes(data, 0, 1);
-        if (self.rnn_version != 2):
+        if (self.rnn_version == 1):
             label = np.swapaxes(label, 0, 1);
         
         if (self.rnn_version == 0):
-            return self._sgd(data, label, interventionLocations, nrSamples);
+            return self._sgd(data, interventionLocations, nrSamples);
         else:
             return self._sgd(data, label);
 
-    def predict(self, encoding_label, prediction_label, interventionLocations=None,
+    def predict(self, encoding_label, prediction_label=None, interventionLocations=None,
                 intervention=True, fixedDecoderInputs=True, topcause=True, nrSamples=None):
         """
         Uses an encoding_label (formerly data) and a prediction_label (formerly
@@ -1153,20 +1151,20 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         # Swap axes of index in sentence and datapoint for Theano purposes
         encoding_label = np.swapaxes(encoding_label, 0, 1);
-        if (self.rnn_version != 2):            
+        if (self.rnn_version == 1):            
             prediction_label = np.swapaxes(prediction_label, 0, 1);
 
         if (not self.only_cause_expression and self.rnn_version != TheanoRecurrentNeuralNetwork.RNN_DECODESINGLEPREDICTION):
             if (self.rnn_version == TheanoRecurrentNeuralNetwork.RNN_DECODESELFFEEDING):
                 prediction_1, prediction_2, right_hand, error, summed_error = \
-                        self._predict(encoding_label, prediction_label, interventionLocations, nrSamples);
+                        self._predict(encoding_label, interventionLocations, nrSamples);
             else:
                 prediction_1, prediction_2, right_hand, error, summed_error = \
                         self._predict(encoding_label, prediction_label);
         else:
             if (self.rnn_version == TheanoRecurrentNeuralNetwork.RNN_DECODESELFFEEDING):
                 prediction_1, right_hand, error, summed_error = \
-                        self._predict(encoding_label, prediction_label, interventionLocations, nrSamples);
+                        self._predict(encoding_label, interventionLocations, nrSamples);
             else:
                 prediction_1, right_hand, error, summed_error = \
                         self._predict(encoding_label, prediction_label);
