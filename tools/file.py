@@ -43,7 +43,7 @@ def load_from_pickle(f):
     
     f.close();
     
-    return savedVars, settings;
+    return savedVars, settings[0];
 
 def load_from_pickle_with_filename(filepath):
     f = open(filepath, 'rb');
