@@ -431,18 +431,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             hidden_3 = [T.zeros((self.minibatch_size,self.hidden_dim))];
             cell_3 = [T.zeros((self.minibatch_size,self.hidden_dim))];
         if (not self.crosslinks or self.only_cause_expression is not False):
-            hidden_top = hidden;
-            cell_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
             hidden_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
             cell_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
             if (self.doubleLayer):
-                hidden_2_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
-                cell_2_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
                 hidden_2_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
                 cell_2_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
             if (self.tripleLayer):
-                hidden_3_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
-                cell_3_top = [T.zeros((self.minibatch_size,self.hidden_dim))];
                 hidden_3_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
                 cell_3_bot = [T.zeros((self.minibatch_size,self.hidden_dim))];
 
@@ -480,72 +474,38 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 learned_cell_2 = outputs[4];
                 learned_cell_3 = outputs[5];
         else:
-            init_values = ({'initial': hidden_top[-1], 'taps': [-1]}, 
-                           {'initial': cell_top[-1], 'taps': [-1]});
+            init_values = ({'initial': hidden_bot[-1], 'taps': [-1]},
+                           {'initial': cell_bot[-1], 'taps': [-1]});
             if (self.doubleLayer):
-                init_values = ({'initial': hidden_top[-1], 'taps': [-1]},
-                               {'initial': hidden_2_top[-1], 'taps': [-1]},
-                               {'initial': cell_top[-1], 'taps': [-1]},
-                               {'initial': cell_2_top[-1], 'taps': [-1]});
-            if (self.tripleLayer):
-                init_values = ({'initial': hidden_top[-1], 'taps': [-1]},
-                               {'initial': hidden_2_top[-1], 'taps': [-1]},
-                               {'initial': hidden_3_top[-1], 'taps': [-1]},
-                               {'initial': cell_top[-1], 'taps': [-1]}, 
-                               {'initial': cell_2_top[-1], 'taps': [-1]}, 
-                               {'initial': cell_3_top[-1], 'taps': [-1]});
-            outputs_1, _ = theano.scan(fn=encode_function,
-                                     sequences=label[:self.lag-1,:,:self.data_dim],
-                                     outputs_info=init_values,
-                                     non_sequences=encode_parameters + [0,self.data_dim],
-                                     name='decode_scan_1')
-
-            learned_hidden_top = outputs_1[0];
-            learned_cell_top = outputs_1[1];
-            if (self.doubleLayer):
-                learned_hidden_2_top = outputs_1[1];
-                learned_cell_top = outputs_1[2];
-                learned_cell_2_top = outputs_1[3];
-            if (self.tripleLayer):
-                learned_hidden_2_top = outputs_1[1];
-                learned_hidden_3_top = outputs_1[2];
-                learned_cell_top = outputs_1[3];
-                learned_cell_2_top = outputs_1[4];
-                learned_cell_3_top = outputs_1[5];
-
-            if (not self.only_cause_expression):
                 init_values = ({'initial': hidden_bot[-1], 'taps': [-1]},
-                               {'initial': cell_bot[-1], 'taps': [-1]});
-                if (self.doubleLayer):
-                    init_values = ({'initial': hidden_bot[-1], 'taps': [-1]},
-                                   {'initial': hidden_2_bot[-1], 'taps': [-1]},
-                                   {'initial': cell_bot[-1], 'taps': [-1]},
-                                   {'initial': cell_2_bot[-1], 'taps': [-1]});
-                if (self.tripleLayer):
-                    init_values = ({'initial': hidden_bot[-1], 'taps': [-1]},
-                                   {'initial': hidden_2_bot[-1], 'taps': [-1]},
-                                   {'initial': hidden_3_bot[-1], 'taps': [-1]},
-                                   {'initial': cell_bot[-1], 'taps': [-1]},
-                                   {'initial': cell_2_bot[-1], 'taps': [-1]},
-                                   {'initial': cell_3_bot[-1], 'taps': [-1]});
-                outputs_2, _ = theano.scan(fn=encode_function,
-                                         sequences=label[:self.lag-1,:,self.data_dim:],
-                                         outputs_info=init_values,
-                                         non_sequences=encode_parameters + [self.data_dim,self.data_dim*2],
-                                         name='decode_scan_2')
+                               {'initial': hidden_2_bot[-1], 'taps': [-1]},
+                               {'initial': cell_bot[-1], 'taps': [-1]},
+                               {'initial': cell_2_bot[-1], 'taps': [-1]});
+            if (self.tripleLayer):
+                init_values = ({'initial': hidden_bot[-1], 'taps': [-1]},
+                               {'initial': hidden_2_bot[-1], 'taps': [-1]},
+                               {'initial': hidden_3_bot[-1], 'taps': [-1]},
+                               {'initial': cell_bot[-1], 'taps': [-1]},
+                               {'initial': cell_2_bot[-1], 'taps': [-1]},
+                               {'initial': cell_3_bot[-1], 'taps': [-1]});
+            outputs_2, _ = theano.scan(fn=encode_function,
+                                     sequences=label[:self.lag-1,:,self.data_dim:],
+                                     outputs_info=init_values,
+                                     non_sequences=encode_parameters + [self.data_dim,self.data_dim*2],
+                                     name='decode_scan_2')
 
-                learned_hidden_bot = outputs_2[0];
-                learned_cell_bot = outputs_2[1];
-                if (self.doubleLayer):
-                    learned_hidden_2_bot = outputs_2[1];
-                    learned_cell_bot = outputs_2[2];
-                    learned_cell_2_bot = outputs_2[3];
-                if (self.tripleLayer):
-                    learned_hidden_2_bot = outputs_2[1];
-                    learned_hidden_3_bot = outputs_2[2];
-                    learned_cell_bot = outputs_2[3];
-                    learned_cell_2_bot = outputs_2[4];
-                    learned_cell_3_bot = outputs_2[5];
+            learned_hidden_bot = outputs_2[0];
+            learned_cell_bot = outputs_2[1];
+            if (self.doubleLayer):
+                learned_hidden_2_bot = outputs_2[1];
+                learned_cell_bot = outputs_2[2];
+                learned_cell_2_bot = outputs_2[3];
+            if (self.tripleLayer):
+                learned_hidden_2_bot = outputs_2[1];
+                learned_hidden_3_bot = outputs_2[2];
+                learned_cell_bot = outputs_2[3];
+                learned_cell_2_bot = outputs_2[4];
+                learned_cell_3_bot = outputs_2[5];
 
         # DECODING PHASE
         if (self.crosslinks and not self.only_cause_expression):
@@ -571,94 +531,51 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                      outputs_info=init_values,
                                      non_sequences=decode_parameters + [0,self.actual_data_dim],
                                      name='decode_scan_1')
-            right_hand = outputs[0];
+            right_hand = outputs[0][:,:,self.data_dim:];
         else:
             init_values = (None,
-                           {'initial': learned_hidden_top[-1], 'taps': [-1]}, 
-                           {'initial': learned_cell_top[-1], 'taps': [-1]});
+                           {'initial': learned_hidden_bot[-1], 'taps': [-1]},
+                           {'initial': learned_cell_bot[-1], 'taps': [-1]});
             if (self.doubleLayer):
                 init_values = (None,
-                               {'initial': learned_hidden_top[-1], 'taps': [-1]},
-                               {'initial': learned_hidden_2_top[-1], 'taps': [-1]},
-                               {'initial': learned_cell_top[-1], 'taps': [-1]},
-                               {'initial': learned_cell_2_top[-1], 'taps': [-1]});
+                               {'initial': learned_hidden_bot[-1], 'taps': [-1]},
+                               {'initial': learned_hidden_2_bot[-1], 'taps': [-1]},
+                               {'initial': learned_cell_bot[-1], 'taps': [-1]},
+                               {'initial': learned_cell_2_bot[-1], 'taps': [-1]});
             if (self.tripleLayer):
                 init_values = (None,
-                               {'initial': learned_hidden_top[-1], 'taps': [-1]},
-                               {'initial': learned_hidden_2_top[-1], 'taps': [-1]},
-                               {'initial': learned_hidden_3_top[-1], 'taps': [-1]},
-                               {'initial': learned_cell_top[-1], 'taps': [-1]}, 
-                               {'initial': learned_cell_2_top[-1], 'taps': [-1]}, 
-                               {'initial': learned_cell_3_top[-1], 'taps': [-1]});
-            outputs_1, _ = theano.scan(fn=decode_function,
-                                     sequences=label[self.lag-1:-1,:,:self.data_dim],
-                                     outputs_info=init_values,
-                                     non_sequences=decode_parameters + [0,self.data_dim],
-                                     name='decode_scan_1')
-
-            right_hand_1 = outputs_1[0];
-
-            if (not self.only_cause_expression):
-                init_values = (None,
                                {'initial': learned_hidden_bot[-1], 'taps': [-1]},
-                               {'initial': learned_cell_bot[-1], 'taps': [-1]});
-                if (self.doubleLayer):
-                    init_values = (None,
-                                   {'initial': learned_hidden_bot[-1], 'taps': [-1]},
-                                   {'initial': learned_hidden_2_bot[-1], 'taps': [-1]},
-                                   {'initial': learned_cell_bot[-1], 'taps': [-1]},
-                                   {'initial': learned_cell_2_bot[-1], 'taps': [-1]});
-                if (self.tripleLayer):
-                    init_values = (None,
-                                   {'initial': learned_hidden_bot[-1], 'taps': [-1]},
-                                   {'initial': learned_hidden_2_bot[-1], 'taps': [-1]},
-                                   {'initial': learned_hidden_3_bot[-1], 'taps': [-1]},
-                                   {'initial': learned_cell_bot[-1], 'taps': [-1]},
-                                   {'initial': learned_cell_2_bot[-1], 'taps': [-1]},
-                                   {'initial': learned_cell_3_bot[-1], 'taps': [-1]});
-                outputs_2, _ = theano.scan(fn=decode_function,
-                                         sequences=label[self.lag-1:-1,:,self.data_dim:],
-                                         outputs_info=init_values,
-                                         non_sequences=decode_parameters + [self.data_dim,self.data_dim*2],
-                                         name='decode_scan_2')
+                               {'initial': learned_hidden_2_bot[-1], 'taps': [-1]},
+                               {'initial': learned_hidden_3_bot[-1], 'taps': [-1]},
+                               {'initial': learned_cell_bot[-1], 'taps': [-1]},
+                               {'initial': learned_cell_2_bot[-1], 'taps': [-1]},
+                               {'initial': learned_cell_3_bot[-1], 'taps': [-1]});
+            outputs_2, _ = theano.scan(fn=decode_function,
+                                     sequences=label[self.lag-1:-1,:,self.data_dim:],
+                                     outputs_info=init_values,
+                                     non_sequences=decode_parameters + [self.data_dim,self.data_dim*2],
+                                     name='decode_scan_2')
 
-                right_hand_2 = outputs_2[0];
-                right_hand = T.concatenate([right_hand_1, right_hand_2], axis=2);
-            else:
-                right_hand = right_hand_1;
+            right_hand = outputs_2[0];
 
         right_hand_near_zeros = T.ones_like(right_hand) * 1e-15;
         right_hand = T.maximum(right_hand, right_hand_near_zeros);
 
         # Compute the prediction
-        prediction_1 = T.argmax(right_hand[:,:,:self.data_dim], axis=2);
+        prediction_1 = T.argmax(right_hand, axis=2);
         if (not self.only_cause_expression):
-            prediction_2 = T.argmax(right_hand[:,:,self.data_dim:], axis=2);
+            prediction_2 = T.argmax(right_hand, axis=2);
 
         # ERROR COMPUTATION AND PROPAGATION
-        if (self.bottom_loss):
-            coding_dist = right_hand[:,:,self.data_dim:];
-            target_dist = label[self.lag:,:,self.data_dim:];
-        else:
-            coding_dist = right_hand;
-            target_dist = label[self.lag:];
+        coding_dist = right_hand;
+        target_dist = label[self.lag:,:,self.data_dim:];
         cat_cross = T.nnet.categorical_crossentropy(coding_dist, target_dist);
         error = T.mean(cat_cross);
         summed_error = T.sum(T.mean(cat_cross, axis=cat_cross.ndim-1));
-#         cat_cross = -T.mean(label[self.lag:] * T.log(coding_dist), axis=coding_dist.ndim-1);
-#         mean_cross_per_sample = T.mean(cat_cross, axis=0);
-#         error = T.mean(mean_cross_per_sample);
-#         summed_error = T.sum(mean_cross_per_sample);
 
         # Defining prediction function
-        if (not self.only_cause_expression):
-            self._predict = theano.function([X, label], [prediction_1,
+        self._predict = theano.function([X, label], [prediction_1,
                                             prediction_2,
-                                            right_hand,
-                                            error,
-                                            summed_error], on_unused_input='ignore');
-        else:
-            self._predict = theano.function([X, label], [prediction_1,
                                             right_hand,
                                             error,
                                             summed_error], on_unused_input='ignore');
