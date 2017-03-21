@@ -39,7 +39,10 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
     printF("\n", experimentId, currentIteration);
 
     # Print statistics
-    printF(prefix + "Score: %.2f percent" % (stats['score']*100), experimentId, currentIteration);
+    if (parameters['rnn_version'] != 1):
+        printF(prefix + "Score: %.2f percent" % (stats['score']*100), experimentId, currentIteration);
+    else:
+        printF(prefix + "Score: %.2f percent" % (stats['digit_2_total_score']*100), experimentId, currentIteration);
     
     digit_score = (stats['digit_1_total_score']) * 100.;
     if (not parameters['only_cause_expression']):
