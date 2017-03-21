@@ -39,7 +39,8 @@ def read_from_file(modelName):
     return dataset, rnn, settings;
 
 if __name__ == '__main__':
-    modelName = 'choose';
+#     modelName = 'choose';
+    modelName = 'f-seqs-s_05-03-2017_15-23-19-t4_149_from_floats.model';
     
     if (len(sys.argv) > 1):
         modelName = sys.argv[1];
@@ -49,16 +50,20 @@ if __name__ == '__main__':
     
     dataset, rnn, settings = read_from_file(modelName);
     
+    print(rnn.only_cause_expression);
+    
     # Ask for inputs
     inpt = raw_input("Give input sample: ");
     while (inpt.strip() != ''):
         # input to numpy object
-        inpt_np = np.array(dataset.strToIndices(inpt));
-        inpt_np = inpt_np.reshape((1,inpt_np.shape[0]));
+        indices = dataset.strToIndices(inpt);
+        inpt_np = np.zeros((rnn.minibatch_size,rnn.n_max_digits,dataset.data_dim), dtype='float32');
+        for i, ind in enumerate(indices):
+            inpt_np[0,i,ind] = 1.;
         # call predict
-        outpt = rnn.predict(inpt_np);
+        outpt, _ = rnn.predict(inpt_np, interventionLocations=np.array([[len(inpt)-1 for _ in range(rnn.minibatch_size)],[len(inpt)-2 for _ in range(rnn.minibatch_size)]]));
         # output to string
-        outpt = dataset.indicesToStr(outpt);
+        outpt = dataset.indicesToStr(outpt[0]);
         print(outpt);
         # Ask for inputs
         inpt = raw_input("Give input sample: ");
