@@ -1,0 +1,20 @@
+[
+    {
+        "name": "f-subs-dpss",
+        "dataset": "./data/discreteprocess_short_simple",
+        "repetitions": "1000",
+        "sample_testing_size": "100000",
+        "finish_subsystems": "True",
+        "n_max_digits": "20",
+        "intervention_base_offset": "18",
+        "intervention_range": "1",
+        "optimizer": "1",
+        "dataset_type": "3",
+        "learning_rate": "0.001",
+        "hidden_dim": "128",
+        "minibatch_size": "64",
+        "rnn_version": "1",
+        "lag": "3",
+        "simple_data_loading": "True"
+    }
+]
