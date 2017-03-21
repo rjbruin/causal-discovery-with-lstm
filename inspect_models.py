@@ -7,10 +7,12 @@ Run this script in debug mode to inspect the variables loaded.
 '''
 
 import sys;
+import numpy as np;
 
-from model.RecurrentNeuralNetwork import TheanoRecurrentNeuralNetwork;
-from model.GeneratedExpressionDataset import GeneratedExpressionDataset;
+from models.TheanoRecurrentNeuralNetwork import TheanoRecurrentNeuralNetwork;
+from models.GeneratedExpressionDataset import GeneratedExpressionDataset;
 from tools.file import load_from_pickle;
+from tools.model import constructModels;
 
 def load():
     modelName = raw_input("Please provide the name of the model you want to inspect:\n");
@@ -28,32 +30,42 @@ def read_from_file(modelName):
     savedVars, settings = load_from_pickle(f);
     
     print(settings);
-    dataset = GeneratedExpressionDataset(settings['dataset'], 
-                                         single_digit=settings['single_digit'],
-                                         single_class=settings['single_class']);
-    rnn = TheanoRecurrentNeuralNetwork(dataset.data_dim, settings['hidden_dim'], dataset.output_dim, 
-                                 lstm=settings['lstm'], weight_values=savedVars, 
-                                 single_digit=settings['single_digit']);
+    
+    dataset, rnn = constructModels(settings, None, None);
+    
+    # Actually load variables
+    rnn.loadVars(savedVars);
     
     return dataset, rnn, settings;
 
 if __name__ == '__main__':
-    modelName = 'answer-lstm-multi_digit.model';
+#     modelName = 'choose';
+    modelName = 'f-seqs-s_05-03-2017_15-23-19-t4_149_from_floats.model';
     
     if (len(sys.argv) > 1):
         modelName = sys.argv[1];
-        if (modelName == 'choose'):
-            modelName = raw_input("Please provide the name of the model you want to inspect:\n");
+    
+    if (modelName == 'choose'):
+        modelName = raw_input("Please provide the name of the model you want to inspect:\n");
     
     dataset, rnn, settings = read_from_file(modelName);
     
-    # Do stuff
-    predictions = [];
-    ground_truths = [];
-    for i in range(0,100):
-        prediction = rnn.predict(dataset.test[i], dataset.test_targets[i]);
-        predictions.append(prediction);
-        ground_truths.append(dataset.test_labels[i]);
+    print(rnn.only_cause_expression);
     
-    for i,(prediction,size) in enumerate(predictions):
-        print(", ".join(map(lambda x: dataset.findSymbol[int(x)],prediction)) + " should be " + ", ".join(map(str,ground_truths[i])) + " (size = " + str(size) + ")");
+    # Ask for inputs
+    inpt = raw_input("Give input sample: ");
+    while (inpt.strip() != ''):
+        # input to numpy object
+        indices = dataset.strToIndices(inpt);
+        inpt_np = np.zeros((rnn.minibatch_size,rnn.n_max_digits,dataset.data_dim), dtype='float32');
+        for i, ind in enumerate(indices):
+            inpt_np[0,i,ind] = 1.;
+        # call predict
+        outpt, _ = rnn.predict(inpt_np, interventionLocations=np.array([[len(inpt)-1 for _ in range(rnn.minibatch_size)],[len(inpt)-2 for _ in range(rnn.minibatch_size)]]));
+        # output to string
+        outpt = dataset.indicesToStr(outpt[0]);
+        print(outpt);
+        # Ask for inputs
+        inpt = raw_input("Give input sample: ");
+    
+    
