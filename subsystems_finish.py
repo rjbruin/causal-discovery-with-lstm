@@ -405,7 +405,7 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
                                            nrSamples=nrSamples); 
         totalError += other['summed_error'];
         
-        if (parameters['only_cause_expression']):
+        if (parameters['only_cause_expression'] or parameters['rnn_version'] == 1):
             prediction_1 = predictions;
             predictions = [predictions];
         else:
@@ -455,7 +455,7 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
                 printF(prefix + "Prediction    1: %s" % (whitespaceprefix + "".join(map(lambda x: dataset.findSymbol[x], prediction_1[i]))), experimentId, currentIteration);
                 printF(prefix + "Used label    1: %s" % labels_used[i][0], experimentId, currentIteration);
                 
-                if (not parameters['only_cause_expression']):
+                if (not parameters['only_cause_expression'] and parameters['rnn_version'] != 1):
                     printF(prefix + "Data          2: %s" % "".join((map(lambda x: dataset.findSymbol[x], 
                                                        np.argmax(test_targets[i,:,model.data_dim:],len(test_data.shape)-2)))), experimentId, currentIteration);
                     printF(prefix + "Prediction    2: %s" % (whitespaceprefix + "".join(map(lambda x: dataset.findSymbol[x], prediction_2[i]))), experimentId, currentIteration);
