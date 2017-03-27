@@ -43,6 +43,19 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
         printF(prefix + "Score: %.2f percent" % (stats['score']*100), experimentId, currentIteration);
     else:
         printF(prefix + "Score: %.2f percent" % (stats['digit_2_total_score']*100), experimentId, currentIteration);
+        for i in range(parameters['n_max_digits']):
+            printF(prefix + "Indiv. digit %d: %.2f percent" % (i, stats['digit_2_score'][i]*100.), experimentId, currentIteration);
+        
+        for i in range(8):
+            printF(prefix + "Errors %d: %.2f percent" % (i, stats['error_size'][i]*100.), experimentId, currentIteration);
+        
+        printF(prefix + "First error None: %.2f percent" % (stats['first_error_score'][-1]*100.), experimentId, currentIteration);
+        for i in range(8):
+            printF(prefix + "First error %d: %.2f percent" % (i, stats['first_error_score'][i]*100.), experimentId, currentIteration);
+        printF(prefix + "First error >8: %.2f percent" % (stats['first_error_score'][8]*100.), experimentId, currentIteration);
+        
+        for i in range(8):
+            printF(prefix + "Recovery %d: %.2f percent" % (i, stats['recovery_score'][i]*100.), experimentId, currentIteration);
     
     digit_score = (stats['digit_1_total_score']) * 100.;
     if (not parameters['only_cause_expression']):
@@ -601,6 +614,14 @@ if __name__ == '__main__':
         score_types['Label.size %d' % size] = 'Score by label size = %d' % size;
     for size in range(20):
         score_types['Inpt.size %d' % size] = 'Score by input size = %d' % size;
+    for size in range(20):
+        score_types['Indiv.digit %d' % size] = 'Indiv. digit %d' % size;
+    for size in range(8):
+        score_types['Errors %d' % size] = 'Errors %d' % size;
+        score_types['First error %d' % size] = 'First error %d' % size;
+        score_types['Recovery %d' % size] = 'Recovery %d' % size;
+    score_types['First error -1'] = 'First error -1';
+    score_types['First error >8'] = 'First error >8';
     for trueSize in range(20):
         for nrCorrect in range(20):
             score_types['T %d C %d' % (trueSize, nrCorrect)] = 'Label size %d nr correct %d' % (trueSize, nrCorrect);

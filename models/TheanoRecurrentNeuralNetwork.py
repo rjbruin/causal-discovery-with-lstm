@@ -1238,14 +1238,31 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 # Convert prediction to string expression
                 effectExpressionPrediction = dataset.indicesToStr(prediction[effectIndex][j], ignoreEOS=True);
                 label_effect = labels_to_use[j][effectIndex][parameters['lag']:];
+                while (len(effectExpressionPrediction) < len(label_effect)):
+                    effectExpressionPrediction = effectExpressionPrediction + "_";
+                comparison = map(lambda (p,l): p == l, zip(effectExpressionPrediction, label_effect));
                 
                 i = 0;
                 len_to_use = len(label_effect);
-                for i in range(intervention_locations[effectIndex,j]+1,len_to_use):
-                    if (i < len(effectExpressionPrediction)):
-                        if (effectExpressionPrediction[i] == label_effect[i]):
-                            stats['digit_2_correct'][i] += 1.0;
-                        stats['digit_2_prediction_size'][i] += 1;
+                errors = 0;
+                for i, v in enumerate(comparison):
+                    if (v):
+                        stats['digit_2_correct'][i] += 1.0;
+                        if (errors > 0):
+                            stats['recovery'][errors] += 1.0;
+                    else:
+                        if (errors == 0):
+                            if (i < 8):
+                                stats['first_error'][i] += 1.0;
+                            else:
+                                stats['first_error'][8] += 1.0;
+                            stats['no_recovery'][errors] += 1.0;
+                            errors += 1;
+                    stats['digit_2_prediction_size'][i] += 1;
+                if (errors == 0):
+                    stats['first_error'][-1] += 1.0;
+                else:
+                    stats['no_recovery'][errors] += 1.0;
         else:
             dont_switch = False;
             if (len(prediction) <= 1):
