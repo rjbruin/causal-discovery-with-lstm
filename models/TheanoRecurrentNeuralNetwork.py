@@ -422,7 +422,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         hidden = [T.zeros((self.minibatch_size,self.hidden_dim))];
         cell = [T.zeros((self.minibatch_size,self.hidden_dim))];
-        if (self.doubleLayer):
+        if (self.doubleLayer or self.tripleLayer):
             hidden_2 = [T.zeros((self.minibatch_size,self.hidden_dim))];
             cell_2 = [T.zeros((self.minibatch_size,self.hidden_dim))];
         if (self.tripleLayer):
