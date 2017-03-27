@@ -397,8 +397,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         RNN for discreteprocess (f-subs new version).
         """
         # Set up inputs to prediction and SGD
-        # X is 3-dimensional: 1) index in sentence, 2) datapoint, 3) dimensionality of data
-        X = T.ftensor3('X');
         # label is 3-dimensional: 1) index in sentence, 2) datapoint, 3) dimensionality of data
         label = T.ftensor3('label');
 
@@ -560,9 +558,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         right_hand = T.maximum(right_hand, right_hand_near_zeros);
 
         # Compute the prediction
-        prediction_1 = T.argmax(right_hand, axis=2);
-        if (not self.only_cause_expression):
-            prediction_2 = T.argmax(right_hand, axis=2);
+        prediction = T.argmax(right_hand, axis=2);
 
         # ERROR COMPUTATION AND PROPAGATION
         coding_dist = right_hand;
@@ -572,8 +568,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         summed_error = T.sum(T.mean(cat_cross, axis=cat_cross.ndim-1));
 
         # Defining prediction function
-        self._predict = theano.function([X, label], [prediction_1,
-                                            prediction_2,
+        self._predict = theano.function([label], [prediction,
                                             right_hand,
                                             error,
                                             summed_error], on_unused_input='ignore');
@@ -595,8 +590,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
 
         # Defining SGD functuin
-        self._sgd = theano.function([X, label],
-                                        [error, summed_error],
+        self._sgd = theano.function([label], [error, summed_error],
                                     updates=updates,
                                     allow_input_downcast=True,
                                     on_unused_input='ignore');
@@ -1137,8 +1131,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         if (self.rnn_version == 0):
             return self._sgd(data, interventionLocations, nrSamples);
-        else:
+        elif (self.rnn_version == 2):
             return self._sgd(data, label);
+        else:
+            return self._sgd(data);
 
     def predict(self, encoding_label, prediction_label=None, interventionLocations=None,
                 intervention=True, fixedDecoderInputs=True, topcause=True, nrSamples=None):
@@ -1154,29 +1150,28 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (self.rnn_version == 1):            
             prediction_label = np.swapaxes(prediction_label, 0, 1);
 
-        if (not self.only_cause_expression and self.rnn_version != TheanoRecurrentNeuralNetwork.RNN_DECODESINGLEPREDICTION):
-            if (self.rnn_version == TheanoRecurrentNeuralNetwork.RNN_DECODESELFFEEDING):
-                prediction_1, prediction_2, right_hand, error, summed_error = \
-                        self._predict(encoding_label, interventionLocations, nrSamples);
-            else:
-                prediction_1, prediction_2, right_hand, error, summed_error = \
-                        self._predict(encoding_label, prediction_label);
+        if (not self.only_cause_expression and self.rnn_version == TheanoRecurrentNeuralNetwork.RNN_DECODESELFFEEDING):
+            prediction_1, prediction_2, right_hand, error, summed_error = \
+                self._predict(encoding_label, prediction_label);
         else:
             if (self.rnn_version == TheanoRecurrentNeuralNetwork.RNN_DECODESELFFEEDING):
                 prediction_1, right_hand, error, summed_error = \
                         self._predict(encoding_label, interventionLocations, nrSamples);
-            else:
+            elif (self.rnn_version == self.RNN_DECODESINGLEPREDICTION):
                 prediction_1, right_hand, error, summed_error = \
                         self._predict(encoding_label, prediction_label);
+            else:
+                prediction_1, right_hand, error, summed_error = \
+                        self._predict(encoding_label);
 
         # Swap sentence index and datapoints back
         if (self.rnn_version != TheanoRecurrentNeuralNetwork.RNN_DECODESINGLEPREDICTION):
             prediction_1 = np.swapaxes(prediction_1, 0, 1);
-            if (not self.only_cause_expression):
+            if (not self.only_cause_expression and self.rnn_version != self.RNN_ENCODEDECODEDATAFEEDING):
                 prediction_2 = np.swapaxes(prediction_2, 0, 1);
             right_hand = np.swapaxes(right_hand, 0, 1);
 
-        if (not self.only_cause_expression and self.rnn_version != TheanoRecurrentNeuralNetwork.RNN_DECODESINGLEPREDICTION):
+        if (not self.only_cause_expression and self.rnn_version == TheanoRecurrentNeuralNetwork.RNN_DECODESELFFEEDING):
             return [prediction_1, prediction_2], {'right_hand': right_hand, 'error': error, 'summed_error': summed_error};
         else:
             return prediction_1, {'right_hand': right_hand, 'error': error, 'summed_error': summed_error};
@@ -1236,6 +1231,21 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if (expression is not None):
                     stats['input_sizes'][len(expression)] += 1;
                 stats['symbol_size'][dataset.findSymbol[target_expressions[j]]] += 1;
+        elif (self.rnn_version == self.RNN_ENCODEDECODEDATAFEEDING):
+            effectIndex = 0;
+            
+            for j in range(0,test_n):
+                # Convert prediction to string expression
+                effectExpressionPrediction = dataset.indicesToStr(prediction[effectIndex][j], ignoreEOS=True);
+                label_effect = labels_to_use[j][effectIndex][parameters['lag']:];
+                
+                i = 0;
+                len_to_use = len(label_effect);
+                for i in range(intervention_locations[effectIndex,j]+1,len_to_use):
+                    if (i < len(effectExpressionPrediction)):
+                        if (effectExpressionPrediction[i] == label_effect[i]):
+                            stats['digit_2_correct'][i] += 1.0;
+                        stats['digit_2_prediction_size'][i] += 1;
         else:
             dont_switch = False;
             if (len(prediction) <= 1):
@@ -1260,15 +1270,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if (intervention_locations[0,j] >= len(labels_to_use[j][causeIndex]) - 1):
                     stats['skipped_because_intervention_location'] += 1;
                     continue;
-    
-                # Taking argmax over symbols for each sentence returns
-                # the location of the highest index, which is the first
-                # EOS symbol
-                eos_location = np.argmax(prediction[causeIndex][j]);
-                # Check for edge case where no EOS was found and zero was returned
-                eos_symbol_index = dataset.EOS_symbol_index;
-                if (prediction[causeIndex][j,eos_location] != eos_symbol_index):
-                    eos_location = prediction[causeIndex][j].shape[0];
     
                 # Convert prediction to string expression
                 causeExpressionPrediction = dataset.indicesToStr(prediction[causeIndex][j], ignoreEOS=parameters['dataset_type'] == 3);
@@ -1459,12 +1460,12 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                 stats['digit_2_prediction_size'] += 1;
         
         
-                    stats['prediction_1_size_histogram'][int(eos_location)] += 1;
+                    stats['prediction_1_size_histogram'][len(causeExpressionPrediction)] += 1;
                     for digit_prediction in prediction[causeIndex][j][intervention_locations[causeIndex,j]+1:len(causeExpressionPrediction)]:
                         stats['prediction_1_histogram'][int(digit_prediction)] += 1;
         
                     if (not self.only_cause_expression):
-                        stats['prediction_2_size_histogram'][int(eos_location)] += 1;
+                        stats['prediction_2_size_histogram'][len(effectExpressionPrediction)] += 1;
                         for digit_prediction in prediction[effectIndex][j][intervention_locations[effectIndex,j]+1:len(effectExpressionPrediction)]:
                             stats['prediction_2_histogram'][int(digit_prediction)] += 1;
                 else:
@@ -1476,7 +1477,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                 stats['digit_1_correct'][i] += 1.0;
                             stats['digit_1_prediction_size'][i] += 1;
                     
-                    stats['prediction_1_size_histogram'][int(eos_location)] += 1;
+                    stats['prediction_1_size_histogram'][len(causeExpressionPrediction)] += 1;
                     for digit_prediction in prediction[causeIndex][j][:len_to_use]:
                         stats['prediction_1_histogram'][int(digit_prediction)] += 1;
         
@@ -1491,7 +1492,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         
                     if (not self.only_cause_expression):
-                        stats['prediction_2_size_histogram'][int(eos_location)] += 1;
+                        stats['prediction_2_size_histogram'][len(effectExpressionPrediction)] += 1;
                         for digit_prediction in prediction[effectIndex][j][:len_to_use]:
                             stats['prediction_2_histogram'][int(digit_prediction)] += 1;
     
