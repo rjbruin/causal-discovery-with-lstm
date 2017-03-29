@@ -1,0 +1,16 @@
+[
+    {
+        "name": "f-seqs-d",
+        "dataset": "./data/subsystems_deep",
+        "repetitions": "150",
+        "finish_subsystems": "True",
+        "n_max_digits": "35",
+        "intervention_base_offset": "1",
+        "intervention_range": "34",
+        "optimizer": "1",
+        "learning_rate": "0.005",
+        "hidden_dim": "128",
+      	"minibatch_size": "64",
+        "only_cause_expression": "1"
+    }
+]

@@ -1,0 +1,15 @@
+[
+    {
+        "name": "f-fndx-d",
+        "dataset": "./data/subsystems_deep",
+        "repetitions": "150",
+        "sample_testing_size": "100000",
+        "rnn_version": "2",
+        "n_max_digits": "35",
+        "optimizer": "1",
+        "learning_rate": "0.001",
+        "hidden_dim": "128",
+      	"minibatch_size": "64",
+        "only_cause_expression": "1"
+    }
+]
