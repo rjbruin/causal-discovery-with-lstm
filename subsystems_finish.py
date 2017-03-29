@@ -829,7 +829,8 @@ if __name__ == '__main__':
                 outputs = model.sgd(dataset, data, target, parameters['learning_rate'],
                                       nrSamples=model.minibatch_size, expressions=target_expressions,
                                       interventionLocations=interventionLocations,
-                                      topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause']);
+                                      topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause'],
+                                      labelSearching=parameters['label_searching']);
                 total_error += outputs[1];
                 profiler.stop('train sgd');
                 

@@ -74,6 +74,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.lag = lag;
         self.nocrosslinks_hidden_factor = nocrosslinks_hidden_factor;
         self.bottom_loss = bottom_loss;
+        
+        # Caches for label searching
+        self.labels = [];
 
 #         self.peepholes = peepholes;
 #         self.lstm_biases = lstm_biases;
@@ -1117,7 +1120,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     def sgd(self, dataset, data, label=None, learning_rate=0.001, emptySamples=None,
             expressions=None,
             interventionLocations=0, topcause=True,
-            bothcause=False, nrSamples=None):
+            bothcause=False, nrSamples=None, labelSearching=False):
         """
         The intervention location for finish expressions must be the same for
         all samples in this batch.
@@ -1125,6 +1128,45 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         if (nrSamples is None):
             nrSamples = self.minibatch_size;
 
+        if (labelSearching):
+            self.labels = [];
+            newData = np.zeros_like(data, dtype='float32');
+            prediction, _ = self.predict(data, interventionLocations=interventionLocations, 
+                                         intervention=True, topcause=True, nrSamples=nrSamples);
+            storage = dataset.expressionsByPrefix;
+            for j in range(nrSamples):
+                causeExpressionPrediction = dataset.indicesToStr(prediction[j]);
+                causeLabel = dataset.indicesToStr(np.argmax(data[j], axis=1));
+                closestLabel = None;
+                _, _, causeValidPredictions, _ = storage.get(causeLabel[:interventionLocations[0,j]+1]);
+                
+                if (len(causeValidPredictions) == 0):
+                    raise ValueError("No valid predictions available! This should not happen at all...");
+                
+                # Search for direct match
+                for k in range(len(causeValidPredictions)):
+                    if (causeValidPredictions[k] == causeExpressionPrediction):
+                        closestLabel = causeValidPredictions[k];
+                        break;
+                
+                # Search for closest match
+                if (closestLabel is None):
+                    # Find the nearest expression to our prediction
+                    nearestScore = 100000;
+                    for candidateLabel in causeValidPredictions:
+                        # Compute string difference
+                        score = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction[interventionLocations[0,j]+1:], candidateLabel[interventionLocations[0,j]+1:]);
+                        if (score < nearestScore):
+                            closestLabel = candidateLabel;
+                            nearestScore = score;
+                self.labels.append(closestLabel);
+            
+                # Convert label to encoding
+                indices = dataset.strToIndices(closestLabel);
+                for seq_index, val in enumerate(indices):
+                    newData[j, seq_index, val] = 1.;
+            data = newData;
+        
         data = np.swapaxes(data, 0, 1);
         if (self.rnn_version == 1):
             label = np.swapaxes(label, 0, 1);
@@ -1514,7 +1556,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             stats['prediction_2_histogram'][int(digit_prediction)] += 1;
     
                 stats['prediction_size'] += 1;
-
+        
+        if (len(self.labels) > 0):
+            labels_to_use = zip(self.labels, ["" for i in range(len(self.labels))]);
+        
         return stats, labels_to_use, notInDataset;
 
     @staticmethod
