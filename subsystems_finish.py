@@ -299,10 +299,20 @@ def get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length,
         
         subbatch = [];
         while (len(subbatch) < subbatch_size):
+            storage_to_use = storage;
             if (seq2ndmarkov and not topcause):
-                branch = storage_bot.get_random_by_length(interventionLocation, getStructure=True);
-            else:
-                branch = storage.get_random_by_length(interventionLocation, getStructure=True);
+                storage_to_use = storage_bot;
+            branch = None;
+            
+            max_fails = 1000;
+            fails = 0;
+            while (branch is None):
+                branch = storage_to_use.get_random_by_length(interventionLocation, getStructure=True);
+                fails += 1;
+                if (fails >= max_fails):
+                    break;
+            if (fails >= max_fails):
+                continue;
             
             if (homogeneous):
                 candidates = branch.fullExpressions;
@@ -335,6 +345,8 @@ def get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length,
                                      branch.fullExpressions[randomPrefix]));
                     if (answering):
                         interventionLocation = branch.primedExpressions[randomPrefix].index("=");
+        if (fails >= max_fails):
+            continue;
         
         # Add subbatch to batch
         batch.extend(subbatch);
@@ -489,7 +501,7 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
     printF("Total testing error: %.2f" % totalError, experimentId, currentIteration);
     printF("Mean testing error: %.8f" % (totalError/float(k)), experimentId, currentIteration);
     
-    stats = model.total_statistics(stats, dataset, total_labels_used=total_labels_used);
+    stats = model.total_statistics(stats, dataset, parameters, total_labels_used=total_labels_used);
     print_stats(stats, parameters, experimentId, currentIteration);
     
     if (returnTestSamples):
@@ -727,6 +739,9 @@ if __name__ == '__main__':
         processor = None;
         if (parameters['dataset_type'] == 3):
             processor = processSampleDiscreteProcess;
+        else:
+            if (parameters['simple_data_loading']):
+                raise ValueError("Simple data loading not supported for this dataset!");
         
         
         # Construct models

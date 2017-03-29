@@ -187,7 +187,7 @@ def test(model, dataset, parameters, max_length, print_samples=False,
     printF("Total testing error: %.2f" % totalError, experimentId, currentIteration);
     printF("Mean testing error: %.8f" % (totalError/float(k)), experimentId, currentIteration);
     
-    stats = model.total_statistics(stats, dataset, total_labels_used=total_labels_used, digits=False);
+    stats = model.total_statistics(stats, dataset, parameters, total_labels_used=total_labels_used, digits=False);
     print_stats(stats, parameters);
     
     if (returnTestSamples):

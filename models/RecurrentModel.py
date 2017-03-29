@@ -43,14 +43,14 @@ class RecurrentModel(object):
     def getVars(self):
         pass
         
-    def total_statistics(self, stats, dataset, total_labels_used={}, digits=True):
+    def total_statistics(self, stats, dataset, parameters, total_labels_used={}, digits=True):
         """
         Adds general statistics to the statistics generated per batch.
         """
         stats['prediction_histogram'] = RecurrentModel.addDicts(stats['prediction_1_histogram'], stats['prediction_2_histogram']);
 #         stats['prediction_sizes'] = RecurrentModel.addDicts(stats['prediction_1_size_histogram'], stats['prediction_2_size_histogram']);
         
-        for i in range(20):
+        for i in range(parameters['n_max_digits']+1):
             if (stats['digit_1_prediction_size'][i] > 0):
                 stats['digit_1_score'][i] = stats['digit_1_correct'][i] / float(stats['digit_1_prediction_size'][i]);
             else:
@@ -79,7 +79,7 @@ class RecurrentModel(object):
             # PRINT Digit precision per index = digit_2_score
             # PRINT First wrong prediction = first_error_score
             # Recovery percentage per errors = recovery_score_by_error
-            if (stats['digit_2_prediction_size'] > 0):
+            if (d2_size > 0):
                 stats['first_error_score'] = {k: 0. for k in range(-1,9)};
                 stats['recovery_score'] = {k: 0. for k in range(8)};
                 stats['error_size'] = {k: 0. for k in range(8)};
@@ -126,9 +126,9 @@ class RecurrentModel(object):
                     stats['input_size_score'][size] = val / float(stats['input_sizes'][size]);
                 else:
                     stats['input_size_score'][size] = 0.
-            stats['label_size_input_size_confusion_score'] = np.zeros((20,20), dtype='float32');
-            for l in range(20):
-                for i in range(20):
+            stats['label_size_input_size_confusion_score'] = np.zeros((parameters['n_max_digits']+1,parameters['n_max_digits']+1), dtype='float32');
+            for l in range(parameters['n_max_digits']+1):
+                for i in range(parameters['n_max_digits']+1):
                     if (stats['label_size_input_size_confusion_size'][l,i] > 0):
                         stats['label_size_input_size_confusion_score'][l,i] = stats['label_size_input_size_confusion_correct'][l,i] / float(stats['label_size_input_size_confusion_size'][l,i]);
                     else:
