@@ -1129,7 +1129,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             nrSamples = self.minibatch_size;
 
         if (labelSearching):
-            self.labels = [];
             newData = np.zeros_like(data, dtype='float32');
             prediction, _ = self.predict(data, interventionLocations=interventionLocations, 
                                          intervention=True, topcause=True, nrSamples=nrSamples);
@@ -1159,7 +1158,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         if (score < nearestScore):
                             closestLabel = candidateLabel;
                             nearestScore = score;
-                self.labels.append(closestLabel);
             
                 # Convert label to encoding
                 indices = dataset.strToIndices(closestLabel);
@@ -1556,9 +1554,6 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             stats['prediction_2_histogram'][int(digit_prediction)] += 1;
     
                 stats['prediction_size'] += 1;
-        
-        if (len(self.labels) > 0):
-            labels_to_use = zip(self.labels, ["" for i in range(len(self.labels))]);
         
         return stats, labels_to_use, notInDataset;
 
