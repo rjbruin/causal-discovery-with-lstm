@@ -152,6 +152,12 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
             printF(prefix + "Label / input size row %d: %s" % (i, np.array2string(stats['label_size_input_size_confusion_score'][i,:]).replace('\n', '')), experimentId, currentIteration);
         np.set_printoptions(precision=3);
     
+    if (parameters['rnn_version'] == 0):
+        for i in range(stats['left_missing_vs_left_size_score'].shape[0]):
+            for j in range(stats['left_missing_vs_left_size_score'].shape[1]):
+                if (stats['left_missing_vs_left_size_size'][i,j] > 0):
+                    printF(prefix + "LM %d LS %d: %.2f percent" % (i, j, stats['left_missing_vs_left_size_score'][i,j]), experimentId, currentIteration);
+    
     if (parameters['dataset_type'] != 3):
         printF(prefix + "Unique labels used: %d" % stats['unique_labels_predicted'], experimentId, currentIteration);
         printF(prefix + "Skipped because of zero prediction length: %d" % stats['skipped_because_intervention_location'], experimentId, currentIteration);
@@ -637,6 +643,10 @@ if __name__ == '__main__':
     for trueSize in range(20):
         for nrCorrect in range(20):
             score_types['T %d C %d' % (trueSize, nrCorrect)] = 'Label size %d nr correct %d' % (trueSize, nrCorrect);
+    for i in range(20):
+        for j in range(20):
+            score_types['LM %d LS %d' % (i, j)] = 'LM %d LS %d' % (i, j);
+            
     trackerreporter.init('http://rjbruin.nl/experimenttracker/api/',api_key);
     
     cmdargs = sys.argv[1:];

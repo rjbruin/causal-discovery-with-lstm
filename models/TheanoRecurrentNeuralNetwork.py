@@ -1346,6 +1346,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 stats['label_sizes'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1)] += 1;
                 stats['input_sizes'][intervention_locations[0,j]+1] += 1;
                 stats['label_size_input_size_confusion_size'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1),intervention_locations[0,j]+1] += 1;
+                left_size = labels_to_use[j][causeIndex].index("=")+1;
+                left_missing = max(0,left_size - (intervention_locations[0,j]+1));
+                stats['left_missing_vs_left_size_size'][left_missing,left_size] += 1;
+                
                 stats['correct_matrix_sizes'][len(label_cause)-(intervention_locations[0,j]+1)] += 1;
                 
                 scoredCorrectAlready = False;
@@ -1363,6 +1367,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             stats['label_size_correct'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1)] += 1;
                             stats['input_size_correct'][intervention_locations[0,j]+1] += 1.;
                             stats['label_size_input_size_confusion_correct'][len(labels_to_use[j][causeIndex])-(intervention_locations[0,j]+1),intervention_locations[0,j]+1] += 1;
+                            stats['left_missing_vs_left_size_correct'][left_missing,left_size] += 1;
                             stats['correct_matrix'][len(label_cause)-(intervention_locations[0,j]+1),len(label_cause)-(intervention_locations[0,j]+1)] += 1.;
                             scoredCorrectAlready = True;
                         if (intervention_locations[0,j] < labels_to_use[j][causeIndex].index('=')):

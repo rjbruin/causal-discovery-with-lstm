@@ -127,12 +127,17 @@ class RecurrentModel(object):
                 else:
                     stats['input_size_score'][size] = 0.
             stats['label_size_input_size_confusion_score'] = np.zeros((parameters['n_max_digits']+1,parameters['n_max_digits']+1), dtype='float32');
+            stats['left_missing_vs_left_size_score'] = np.zeros((parameters['n_max_digits']+1,parameters['n_max_digits']+1), dtype='float32');
             for l in range(parameters['n_max_digits']+1):
                 for i in range(parameters['n_max_digits']+1):
                     if (stats['label_size_input_size_confusion_size'][l,i] > 0):
                         stats['label_size_input_size_confusion_score'][l,i] = stats['label_size_input_size_confusion_correct'][l,i] / float(stats['label_size_input_size_confusion_size'][l,i]);
                     else:
                         stats['label_size_input_size_confusion_score'][l,i] = 0.;
+                    if (stats['left_missing_vs_left_size_size'][l,i] > 0):
+                        stats['left_missing_vs_left_size_score'][l,i] = stats['left_missing_vs_left_size_correct'][l,i] / float(stats['left_missing_vs_left_size_size'][l,i]);
+                    else:
+                        stats['left_missing_vs_left_size_score'][l,i] = 0.;
             
             stats['x_hand_side_score'] = {};
             if (stats['x_hand_side_size']['left'] > 0):
