@@ -1270,11 +1270,11 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     stats['input_sizes'][len(expression)] += 1;
                 stats['symbol_size'][dataset.findSymbol[target_expressions[j]]] += 1;
         elif (self.rnn_version == self.RNN_ENCODEDECODEDATAFEEDING):
-            effectIndex = 0;
+            effectIndex = 1;
             
             for j in range(0,test_n):
                 # Convert prediction to string expression
-                effectExpressionPrediction = dataset.indicesToStr(prediction[effectIndex][j], ignoreEOS=True);
+                effectExpressionPrediction = dataset.indicesToStr(prediction[0][j], ignoreEOS=True);
                 label_effect = labels_to_use[j][effectIndex][parameters['lag']:];
                 while (len(effectExpressionPrediction) < len(label_effect)):
                     effectExpressionPrediction = effectExpressionPrediction + "_";
