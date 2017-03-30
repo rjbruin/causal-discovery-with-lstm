@@ -1142,22 +1142,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 if (len(causeValidPredictions) == 0):
                     raise ValueError("No valid predictions available! This should not happen at all...");
                 
-                # Search for direct match
-#                 for k in range(len(causeValidPredictions)):
-#                     if (causeValidPredictions[k] == causeExpressionPrediction):
-#                         closestLabel = causeValidPredictions[k];
-#                         break;
-                
-                # Search for closest match
-                if (closestLabel is None):
-                    # Find the nearest expression to our prediction
-                    nearestScore = 100000;
-                    for candidateLabel in causeValidPredictions:
-                        # Compute string difference
-                        score = TheanoRecurrentNeuralNetwork.string_difference(causeExpressionPrediction[interventionLocations[0,j]+1:], candidateLabel[interventionLocations[0,j]+1:]);
-                        if (score < nearestScore):
-                            closestLabel = candidateLabel;
-                            nearestScore = score;
+                # Find the nearest expression to our prediction
+                nearestScore = 100000;
+                causePrediction = causeExpressionPrediction[interventionLocations[0,j]+1:];
+                for candidateLabel in causeValidPredictions:
+                    # Compute string difference
+                    score = TheanoRecurrentNeuralNetwork.string_difference(causePrediction, candidateLabel[interventionLocations[0,j]+1:], toBeat=nearestScore);
+                    if (score < nearestScore):
+                        closestLabel = candidateLabel;
+                        nearestScore = score;
             
                 # Convert label to encoding
                 indices = dataset.strToIndices(closestLabel);
@@ -1558,15 +1551,16 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         return stats, labels_to_use, notInDataset;
 
     @staticmethod
-    def string_difference(string1, string2):
+    def string_difference(string1, string2, toBeat=100000):
         # Compute string difference
         score = 0;
         string1len = len(string1);
+        string2len = len(string2);
         k = 0;
-        for k,s in enumerate(string2):
-            if (string1len <= k):
+        for k in range(min(string1len,string2len)):
+            if (string2[k] != string1[k]):
                 score += 1;
-            elif (s != string1[k]):
-                score += 1;
-        score += max(0,len(string1) - (k+1));
+            if (score > toBeat):
+                return toBeat+1;
+        score += abs(string1len - string2len);
         return score;

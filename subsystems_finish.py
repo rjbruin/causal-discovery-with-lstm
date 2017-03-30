@@ -568,7 +568,7 @@ def validate(model, dataset, dataset_data, label_index, parameters, max_length, 
 if __name__ == '__main__':
     theano.config.floatX = 'float32';
     np.set_printoptions(precision=3, threshold=10000000);
-    profiler.off();
+    profiler.on();
     
     # Settings
     api_key = os.environ.get('TCDL_API_KEY');
@@ -833,6 +833,8 @@ if __name__ == '__main__':
                                       labelSearching=parameters['label_searching']);
                 total_error += outputs[1];
                 profiler.stop('train sgd');
+                
+                profiler.profile();
                 
                 # Print batch progress
                 if ((k+model.minibatch_size) % (model.minibatch_size*4) < model.minibatch_size and \
