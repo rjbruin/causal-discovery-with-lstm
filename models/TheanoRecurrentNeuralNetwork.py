@@ -1143,10 +1143,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     raise ValueError("No valid predictions available! This should not happen at all...");
                 
                 # Search for direct match
-                for k in range(len(causeValidPredictions)):
-                    if (causeValidPredictions[k] == causeExpressionPrediction):
-                        closestLabel = causeValidPredictions[k];
-                        break;
+#                 for k in range(len(causeValidPredictions)):
+#                     if (causeValidPredictions[k] == causeExpressionPrediction):
+#                         closestLabel = causeValidPredictions[k];
+#                         break;
                 
                 # Search for closest match
                 if (closestLabel is None):
