@@ -1120,7 +1120,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     def sgd(self, dataset, data, label=None, learning_rate=0.001, emptySamples=None,
             expressions=None,
             interventionLocations=0, topcause=True,
-            bothcause=False, nrSamples=None, labelSearching=False):
+            bothcause=False, nrSamples=None, labelSearching=False, labelSamples=100):
         """
         The intervention location for finish expressions must be the same for
         all samples in this batch.
@@ -1145,13 +1145,18 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 # Find the nearest expression to our prediction
                 nearestScore = 100000;
                 causePrediction = causeExpressionPrediction[interventionLocations[0,j]+1:];
-                for candidateLabel in causeValidPredictions:
+                
+                draw_n = labelSamples;
+                labelSampleIndices = np.random.randint(0,len(causeValidPredictions),min(len(causeValidPredictions),draw_n));
+                
+                for candidateLabelIndex in labelSampleIndices:
                     # Compute string difference
+                    candidateLabel = causeValidPredictions[candidateLabelIndex];
                     score = TheanoRecurrentNeuralNetwork.string_difference(causePrediction, candidateLabel[interventionLocations[0,j]+1:], toBeat=nearestScore);
                     if (score < nearestScore):
                         closestLabel = candidateLabel;
                         nearestScore = score;
-            
+                
                 # Convert label to encoding
                 indices = dataset.strToIndices(closestLabel);
                 for seq_index, val in enumerate(indices):

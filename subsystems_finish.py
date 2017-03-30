@@ -568,7 +568,7 @@ def validate(model, dataset, dataset_data, label_index, parameters, max_length, 
 if __name__ == '__main__':
     theano.config.floatX = 'float32';
     np.set_printoptions(precision=3, threshold=10000000);
-    profiler.on();
+    profiler.off();
     
     # Settings
     api_key = os.environ.get('TCDL_API_KEY');
@@ -830,7 +830,8 @@ if __name__ == '__main__':
                                       nrSamples=model.minibatch_size, expressions=target_expressions,
                                       interventionLocations=interventionLocations,
                                       topcause=topcause or parameters['bothcause'], bothcause=parameters['bothcause'],
-                                      labelSearching=parameters['label_searching']);
+                                      labelSearching=parameters['label_searching'],
+                                      labelSamples=parameters['label_samples']);
                 total_error += outputs[1];
                 profiler.stop('train sgd');
                 
