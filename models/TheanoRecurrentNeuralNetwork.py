@@ -1217,6 +1217,15 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     def getVars(self):
         return self.vars.items();
 
+    def getIncorrectPredictions(self, label_expressions, predictions, dataset):
+        incorrect = [];
+        for i in range(predictions.shape[0]):
+            expr = dataset.indicesToStr(predictions[i]);
+            if (label_expressions[i] != expr):
+                incorrect.append(i);
+        
+        return incorrect;
+
     def batch_statistics(self, stats, prediction,
                          target_expressions, intervention_locations,
                          other, test_n, dataset, labels_to_use, dataset_data, parameters,
