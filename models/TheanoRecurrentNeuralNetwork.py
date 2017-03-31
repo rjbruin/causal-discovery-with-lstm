@@ -1221,6 +1221,20 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         incorrect = [];
         for i in range(nrSamples):
             expr = dataset.indicesToStr(predictions[i]);
+            if (i >= len(label_expressions)):
+                print('A');
+                print(i);
+                print(len(label_expressions));
+                print(label_expressions);
+                print(nrSamples);
+                print(incorrect);
+            if (len(label_expressions[i]) == 0):
+                print('B');
+                print(i);
+                print(len(label_expressions));
+                print(label_expressions);
+                print(nrSamples);
+                print(incorrect);
             if (label_expressions[i][0] != expr):
                 incorrect.append(i);
         
