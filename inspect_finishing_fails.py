@@ -109,7 +109,6 @@ if __name__ == '__main__':
         test_exprs = [];
         interventionLocations = np.zeros((2, nrSamples), dtype='int32');
         batchRangeMax = min(nrSamples,len(incorrectPredictionSamples)-k);
-        print("BatchRangeMax: %d" % batchRangeMax);
         for i in range(batchRangeMax):
             # i counts from zero to m.size to save to target test_* containers
             # instead of counting from k to k+m.size
