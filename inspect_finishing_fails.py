@@ -18,7 +18,7 @@ def load():
     modelName = raw_input("Please provide the name of the model you want to inspect:\n");
     return read_from_file(modelName);
 
-def read_from_file(modelName, noDataset=False):
+def read_from_file(modelName, noDataset=False, debugDataset=False):
     # Keep trying to get a right filename
     while (True):
         try:
@@ -31,7 +31,10 @@ def read_from_file(modelName, noDataset=False):
     
     print(settings);
     
-    dataset, rnn = constructModels(settings, None, None, noDataset=noDataset);
+    if (debugDataset):
+        settings['max_dataset_size'] = 1000;
+    
+    dataset, rnn = constructModels(settings, None, None, dataset=noDataset);
     
     # Actually load variables
     rnn.loadVars(savedVars);
@@ -39,18 +42,20 @@ def read_from_file(modelName, noDataset=False):
     return dataset, rnn, settings;
 
 if __name__ == '__main__':
-#     modelName = 'choose';
-    modelName = 'f-seqs-s_05-03-2017_15-23-19-t4_149_from_floats.model';
+    finishingModelName = 'f-seqs-s_05-03-2017_15-23-19-t4_149_from_floats.model';
+    answeringModelName = 'f-answ-s_08-03-2017_15-59-51-t0_149_from_floats.model';
+    debug = True;
     
-    if (len(sys.argv) > 1):
-        modelName = sys.argv[1];
-    
-    if (modelName == 'choose'):
+    if (finishingModelName == None or answeringModelName == None):
         finishingModelName = raw_input("Please provide the name of the f-seqs model you want to load:\n");
         answeringModelName = raw_input("Please provide the name of the f-answ model you want to load:\n");
     
-    dataset, finishingRnn, finishingSettings = read_from_file(finishingModelName);
+    dataset, finishingRnn, finishingSettings = read_from_file(finishingModelName, debugDataset=debug);
     _, answeringRnn, answeringSettings = read_from_file(answeringModelName, noDataset=True);
+    
+    # Override necessary settings
+    finishingSettings['simple_data_loading'] = False;
+    answeringSettings['simple_data_loading'] = False;
     
     # Get failed samples for f-seqs
     incorrectPredictionSamples = [];
@@ -76,11 +81,11 @@ if __name__ == '__main__':
                                            interventionLocations=interventionLocations,
                                            nrSamples=nrSamples); 
         
-        errorSamples = finishingRnn.getIncorrectPredictions(test_expressions,prediction);
+        errorSamples = finishingRnn.getIncorrectPredictions(test_expressions,prediction,dataset);
         for i in errorSamples:
-            incorrectPredictionSamples.append((test_data[i],test_targets[i],test_expressions[i],interventionLocations[i]));
+            incorrectPredictionSamples.append((test_data[i],test_targets[i],test_expressions[i],interventionLocations[:,i]));
 
-        if (k % 1000 == 0):
+        if (k % (nrSamples*4) == 0):
             print("# %d / %d" % (k, total));
         
         k += nrSamples;
@@ -102,21 +107,21 @@ if __name__ == '__main__':
             test_data[i] = data;
             test_targets[i] = targets;
             test_expressions.append(exprs);
-            interventionLocations[i] = intLocs;
+            interventionLocations[:,i] = intLocs;
         
         prediction, other = answeringRnn.predict(test_data, test_targets, 
                                            interventionLocations=interventionLocations,
                                            nrSamples=nrSamples);
         
-        errorSamples = answeringRnn.getIncorrectPredictions(test_expressions,prediction);
+        errorSamples = answeringRnn.getIncorrectPredictions(test_expressions,prediction,dataset);
         for i in range(nrSamples):
             if (i in errorSamples):
                 incorrectlyAnswered.append(test_expressions[i]);
             else:
                 correctlyAnswered.append(test_expressions[i]);
 
-        if (k % 1000 == 0):
-            print("# %d / %d" % (k, total));
+        if (k % (nrSamples*4) == 0):
+            print("# %d / %d" % (k, len(incorrectPredictionSamples)));
         
         k += nrSamples;
         

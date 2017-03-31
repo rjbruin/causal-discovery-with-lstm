@@ -11,12 +11,12 @@ from models.TheanoRecurrentNeuralNetwork import TheanoRecurrentNeuralNetwork;
 from models.SequenceRepairingRecurrentNeuralNetwork import SequenceRepairingRecurrentNeuralNetwork;
 
 
-def constructModels(parameters, seed, verboseOutputter, noModel=False, noDataset=False):
+def constructModels(parameters, seed, verboseOutputter, noModel=False, dataset=None):
     train_path = "%s/all.txt" % (parameters['dataset']);
     config_path = "%s/config.json" % (parameters['dataset']);
 
     dataset = None;
-    if (not noDataset):
+    if (dataset is None):
         dataset = GeneratedExpressionDataset(train_path, config_path,
                                              test_batch_size=parameters['test_batch_size'],
                                              train_batch_size=parameters['train_batch_size'],

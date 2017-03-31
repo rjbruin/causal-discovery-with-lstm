@@ -147,10 +147,11 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
                 printF(prefix + "Label size %d nr correct %d: %.2f (%d)" % (trueSize, nrCorrect, stats['correct_matrix_scores'][trueSize,nrCorrect] * 100., stats['correct_matrix'][trueSize,nrCorrect]), experimentId, currentIteration);
     
     if ('label_size_input_size_confusion_score' in stats):
-        np.set_printoptions(precision=8);
         for i in range(stats['label_size_input_size_confusion_score'].shape[0]):
-            printF(prefix + "Label / input size row %d: %s" % (i, np.array2string(stats['label_size_input_size_confusion_score'][i,:]).replace('\n', '')), experimentId, currentIteration);
-        np.set_printoptions(precision=3);
+            percentages = [];
+            for j in range(stats['label_size_input_size_confusion_score'].shape[1]):
+                percentages.append("%.2f" % stats['label_size_input_size_confusion_score'][i,j]);
+            printF(prefix + "Label / input size row %d: %s" % (i, ", ".join(percentages)), experimentId, currentIteration);
     
     if (parameters['rnn_version'] == 0):
         for i in range(stats['left_missing_vs_left_size_score'].shape[0]):
@@ -264,7 +265,7 @@ def get_batch_unprefixed(which_part, dataset_model, dataset_data, label_index, p
     
     return data, targets, labels, expressions, batch_health(data);
 
-def get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length, 
+def get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length, parameters,
                        debug=False, base_offset=12, 
                        seq2ndmarkov=False, bothcause=False, homogeneous=False,
                        answering=False):    
@@ -387,7 +388,7 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, parameter
         return data, targets, labels, expressions, np.zeros((data.shape[0])), True, parameters['minibatch_size'], health;
     else:
         data, targets, labels, expressions, interventionLocations, topcause, nrSamples = \
-            get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length, debug, 
+            get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length, parameters, debug, 
                                base_offset, seq2ndmarkov, bothcause, homogeneous, answering)
         return data, targets, labels, expressions, interventionLocations, topcause, nrSamples, 0;
 
