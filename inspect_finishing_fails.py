@@ -46,7 +46,7 @@ def read_from_file(modelName, noDataset=False, debugDataset=False):
 if __name__ == '__main__':
     finishingModelName = 'f-seqs-s_05-03-2017_15-23-19-t4_149.model';
     answeringModelName = 'f-answ-s_08-03-2017_15-59-51-t0_149.model';
-    debug = False;
+    debug = True;
     
     if (debug):
         finishingModelName = 'f-seqs-s_05-03-2017_15-23-19-t4_149_from_floats.model';
@@ -119,14 +119,14 @@ if __name__ == '__main__':
             test_targets[i] = targets;
             test_expressions.append(exprs);
             interventionLocations[:,i] = intLocs;
-        nrSamples = i+1;
+        samplesProcessed = i+1;
         
         prediction, other = answeringRnn.predict(test_data, test_targets, 
                                            interventionLocations=interventionLocations,
-                                           nrSamples=nrSamples);
+                                           nrSamples=samplesProcessed);
         
-        errorSamples = answeringRnn.getIncorrectPredictions(test_expressions,prediction,dataset,nrSamples);
-        for i in range(nrSamples):
+        errorSamples = answeringRnn.getIncorrectPredictions(test_expressions,prediction,dataset,samplesProcessed);
+        for i in range(samplesProcessed):
             if (i in errorSamples):
                 incorrectlyAnswered.append(test_expressions[i][0]);
             else:
