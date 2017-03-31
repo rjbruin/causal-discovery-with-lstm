@@ -108,14 +108,11 @@ if __name__ == '__main__':
         test_targets = np.zeros((nrSamples,answeringRnn.n_max_digits,dataset.data_dim), dtype='float32');
         test_exprs = [];
         interventionLocations = np.zeros((2, nrSamples), dtype='int32');
-        batchRangeMax = min(k+nrSamples,len(incorrectPredictionSamples));
-        if (k > 0):
-            batchRangeMax = batchRangeMax % k;
+        batchRangeMax = min(nrSamples,len(incorrectPredictionSamples)-k);
         print("BatchRangeMax: %d" % batchRangeMax);
         for i in range(batchRangeMax):
             # i counts from zero to m.size to save to target test_* containers
             # instead of counting from k to k+m.size
-            print(incorrectPredictionSamples[i+k]);
             data, targets, exprs, intLocs = incorrectPredictionSamples[i+k];
             test_data[i] = data;
             test_targets[i] = targets;
