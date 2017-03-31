@@ -77,7 +77,7 @@ if __name__ == '__main__':
     length = 20;
     max_lag = 5;
     inputrange = [0,9];
-    weightsrange = [-2,3];
+    weightsrange = [-1,2];
     progressPrintInterval = 10000;
     crosslinks = True;
     homogeneous_weights = False;

@@ -15,7 +15,6 @@
         "minibatch_size": "64",
         "rnn_version": "1",
         "lag": "5",
-        "simple_data_loading": "True",
-        "double_layer": "True"
+        "simple_data_loading": "True"
     }
 ]
