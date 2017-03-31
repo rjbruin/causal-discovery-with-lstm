@@ -46,7 +46,7 @@ def read_from_file(modelName, noDataset=False, debugDataset=False):
 if __name__ == '__main__':
     finishingModelName = 'f-seqs-s_05-03-2017_15-23-19-t4_149.model';
     answeringModelName = 'f-answ-s_08-03-2017_15-59-51-t0_149.model';
-    debug = True;
+    debug = False;
     
     if (debug):
         finishingModelName = 'f-seqs-s_05-03-2017_15-23-19-t4_149_from_floats.model';
