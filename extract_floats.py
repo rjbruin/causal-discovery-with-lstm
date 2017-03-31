@@ -25,9 +25,9 @@ if __name__ == '__main__':
             modelSet = rnn.loadVars(dict(savedVars)); 
             if (modelSet):
                 modelInfo = settings;
-                floats = []
+                floats = {}
                 for key in sorted(rnn.vars.keys()):
-                    floats.append(rnn.vars[key].get_value().astype('float32'));
+                    floats[key] = rnn.vars[key].get_value().astype('float32');
             
                 f_model = open(filepath);
                 _ = f_model.readline();
@@ -36,7 +36,7 @@ if __name__ == '__main__':
                 
                 f = open('./saved_models/%s.floats' % name, 'wb');
                 f.writelines(['###\n',settingsLine]);
-                pickle.dump(floats,f);
+                pickle.dump(floats.items(),f);
                 f.close();
                 print("Success!");
             else:
