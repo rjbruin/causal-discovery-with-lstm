@@ -1242,6 +1242,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         notInDataset = [];
         
         if (self.rnn_version == TheanoRecurrentNeuralNetwork.RNN_DECODESINGLEPREDICTION):
+            # Sequence solving
             for j in range(0,test_n):
                 if (emptySamples is not None and j in emptySamples):
                     continue;
@@ -1279,6 +1280,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     stats['input_sizes'][len(expression)] += 1;
                 stats['symbol_size'][dataset.findSymbol[target_expressions[j]]] += 1;
         elif (self.rnn_version == self.RNN_ENCODEDECODEDATAFEEDING):
+            # f-subs
             effectIndex = 1;
             
             for j in range(0,test_n):
@@ -1311,6 +1313,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 else:
                     stats['no_recovery'][errors] += 1.0;
         else:
+            # Sequence answering and sequence finishing
             dont_switch = False;
             if (len(prediction) <= 1):
                 # If we only have one prediction (only_cause_expression) we pad

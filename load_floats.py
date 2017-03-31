@@ -19,10 +19,9 @@ if __name__ == '__main__':
         modelName = name;
         result = load_from_pickle_with_filename(filepath);
         if (result is not False):
-            savedFloats, settings = result;
+            savedVars, settings = result;
             dataset, rnn = constructModels(settings, 0, None);
-            savedVars = zip(sorted(rnn.vars.keys()),savedFloats);
-            modelSet = rnn.loadVars(dict(savedVars), floats=True); 
+            modelSet = rnn.loadVars(savedVars, floats=True); 
             if (modelSet):
                 saveVars = rnn.getVars();
                 save_to_pickle('saved_models/%s_from_floats.model' % (name), saveVars, settings=settings);
