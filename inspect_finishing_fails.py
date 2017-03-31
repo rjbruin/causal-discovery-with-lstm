@@ -106,7 +106,7 @@ if __name__ == '__main__':
         # Construct batch
         test_data = np.zeros((nrSamples,answeringRnn.n_max_digits,dataset.data_dim), dtype='float32');
         test_targets = np.zeros((nrSamples,answeringRnn.n_max_digits,dataset.data_dim), dtype='float32');
-        test_expressions = [];
+        test_exprs = [];
         interventionLocations = np.zeros((2, nrSamples), dtype='int32');
         batchRangeMax = min(k+nrSamples,len(incorrectPredictionSamples));
         if (k > 0):
@@ -117,7 +117,7 @@ if __name__ == '__main__':
             data, targets, exprs, intLocs = incorrectPredictionSamples[i+k];
             test_data[i] = data;
             test_targets[i] = targets;
-            test_expressions.append(exprs);
+            test_exprs.append(exprs);
             interventionLocations[:,i] = intLocs;
         samplesProcessed = i+1;
         
@@ -125,12 +125,12 @@ if __name__ == '__main__':
                                            interventionLocations=interventionLocations,
                                            nrSamples=samplesProcessed);
         
-        errorSamples = answeringRnn.getIncorrectPredictions(test_expressions,prediction,dataset,samplesProcessed);
+        errorSamples = answeringRnn.getIncorrectPredictions(test_exprs,prediction,dataset,samplesProcessed);
         for i in range(samplesProcessed):
             if (i in errorSamples):
-                incorrectlyAnswered.append(test_expressions[i][0]);
+                incorrectlyAnswered.append(test_exprs[i][0]);
             else:
-                correctlyAnswered.append(test_expressions[i][0]);
+                correctlyAnswered.append(test_exprs[i][0]);
 
         if (k % (nrSamples*4) == 0):
             print("# %d / %d" % (k, len(incorrectPredictionSamples)));
@@ -140,7 +140,7 @@ if __name__ == '__main__':
     print("Nr correctly answered: %d (%.2f percent)" % (len(correctlyAnswered), (len(correctlyAnswered)/float(len(incorrectPredictionSamples)))*100.))
     print("Nr incorrectly answered: %d (%.2f percent)" % (len(incorrectlyAnswered), (len(incorrectlyAnswered)/float(len(incorrectPredictionSamples)))*100.))
     
-    # TODO: save specific samples to files
+    # Save specific samples to files
     f = open('./raw_results/finishing_fails_%s_%s.txt' % (finishingModelName.split(".")[0], answeringModelName.split(".")[0]), 'w');
     f.write("CORRECT:\n");
     f.write("\n".join(correctlyAnswered));

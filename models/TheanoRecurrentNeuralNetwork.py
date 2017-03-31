@@ -1228,6 +1228,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 print(label_expressions);
                 print(nrSamples);
                 print(incorrect);
+                print(predictions[i]);
+                print(predictions);
             if (len(label_expressions[i]) == 0):
                 print('B');
                 print(i);
@@ -1235,6 +1237,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 print(label_expressions);
                 print(nrSamples);
                 print(incorrect);
+                print(predictions[i]);
+                print(predictions);
             if (label_expressions[i][0] != expr):
                 incorrect.append(i);
         
