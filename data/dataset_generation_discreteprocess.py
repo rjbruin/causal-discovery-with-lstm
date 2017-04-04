@@ -75,7 +75,7 @@ if __name__ == '__main__':
     # Define dataset settings
     n = 1000000;
     length = 20;
-    max_lag = 5;
+    max_lag = 7;
     inputrange = [0,9];
     weightsrange = [-1,2];
     progressPrintInterval = 10000;

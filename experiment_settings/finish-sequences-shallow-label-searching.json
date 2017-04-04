@@ -1,0 +1,19 @@
+[
+    {
+        "name": "f-seqs-s",
+        "dataset": "./data/subsystems_shallow",
+        "repetitions": "150",
+        "finish_subsystems": "True",
+        "n_max_digits": "17",
+        "intervention_base_offset": "1",
+        "intervention_range": "16",
+        "optimizer": "1",
+        "learning_rate": "0.005",
+        "hidden_dim": "128",
+      	"minibatch_size": "64",
+        "double_layer": "True",
+        "only_cause_expression": "1",
+        "early_stopping": "True",
+        "label_searching": "True"
+    }
+]
