@@ -47,7 +47,8 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
             printF(prefix + "Indiv. digit %d: %.2f percent" % (i, stats['digit_2_score'][i]*100.), experimentId, currentIteration);
         
         for i in range(8):
-            printF(prefix + "Errors %d: %.2f percent" % (i, stats['error_size'][i]*100.), experimentId, currentIteration);
+            printF(prefix + "Errors %d: %.2f percent" % (i, stats['error_size_percentage'][i]*100.), experimentId, currentIteration);
+        printF(prefix + "Errors >8: %.2f percent" % (stats['error_size_percentage'][8]*100.), experimentId, currentIteration);
         
         printF(prefix + "First error None: %.2f percent" % (stats['first_error_score'][-1]*100.), experimentId, currentIteration);
         for i in range(8):

@@ -129,6 +129,7 @@ def set_up_statistics(output_dim, n_max_digits, symbols):
             'recovery': {k: 0 for k in range(8)},
             'no_recovery': {k: 0 for k in range(8)},
             'first_error': {k: 0 for k in range(-1,9)},
+            'error_size': {k: 0 for k in range(9)},
             'input_size_correct': {k: 0. for k in range(n_max_digits+1)},
             'label_size_input_size_confusion_size': np.zeros((n_max_digits+1,n_max_digits+1), dtype='int16'),
             'label_size_input_size_confusion_correct': np.zeros((n_max_digits+1,n_max_digits+1), dtype='int16'),

@@ -76,22 +76,23 @@ class RecurrentModel(object):
             else:
                 stats['digit_2_total_score'] = 0.;
         
+            pred_size = stats['prediction_size'];
             # PRINT Digit precision per index = digit_2_score
             # PRINT First wrong prediction = first_error_score
             # Recovery percentage per errors = recovery_score_by_error
-            if (d2_size > 0):
+            if (pred_size > 0):
                 stats['first_error_score'] = {k: 0. for k in range(-1,9)};
                 stats['recovery_score'] = {k: 0. for k in range(8)};
-                stats['error_size'] = {k: 0. for k in range(8)};
-                stats['first_error_score'][-1] = stats['first_error'][-1] / d2_size;
+                stats['error_size_percentage'] = {k: 0. for k in range(9)};
+                stats['first_error_score'][-1] = stats['first_error'][-1] / pred_size;
                 for i in range(8):
-                    stats['first_error_score'][i] = stats['first_error'][i] / d2_size;
-                    stats['error_size'][i] = float(stats['recovery'][i] + stats['no_recovery'][i]) / d2_size;
+                    stats['first_error_score'][i] = stats['first_error'][i] / pred_size;
+                    stats['error_size_percentage'][i] = float(stats['error_size'][i]) / pred_size;
                     if (stats['recovery'][i] + stats['no_recovery'][i] > 0):
                         stats['recovery_score'][i] = stats['recovery'][i] / float(stats['recovery'][i] + stats['no_recovery'][i]);
                     else:
                         stats['recovery_score'][i] = 0.;
-                stats['first_error_score'][8] = stats['first_error'][8] / d2_size;
+                stats['first_error_score'][8] = stats['first_error'][8] / pred_size;
         
         if (stats['prediction_size'] > 0):
             stats['score'] = stats['correct'] / float(stats['prediction_size']);

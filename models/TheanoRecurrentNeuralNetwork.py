@@ -1312,6 +1312,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                     stats['first_error'][-1] += 1.0;
                 else:
                     stats['no_recovery'][errors] += 1.0;
+                if (errors > 8):
+                    errors = 8;
+                stats['error_size'][errors] += 1.0;
+                stats['prediction_size'] += 1.0;
         else:
             # Sequence answering and sequence finishing
             dont_switch = False;
