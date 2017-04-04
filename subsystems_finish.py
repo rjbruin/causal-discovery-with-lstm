@@ -639,7 +639,7 @@ if __name__ == '__main__':
         score_types['Errors %d' % size] = 'Errors %d' % size;
         score_types['First error %d' % size] = 'First error %d' % size;
         score_types['Recovery %d' % size] = 'Recovery %d' % size;
-    score_types['First error -1'] = 'First error -1';
+    score_types['First error None'] = 'First error None';
     score_types['First error >8'] = 'First error >8';
     for trueSize in range(20):
         for nrCorrect in range(20):
