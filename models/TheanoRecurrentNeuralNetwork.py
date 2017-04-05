@@ -1316,26 +1316,33 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                 comparison = map(lambda (p,l): p == l, zip(effectExpressionPrediction, label_effect));
                 
                 i = 0;
-                len_to_use = len(label_effect);
                 errors = 0;
+                first_error = -1;
+                correct_after_first_error = False;
                 for i, v in enumerate(comparison):
                     if (v):
                         stats['digit_2_correct'][i] += 1.0;
-                        if (errors > 0):
-                            stats['recovery'][errors] += 1.0;
+                        if (first_error != -1):
+                            correct_after_first_error = True;
                     else:
-                        if (errors == 0):
-                            if (i < 8):
-                                stats['first_error'][i] += 1.0;
-                            else:
-                                stats['first_error'][8] += 1.0;
-                            stats['no_recovery'][errors] += 1.0;
-                            errors += 1;
+                        errors += 1;
+                        if (first_error == -1):
+                            first_error = i;
+                        elif (correct_after_first_error):
+                            correct_after_first_error = False;
                     stats['digit_2_prediction_size'][i] += 1;
-                if (errors == 0):
-                    stats['first_error'][-1] += 1.0;
+                
+                if (first_error != -1):
+                    if (correct_after_first_error and first_error < len(comparison)-1):
+                        stats['recovery'][first_error] += 1.0;
+                    else:
+                        stats['no_recovery'][first_error] += 1.0;
+                
+                if (first_error != -1 and correct_after_first_error and first_error < len(comparison)-1):
+                    stats['recovery'][first_error] += 1.0;
                 else:
-                    stats['no_recovery'][errors] += 1.0;
+                    stats['no_recovery'][first_error] += 1.0;
+                
                 if (errors > 8):
                     errors = 8;
                 stats['error_size'][errors] += 1.0;
