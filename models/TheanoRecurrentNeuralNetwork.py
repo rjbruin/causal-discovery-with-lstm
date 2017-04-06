@@ -1332,14 +1332,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             correct_after_first_error = False;
                     stats['digit_2_prediction_size'][i] += 1;
                 
+                first_error = max(8,first_error);
                 if (first_error != -1):
-                    if (correct_after_first_error and first_error < len(comparison)-1):
-                        stats['recovery'][first_error] += 1.0;
-                    else:
-                        stats['no_recovery'][first_error] += 1.0;
-                
-                if (first_error != -1):
-                    if (correct_after_first_error and first_error < len(comparison)-1):
+                    if (correct_after_first_error and first_error < 8):
                         stats['recovery'][first_error] += 1.0;
                     else:
                         stats['no_recovery'][first_error] += 1.0;
