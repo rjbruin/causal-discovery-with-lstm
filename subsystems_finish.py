@@ -386,12 +386,12 @@ def get_batch(isTrain, dataset, model, intervention_range, max_length, parameter
               answering=False):    
     if (parameters['simple_data_loading']):
         data, targets, labels, expressions, health = get_batch_unprefixed(isTrain, dataset, dataset_data, label_index, parameters);
-        return data, targets, labels, expressions, np.zeros((data.shape[0])), True, parameters['minibatch_size'], health;
+        return dataset.noiseEncoding(data, parameters['encoding_noise'], normalizeDimension=2), targets, labels, expressions, np.zeros((data.shape[0])), True, parameters['minibatch_size'], health;
     else:
         data, targets, labels, expressions, interventionLocations, topcause, nrSamples = \
             get_batch_prefixed(isTrain, dataset, model, intervention_range, max_length, parameters, debug, 
                                base_offset, seq2ndmarkov, bothcause, homogeneous, answering)
-        return data, targets, labels, expressions, interventionLocations, topcause, nrSamples, 0;
+        return dataset.noiseEncoding(data, parameters['encoding_noise'], normalizeDimension=2), targets, labels, expressions, interventionLocations, topcause, nrSamples, 0;
 
 def test(model, dataset, dataset_data, label_index, parameters, max_length, base_offset, intervention_range, print_samples=False, 
          sample_size=False, homogeneous=False, returnTestSamples=False):

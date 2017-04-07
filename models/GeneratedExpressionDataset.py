@@ -898,7 +898,16 @@ class GeneratedExpressionDataset(object):
             expressionDepth[3] = 1;
         
         return np.array(valueBins + operators + expressionDepth, dtype='float32');
+    
+    def noiseEncoding(self, encoding, noise, normalizeDimension=2):
+        if (noise == 0.):
+            return encoding;
+        
+        noiseEncoding = np.random.random(encoding.shape).astype('float32') * noise;
+        encoding = encoding + noiseEncoding;
+        encoding = encoding / np.sum(encoding, axis=normalizeDimension)[:, :, np.newaxis];
             
+        return encoding;
         
 class ExpressionNode(object):
     
