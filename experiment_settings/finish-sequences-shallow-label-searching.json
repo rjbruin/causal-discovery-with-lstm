@@ -1,6 +1,6 @@
 [
     {
-        "name": "f-seqs-s",
+        "name": "f-seqs-s-ls",
         "dataset": "./data/subsystems_shallow",
         "repetitions": "150",
         "finish_subsystems": "True",
