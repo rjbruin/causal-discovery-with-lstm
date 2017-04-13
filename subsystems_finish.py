@@ -10,7 +10,7 @@ from math import floor;
 from collections import deque;
 import subprocess;
 
-from tools.file import save_to_pickle, load_from_pickle_with_filename;
+from tools.file import load_from_pickle_with_filename, save_for_continuing;
 from tools.arguments import processCommandLineArguments;
 from tools.model import constructModels, set_up_statistics;
 from tools.gpu import using_gpu; # @UnresolvedImport
@@ -22,6 +22,7 @@ from profiler import profiler
 
 import trackerreporter;
 from tools.arguments import processKeyValue
+from tools.file import remove_for_continuing
 
 def addOtherInterventionLocations(intervention_locations, topcause):
     # Transform intervention locations to matrix where the 'other' locations
@@ -759,21 +760,49 @@ if __name__ == '__main__':
         # Construct models
         dataset, model = constructModels(parameters, 0, {});
         
-        # Load pretrained only_cause_expression = 1 model
-        if (parameters['load_cause_expression_1'] is not False):
-            loadedVars, _ = load_from_pickle_with_filename("./saved_models/" + parameters['load_cause_expression_1']);
-            if (model.loadPartialDataDimVars(dict(loadedVars), 0, model.data_dim)):
-                printF("Loaded pretrained model (expression 1) successfully!", experimentId, currentIteration);
+        starting_repetition = 0;
+        # Load saved model and vars
+        if (parameters['continue']):
+            # Find all candidate saved models (filter on isfile, name, extension)
+            candidates = filter(lambda fn: os.path.isfile(os.path.join('saved_models',fn)) and 
+                                fn[:len(parameters['basename'])] == parameters['basename'] and 
+                                fn[-len('.other'):] == '.other', os.listdir('./saved_models'));
+            if (len(candidates) == 0):
+                # Warn if no suitable candidate found
+                printF("WARNING! Continuation failed: no suitable saved model found!", experimentId, currentIteration);
             else:
-                raise ValueError("Loading pretrained model failed: wrong variables supplied!");
-        
-        # Load pretrained only_cause_expression = 2 model
-        if (parameters['load_cause_expression_2'] is not False):
-            loadedVars, _ = load_from_pickle_with_filename("./saved_models/" + parameters['load_cause_expression_2']);
-            if (model.loadPartialDataDimVars(dict(loadedVars), model.data_dim, model.data_dim)):
-                printF("Loaded pretrained model (expression 2) successfully!", experimentId, currentIteration);
-            else:
-                raise ValueError("Loading pretrained model failed: wrong variables supplied!");
+                candsWithIts = map(lambda fn: (int(fn[fn.index("_")+1:fn.index(".")]), fn), candidates);
+                priorities = sorted(candsWithIts, key=lambda (i,n): i, reverse=True);
+                if (len(candidates) > 1):
+                    # Warn if more than one are suitable, then use the most recent
+                    printF("WARNING! Multiple candidates for continuation; using %s at repetition %d" % (priorities[0][1], priorities[0][0]), experimentId, currentIteration);
+                otherFilename = priorities[0][1];
+                starting_repetition = priorities[0][0]; # Add one for next iteration, remove one for transition from 1-based to 0-based
+                currentIteration = starting_repetition+1; 
+            
+                # Load other vars
+                loadedOtherVars, otherParams = load_from_pickle_with_filename("./saved_models/" + otherFilename);
+                val_error_stack = loadedOtherVars['val_error_stack'];
+                mean_error_stack = loadedOtherVars['mean_error_stack'];
+                last_val_error_avg = loadedOtherVars['last_val_error_avg'];
+                
+                # Load model vars
+                modelFilename = otherFilename[:-len('other')] + 'model';
+                loadedVars, modelParams = load_from_pickle_with_filename("./saved_models/" + modelFilename);
+                if (not model.loadVars(loadedVars)):
+                    raise ValueError("ERROR: Loading saved model failed: wrong model variables supplied!");
+                
+                # Sanity checks
+                skipParams = ['name','continue'];
+                for k in modelParams:
+                    if (modelParams[k] != otherParams[k] and k not in skipParams):
+                        printF("WARNING: Experiment parameters for saved model and saved other vars do not match!", experimentId, currentIteration);
+                    if (modelParams[k] != parameters[k] and k not in skipParams):
+                        raise ValueError("ERROR: Experiment parameters for saved model and current experiment do not match: %s (saved), %s (current)" % (str(modelParams[k]), str(parameters[k])));
+                if (starting_repetition == parameters['repetitions']):
+                    raise ValueError("ERROR: Loaded experiment is already done!");
+                
+                printF("Continuing from repetition %d with model file %s..." % (starting_repetition, modelFilename), experimentId, currentIteration);
         
         # Train on all datasets in succession
         # Print settings headers to raw results file
@@ -790,13 +819,14 @@ if __name__ == '__main__':
                 
         if (not os.path.exists(os.path.join('.','figures'))):
             os.makedirs(os.path.join('.','figures'));
-        model.plotWeights("%s_0" % (name));
+        model.plotWeights("%s_%d" % (name, starting_repetition));
         
         intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
-        val_error_stack = deque();
-        mean_error_stack = deque();
-        last_val_error_avg = 0.0;
-        for r in range(parameters['repetitions']):
+        if (starting_repetition == 0):
+            val_error_stack = deque();
+            mean_error_stack = deque();
+            last_val_error_avg = 0.0;
+        for r in range(starting_repetition, parameters['repetitions']):
             stats = set_up_statistics(dataset.output_dim, model.n_max_digits, dataset.oneHot.keys());
             total_error = 0.0;
             # Print repetition progress and save to raw results file
@@ -881,9 +911,13 @@ if __name__ == '__main__':
             
             # Save weights to pickles
             save_modulo = 50;
-            if (saveModels and (r+1) % save_modulo == 0):
+            if (saveModels):
                 saveVars = model.getVars();
-                save_to_pickle('saved_models/%s_%d.model' % (name, r), saveVars, settings=parameters);
+                save_for_continuing(name, r+1, save_modulo, saveVars, 
+                                    {'val_error_stack': val_error_stack,
+                                     'mean_error_stack': mean_error_stack,
+                                     'last_val_error_avg': last_val_error_avg}
+                                    , parameters)
             
             model.plotWeights("%s_%d" % (name, r+1));
             
@@ -909,5 +943,6 @@ if __name__ == '__main__':
         
         printF("Training finished!", experimentId, currentIteration);
         trackerreporter.experimentDone(experimentId);
+        remove_for_continuing(name, r+2);
     
     

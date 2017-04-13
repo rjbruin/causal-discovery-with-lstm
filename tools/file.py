@@ -6,6 +6,7 @@ Created on 4 mrt. 2016
 
 import pickle;
 import tools.arguments as arg;
+import os;
 
 def append_to_file(filepath, string):
     f = open(filepath, 'a');
@@ -48,3 +49,25 @@ def load_from_pickle(f):
 def load_from_pickle_with_filename(filepath):
     f = open(filepath, 'rb');
     return load_from_pickle(f);
+
+def save_for_continuing(name, repetition, save_modulo, modelVariables, otherVariables, settings={}):
+    filename = 'saved_models/%s_%d' % (name, repetition);
+    previous_filename = 'saved_models/%s_%d' % (name, repetition-1);
+    
+    # Save new model vars
+    save_to_pickle(filename + '.model', modelVariables, settings=settings);
+    # Find earlier saved model vars and delete
+    if (repetition % save_modulo != 0 and os.path.isfile(previous_filename + '.model')):
+        os.remove(previous_filename + '.model');
+    
+    # Save new other vars
+    save_to_pickle(filename + '.other', otherVariables, settings=settings);
+    # Find earlier saved other vars and delete
+    if (os.path.isfile(previous_filename + '.other')):
+        os.remove(previous_filename + '.other');
+
+def remove_for_continuing(name, repetition):
+    previous_filename = 'saved_models/%s_%d' % (name, repetition-1);
+    # Find earlier saved other vars and delete
+    if (os.path.isfile(previous_filename + '.other')):
+        os.remove(previous_filename + '.other');

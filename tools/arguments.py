@@ -101,7 +101,8 @@ argumentProcessors = {'name': processString,
                       'bottom_loss': processBool,
                       'label_searching': processBool,
                       'label_samples': processInt,
-                      'encoding_noise': processFloat
+                      'encoding_noise': processFloat,
+                      'continue': processBool
                       }
 defaults = {'output_name': "",
             'report_to_tracker': True,
@@ -173,7 +174,8 @@ defaults = {'output_name': "",
             'bottom_loss': True,
             'label_searching': False,
             'label_samples': 100,
-            'encoding_noise': 0.
+            'encoding_noise': 0.,
+            'continue': False
             }
 
 def processKeyValue(key,value):
