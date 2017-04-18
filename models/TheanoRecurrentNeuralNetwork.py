@@ -40,7 +40,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                  doubleLayer=False, tripleLayer=False, dropoutProb=0., outputBias=False,
                  crosslinks=True, appendAbstract=False, useAbstract=False, relu=False,
                  ignoreZeroDifference=False, peepholes=False, lstm_biases=False, lag=None,
-                 rnn_version=0, nocrosslinks_hidden_factor=1., bottom_loss=True):
+                 rnn_version=0, nocrosslinks_hidden_factor=1., bottom_loss=True,
+                 gradient_inspection=False):
         '''
         Initialize all Theano models.
         '''
@@ -74,6 +75,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         self.lag = lag;
         self.nocrosslinks_hidden_factor = nocrosslinks_hidden_factor;
         self.bottom_loss = bottom_loss;
+        self.gradient_inspection = gradient_inspection;
         
         # Caches for label searching
         self.labels = [];
@@ -590,9 +592,13 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         # ERROR COMPUTATION AND PROPAGATION
         coding_dist = right_hand;
         target_dist = label[self.lag:,:,self.data_dim:];
+        # car_cross = (sentence index, samples, value)
         cat_cross = T.nnet.categorical_crossentropy(coding_dist, target_dist);
+        # error = mean over sentence indices and samples
         error = T.mean(cat_cross);
-        summed_error = T.sum(T.mean(cat_cross, axis=cat_cross.ndim-1));
+        # summed_error = summed over sentence indices, mean over samples
+        per_index_error = T.mean(cat_cross, axis=cat_cross.ndim-1);
+        summed_error = T.sum(per_index_error);
 
         # Defining prediction function
         self._predict = theano.function([label], [prediction,
@@ -604,20 +610,30 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         variables = filter(lambda name: name != 'hbY', self.vars.keys());
         if (self.outputBias):
             variables.append('hbY');
-        var_list = map(lambda var: self.vars[var], variables)
-        if (self.optimizer == self.SGD_OPTIMIZER):
-            # Automatic backward pass for all models: gradients
-            derivatives = T.grad(error, var_list);
-            updates = [(var,var-self.learning_rate*der) for (var,der) in zip(var_list,derivatives)];
-        elif (self.optimizer == self.RMS_OPTIMIZER):
-            derivatives = T.grad(error, var_list);
-            updates = lasagne.updates.rmsprop(derivatives,var_list,learning_rate=self.learning_rate).items();
+        var_list = map(lambda var: self.vars[var], variables);
+        
+        if (self.gradient_inspection):
+            sentence_index_derivatives = [];
+            derivatives = T.zeros((len(var_list)), dtype='float32');
+            for i in range(self.n_max_digits):
+                sentence_index_derivatives.append(T.grad(per_index_error[i], var_list));
+                for j in range(len(var_list)):
+                    derivatives = T.set_subtensor(derivatives[j], derivatives[j]+sentence_index_derivatives[-1][j]);
+            derivatives = derivatives / float(self.n_max_digits);
         else:
             derivatives = T.grad(error, var_list);
+            sentence_index_derivatives = T.zeros_like(derivatives);
+        
+        if (self.optimizer == self.SGD_OPTIMIZER):
+            # Automatic backward pass for all models: gradients
+            updates = [(var,var-self.learning_rate*der) for (var,der) in zip(var_list,derivatives)];
+        elif (self.optimizer == self.RMS_OPTIMIZER):
+            updates = lasagne.updates.rmsprop(derivatives,var_list,learning_rate=self.learning_rate).items();
+        else:
             updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
 
         # Defining SGD functuin
-        self._sgd = theano.function([label], [error, summed_error],
+        self._sgd = theano.function([label], [error, summed_error, derivatives, sentence_index_derivatives],
                                     updates=updates,
                                     allow_input_downcast=True,
                                     on_unused_input='ignore');

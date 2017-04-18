@@ -875,6 +875,7 @@ if __name__ == '__main__':
                                       labelSearching=parameters['label_searching'],
                                       labelSamples=parameters['label_samples']);
                 total_error += outputs[1];
+                
                 profiler.stop('train sgd');
                 
                 profiler.profile();

@@ -13,6 +13,7 @@ from models.TheanoRecurrentNeuralNetwork import TheanoRecurrentNeuralNetwork;
 from models.GeneratedExpressionDataset import GeneratedExpressionDataset;
 from tools.file import load_from_pickle;
 from tools.model import constructModels;
+from subsystems_finish import load_data;
 
 def load():
     modelName = raw_input("Please provide the name of the model you want to inspect:\n");
@@ -38,9 +39,38 @@ def read_from_file(modelName):
     
     return dataset, rnn, settings;
 
+# def find_incorrect_in_dataset(dataset, rnn, parameters, processor):
+#     dataset_data, label_index = load_data(parameters, processor, dataset);
+#     dataset_size = len(dataset_data);
+#     
+#     val_offset = (parameters['test_offset'] + parameters['test_size']);
+#     test_sample_range = [parameters['test_offset']*dataset_size,parameters['test_offset']*dataset_size+parameters['test_size']*dataset_size];
+#     val_offset_range = [val_offset*dataset_size,val_offset*dataset_size+parameters['val_size']*dataset_size];
+#     
+#     incorrect = {'train': [], 'test': [], 'val': []};
+#     for k in range(0,dataset_size,parameters['minibatch_size']):    
+#         data = [];
+#         targets = [];
+#         labels = [];
+#         expressions = [];
+#         for i, expression in enumerate(dataset_data[k:k+parameters['minibatch_size']]):
+#             # Append to data
+#             encoded, encodedTargets, sampleLabels = dataset_data[expression];
+#             data.append(encoded);
+#             targets.append(encodedTargets);
+#             labels.append(np.argmax(encodedTargets));
+#             expressions.append(sampleLabels);
+#             
+#             
+#         
+#         # Make data ndarray
+#         data = dataset.fill_ndarray(data, 1, fixed_length=parameters['n_max_digits']);
+#         targets = np.array(targets, dtype='float32');
+
 if __name__ == '__main__':
 #     modelName = 'choose';
-    modelName = 'f-seqs-s_05-03-2017_15-23-19-t4_149_from_floats.model';
+    modelName = 'f-answ-s_08-03-2017_15-59-51-t0_149_from_floats.model';
+#     modelName = 'f-seqs-s_05-03-2017_15-23-19-t4_149_from_floats.model';
     
     if (len(sys.argv) > 1):
         modelName = sys.argv[1];
