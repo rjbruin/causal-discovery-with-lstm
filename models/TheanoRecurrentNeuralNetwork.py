@@ -614,12 +614,16 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
         
         if (self.gradient_inspection):
             sentence_index_derivatives = [];
-            derivatives = T.zeros((len(var_list)), dtype='float32');
-            for i in range(self.n_max_digits):
+            derivatives = [];
+            # Do first digit manually
+            sentence_index_derivatives.append(T.grad(per_index_error[0], var_list));
+            for j in range(len(var_list)):
+                derivatives.append(sentence_index_derivatives[-1][j]);
+            for i in range(1,self.n_max_digits-self.lag):
                 sentence_index_derivatives.append(T.grad(per_index_error[i], var_list));
                 for j in range(len(var_list)):
-                    derivatives = T.set_subtensor(derivatives[j], derivatives[j]+sentence_index_derivatives[-1][j]);
-            derivatives = derivatives / float(self.n_max_digits);
+                    derivatives[j] += sentence_index_derivatives[-1][j];
+            derivatives = [d / float(self.n_max_digits-self.lag) for d in derivatives];
         else:
             derivatives = T.grad(error, var_list);
             sentence_index_derivatives = T.zeros_like(derivatives);
@@ -633,7 +637,10 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
 
         # Defining SGD functuin
-        self._sgd = theano.function([label], [error, summed_error, derivatives, sentence_index_derivatives],
+        outputs = [error, summed_error];
+        for j in range(len(sentence_index_derivatives)):
+            outputs.extend(sentence_index_derivatives[j]);
+        self._sgd = theano.function([label], outputs,
                                     updates=updates,
                                     allow_input_downcast=True,
                                     on_unused_input='ignore');
