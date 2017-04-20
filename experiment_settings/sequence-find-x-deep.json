@@ -10,6 +10,7 @@
         "learning_rate": "0.001",
         "hidden_dim": "128",
       	"minibatch_size": "64",
-        "only_cause_expression": "1"
+        "only_cause_expression": "1",
+        "early_stopping": "True"
     }
 ]
