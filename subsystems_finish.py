@@ -637,6 +637,8 @@ if __name__ == '__main__':
         score_types['Inpt.size %d' % size] = 'Score by input size = %d' % size;
     for size in range(20):
         score_types['Indiv.digit %d' % size] = 'Indiv. digit %d' % size;
+    for size in range(20):
+        score_types['Mean gradient index %d' % size] = 'Mean gradient index %d' % size;
     for size in range(8):
         score_types['Errors %d' % size] = 'Errors %d' % size;
         score_types['First error %d' % size] = 'First error %d' % size;
@@ -846,6 +848,7 @@ if __name__ == '__main__':
             printedProgress = -1;
             data_healths = [];
             model_healths = [];
+            gradients = [];
             while k < repetition_size:
                 profiler.start('train batch');
                 profiler.start('get train batch');
@@ -876,6 +879,30 @@ if __name__ == '__main__':
                                       labelSamples=parameters['label_samples']);
                 total_error += outputs[1];
                 
+                # Process individual gradients
+                if (parameters['gradient_inspection']):
+                    grads = outputs[2:];
+                    length = parameters['n_max_digits'] - parameters['lag'];
+                    sentence_length = len(grads)/length;
+                    dim_length = 0;
+                    for j in range(0,sentence_length):
+                        grads[j] = grads[j].flatten();
+                        dim_length += grads[j].shape[0];
+                    gradients_per_index = np.zeros((length,dim_length));
+                    dim_offset = 0;
+                    for j in range(0,sentence_length):
+                        gradients_per_index[0,dim_offset:dim_offset+grads[j].shape[0]] = grads[j];
+                    
+                    for i in range(1,length):
+                        dim_offset = 0;
+                        for j in range(0,sentence_length):
+                            p = i*(sentence_length) + j;
+                            grads[p] = grads[p].flatten();
+                            gradients_per_index[i,dim_offset:dim_offset+grads[p].shape[0]] = grads[p];
+                        
+                    gradients.append(gradients_per_index);
+                    
+                
                 profiler.stop('train sgd');
                 
                 profiler.profile();
@@ -889,6 +916,13 @@ if __name__ == '__main__':
                 profiler.stop('train batch');
                 
                 k += nrSamples;
+            
+            # Compute mean gradients
+            mean_gradients = np.mean(np.array(gradients), axis=0);
+            mean_gradients = np.mean(np.abs(mean_gradients), axis=1);
+            mean_gradients = mean_gradients / np.min(mean_gradients);
+            for i in range(mean_gradients.shape[0]):
+                printF("Mean gradient index %d: %.2f" % (i, mean_gradients[i]), experimentId, currentIteration);
             
             # Report on error
             printF("Total error: %.2f" % total_error, experimentId, currentIteration);
