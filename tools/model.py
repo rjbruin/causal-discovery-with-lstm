@@ -82,7 +82,8 @@ def constructModels(parameters, seed, verboseOutputter, noModel=False, dataset=N
                                          lag=parameters['lag'],
                                          rnn_version=parameters['rnn_version'],
                                          nocrosslinks_hidden_factor=parameters['nocrosslinks_hidden_factor'],
-                                         bottom_loss=parameters['bottom_loss']);
+                                         bottom_loss=parameters['bottom_loss'],
+                                         gradient_inspection=parameters['gradient_inspection']);
     else:
         rnn = None;
 
