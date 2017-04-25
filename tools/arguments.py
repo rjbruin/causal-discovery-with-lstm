@@ -103,7 +103,8 @@ argumentProcessors = {'name': processString,
                       'label_samples': processInt,
                       'encoding_noise': processFloat,
                       'continue': processBool,
-                      'gradient_inspection': processBool
+                      'gradient_inspection': processBool,
+                      'continue_to_repetition': processFalseOrInt
                       }
 defaults = {'output_name': "",
             'report_to_tracker': True,
@@ -177,7 +178,8 @@ defaults = {'output_name': "",
             'label_samples': 100,
             'encoding_noise': 0.,
             'continue': False,
-            'gradient_inspection': False
+            'gradient_inspection': False,
+            'continue_to_repetition': False
             }
 
 def processKeyValue(key,value):

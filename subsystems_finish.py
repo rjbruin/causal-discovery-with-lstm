@@ -805,6 +805,10 @@ if __name__ == '__main__':
                     raise ValueError("ERROR: Loaded experiment is already done!");
                 
                 printF("Continuing from repetition %d with model file %s..." % (starting_repetition, modelFilename), experimentId, currentIteration);
+            
+            # Override repetitions
+            if (parameters['continue_to_repetition'] is not False):
+                parameters['repetitions'] = parameters['continue_to_repetition'];
         
         # Train on all datasets in succession
         # Print settings headers to raw results file
