@@ -897,7 +897,7 @@ if __name__ == '__main__':
                         dim_offset = 0;
                         for j in range(0,sentence_length):
                             p = i*(sentence_length) + j;
-                            grads[p] = grads[p].flatten();
+                            grads[p] = np.array(grads[p]).flatten();
                             gradients_per_index[i,dim_offset:dim_offset+grads[p].shape[0]] = grads[p];
                         
                     gradients.append(gradients_per_index);
