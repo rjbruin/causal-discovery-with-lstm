@@ -917,12 +917,13 @@ if __name__ == '__main__':
                 
                 k += nrSamples;
             
-            # Compute mean gradients
-            mean_gradients = np.mean(np.array(gradients), axis=0);
-            mean_gradients = np.mean(abs(mean_gradients), axis=1);
-            mean_gradients = mean_gradients / np.min(mean_gradients);
-            for i in range(mean_gradients.shape[0]):
-                printF("Mean gradient index %d: %.2f" % (i, mean_gradients[i]), experimentId, currentIteration);
+            if (parameters['gradient_inspection']):
+                # Compute mean gradients
+                mean_gradients = np.mean(np.array(gradients), axis=0);
+                mean_gradients = np.mean(abs(mean_gradients), axis=1);
+                mean_gradients = mean_gradients / np.min(mean_gradients);
+                for i in range(mean_gradients.shape[0]):
+                    printF("Mean gradient index %d: %.2f" % (i, mean_gradients[i]), experimentId, currentIteration);
             
             # Report on error
             printF("Total error: %.2f" % total_error, experimentId, currentIteration);

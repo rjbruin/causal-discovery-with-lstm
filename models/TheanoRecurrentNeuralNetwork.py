@@ -626,7 +626,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
             derivatives = [d / float(self.n_max_digits-self.lag) for d in derivatives];
         else:
             derivatives = T.grad(error, var_list);
-            sentence_index_derivatives = T.zeros_like(derivatives);
+            sentence_index_derivatives = [T.zeros((1,1))];
         
         if (self.optimizer == self.SGD_OPTIMIZER):
             # Automatic backward pass for all models: gradients
@@ -638,8 +638,9 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
 
         # Defining SGD functuin
         outputs = [error, summed_error];
-        for j in range(len(sentence_index_derivatives)):
-            outputs.extend(sentence_index_derivatives[j]);
+        if (self.gradient_inspection):
+            for j in range(len(sentence_index_derivatives)):
+                outputs.extend(sentence_index_derivatives[j]);
         self._sgd = theano.function([label], outputs,
                                     updates=updates,
                                     allow_input_downcast=True,
