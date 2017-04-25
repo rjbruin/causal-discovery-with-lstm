@@ -50,20 +50,29 @@ def load_from_pickle_with_filename(filepath):
     f = open(filepath, 'rb');
     return load_from_pickle(f);
 
-def save_for_continuing(name, repetition, save_modulo, modelVariables, otherVariables, settings={}):
+def load_parameters_with_filename(filepath):
+    f = open(filepath, 'r');
+    _ = f.readline();
+    settings = arg.processCommandLineArguments(f.readline().strip().split(" "), None);
+    f.close();
+    return settings[0];
+
+def save_for_continuing(name, repetition, save_modulo, modelVariables, otherVariables, settings={},
+                        remove=True, saveModel=True):
     filename = 'saved_models/%s_%d' % (name, repetition);
     previous_filename = 'saved_models/%s_%d' % (name, repetition-1);
     
     # Save new model vars
-    save_to_pickle(filename + '.model', modelVariables, settings=settings);
-    # Find earlier saved model vars and delete
-    if (repetition % save_modulo != 0 and os.path.isfile(previous_filename + '.model')):
-        os.remove(previous_filename + '.model');
+    if (saveModel):
+        save_to_pickle(filename + '.model', modelVariables, settings=settings);
+        # Find earlier saved model vars and delete
+        if (remove and repetition % save_modulo != 0 and os.path.isfile(previous_filename + '.model')):
+            os.remove(previous_filename + '.model');
     
     # Save new other vars
     save_to_pickle(filename + '.other', otherVariables, settings=settings);
     # Find earlier saved other vars and delete
-    if (os.path.isfile(previous_filename + '.other')):
+    if (remove and os.path.isfile(previous_filename + '.other')):
         os.remove(previous_filename + '.other');
 
 def remove_for_continuing(name, repetition):
