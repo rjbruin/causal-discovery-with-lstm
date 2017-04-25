@@ -773,7 +773,7 @@ if __name__ == '__main__':
                 # Warn if no suitable candidate found
                 printF("WARNING! Continuation failed: no suitable saved model found!", experimentId, currentIteration);
             else:
-                candsWithIts = map(lambda fn: (int(fn[fn.index("_")+1:fn.index(".")]), fn), candidates);
+                candsWithIts = map(lambda fn: (int(fn[fn.rfind("_")+1:fn.rfind(".")]), fn), candidates);
                 priorities = sorted(candsWithIts, key=lambda (i,n): i, reverse=True);
                 if (len(candidates) > 1):
                     # Warn if more than one are suitable, then use the most recent
