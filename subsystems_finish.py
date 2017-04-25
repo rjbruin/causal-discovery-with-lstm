@@ -852,7 +852,10 @@ if __name__ == '__main__':
             printedProgress = -1;
             data_healths = [];
             model_healths = [];
-            gradients = [];
+            nrBatches = int(repetition_size / parameters['minibatch_size']);
+            if (repetition_size % parameters['minibatch_size'] > 0):
+                nrBatches += 1;
+            gradients = None;
             while k < repetition_size:
                 profiler.start('train batch');
                 profiler.start('get train batch');
@@ -903,8 +906,10 @@ if __name__ == '__main__':
                             p = i*(sentence_length) + j;
                             grads[p] = np.array(grads[p]).flatten();
                             gradients_per_index[i,dim_offset:dim_offset+grads[p].shape[0]] = grads[p];
-                        
-                    gradients.append(gradients_per_index);
+                    
+                    if (gradients is None):
+                        gradients = np.zeros((length,dim_length), dtype='float32');
+                    gradients += (1./float(nrBatches)) * np.array(gradients_per_index);
                     
                 
                 profiler.stop('train sgd');
@@ -923,8 +928,7 @@ if __name__ == '__main__':
             
             if (parameters['gradient_inspection']):
                 # Compute mean gradients
-                mean_gradients = np.mean(np.array(gradients), axis=0);
-                mean_gradients = np.mean(abs(mean_gradients), axis=1);
+                mean_gradients = np.mean(abs(gradients), axis=1);
                 mean_gradients = mean_gradients / np.min(mean_gradients);
                 for i in range(mean_gradients.shape[0]):
                     printF("Mean gradient index %d: %.2f" % (i, mean_gradients[i]), experimentId, currentIteration);
