@@ -795,7 +795,7 @@ if __name__ == '__main__':
                     raise ValueError("ERROR: Loading saved model failed: wrong model variables supplied!");
                 
                 # Sanity checks
-                skipParams = ['name','continue'];
+                skipParams = ['name','continue','continue_to_repetition'];
                 for k in modelParams:
                     if (modelParams[k] != otherParams[k] and k not in skipParams):
                         printF("WARNING: Experiment parameters for saved model and saved other vars do not match!", experimentId, currentIteration);
