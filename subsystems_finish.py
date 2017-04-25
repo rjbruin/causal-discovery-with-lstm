@@ -801,7 +801,7 @@ if __name__ == '__main__':
                         printF("WARNING: Experiment parameters for saved model and saved other vars do not match!", experimentId, currentIteration);
                     if (modelParams[k] != parameters[k] and k not in skipParams):
                         raise ValueError("ERROR: Experiment parameters for saved model and current experiment do not match: %s (saved), %s (current)" % (str(modelParams[k]), str(parameters[k])));
-                if (starting_repetition == parameters['repetitions']):
+                if (starting_repetition == parameters['repetitions'] and parameters['continue_to_repetition'] is False):
                     raise ValueError("ERROR: Loaded experiment is already done!");
                 
                 printF("Continuing from repetition %d with model file %s..." % (starting_repetition, modelFilename), experimentId, currentIteration);
