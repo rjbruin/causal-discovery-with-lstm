@@ -886,7 +886,7 @@ if __name__ == '__main__':
                     sentence_length = len(grads)/length;
                     dim_length = 0;
                     for j in range(0,sentence_length):
-                        grads[j] = grads[j].flatten();
+                        grads[j] = np.array(grads[j]).flatten();
                         dim_length += grads[j].shape[0];
                     gradients_per_index = np.zeros((length,dim_length));
                     dim_offset = 0;
@@ -919,7 +919,7 @@ if __name__ == '__main__':
             
             # Compute mean gradients
             mean_gradients = np.mean(np.array(gradients), axis=0);
-            mean_gradients = np.mean(np.abs(mean_gradients), axis=1);
+            mean_gradients = np.mean(abs(mean_gradients), axis=1);
             mean_gradients = mean_gradients / np.min(mean_gradients);
             for i in range(mean_gradients.shape[0]):
                 printF("Mean gradient index %d: %.2f" % (i, mean_gradients[i]), experimentId, currentIteration);
