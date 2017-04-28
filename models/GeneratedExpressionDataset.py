@@ -133,10 +133,10 @@ class GeneratedExpressionDataset(object):
         # dimension are equal
         self.output_dim = self.data_dim;
         
-        data_length, _, _ = self.filemeta(self.source, self.max_dataset_size);
+        self.data_length, _, _ = self.filemeta(self.source, self.max_dataset_size);
         if (self.max_dataset_size is not False):
-            data_length = self.max_dataset_size;
-        self.lengths = [data_length * (1. - (test_size+val_size)), data_length * test_size, data_length * val_size];
+            self.data_length = self.max_dataset_size;
+        self.lengths = [self.data_length * (1. - (test_size+val_size)), self.data_length * test_size, self.data_length * val_size];
         
         # Set test batch settings
         self.train_done = False;
@@ -166,7 +166,7 @@ class GeneratedExpressionDataset(object):
             # so it cannot occur at the start of the dataset
             
             # Check for n is to make the code work with max_training_size
-            while (line != "" and n < data_length):
+            while (line != "" and n < self.data_length):
                 result = line.split(";");
                 if (self.dataset_type == GeneratedExpressionDataset.DATASET_SEQ2NDMARKOV and not self.bothcause):
                     expression, expression_prime, topcause = result;
@@ -213,7 +213,7 @@ class GeneratedExpressionDataset(object):
                 
                 # Reassess whether to switch target dataset part
                 val_offset = test_offset + test_size; # Validation part always follows directly after test part
-                currentFraction = n / float(data_length); # All variables are expressed in fractions, so we need to compare with a fraction
+                currentFraction = n / float(self.data_length); # All variables are expressed in fractions, so we need to compare with a fraction
                 if (test_size > 0. and currentFraction >= test_offset and currentFraction < test_offset + test_size):
                     # If test part exists and we are in the part, append to test
                     append_to_part = 1;
@@ -761,7 +761,7 @@ class GeneratedExpressionDataset(object):
         except Exception:
             return False;
     
-    def valid_correct_expression(self, expression, nr_digits, nr_operators):
+    def valid_correct_expression(self, expression, nr_digits, nr_operators, asString=False):
         """
         Check syntactic validity (valid), semantic validity (correct) for 
         entire expression and separate sides
@@ -771,7 +771,8 @@ class GeneratedExpressionDataset(object):
         left_hand_side_valid = False;
         right_hand_side_valid = False;
         
-        expression = self.indicesToStr(expression, ignoreEOS=False)
+        if (not asString):
+            expression = self.indicesToStr(expression, ignoreEOS=False)
         try:
             equals_index = expression.index("=");
             node = ExpressionNode.fromStr(expression[:equals_index]);

@@ -375,20 +375,20 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                                                                 summed_error], on_unused_input='ignore');
 
         # Defining stochastic gradient descent
-        variables = filter(lambda name: name != 'hbY', self.vars.keys());
+        self.variables = filter(lambda name: name != 'hbY', self.vars.keys());
         if (self.outputBias):
-            variables.append('hbY');
-        var_list = map(lambda var: self.vars[var], variables)
+            self.variables.append('hbY');
+        self.var_list = map(lambda var: self.vars[var], self.variables)
         if (self.optimizer == self.SGD_OPTIMIZER):
             # Automatic backward pass for all models: gradients
-            derivatives = T.grad(error, var_list);
-            updates = [(var,var-self.learning_rate*der) for (var,der) in zip(var_list,derivatives)];
+            derivatives = T.grad(error, self.var_list);
+            updates = [(var,var-self.learning_rate*der) for (var,der) in zip(self.var_list,derivatives)];
         elif (self.optimizer == self.RMS_OPTIMIZER):
-            derivatives = T.grad(error, var_list);
-            updates = lasagne.updates.rmsprop(derivatives,var_list,learning_rate=self.learning_rate).items();
+            derivatives = T.grad(error, self.var_list);
+            updates = lasagne.updates.rmsprop(derivatives,self.var_list,learning_rate=self.learning_rate).items();
         else:
-            derivatives = T.grad(error, var_list);
-            updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
+            derivatives = T.grad(error, self.var_list);
+            updates = lasagne.updates.nesterov_momentum(derivatives,self.var_list,learning_rate=self.learning_rate).items();
 
         # Defining SGD functuin
         self._sgd = theano.function([label, intervention_locations, nrSamples],
@@ -607,38 +607,40 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                             summed_error], on_unused_input='ignore');
 
         # Defining stochastic gradient descent
-        variables = filter(lambda name: name != 'hbY', self.vars.keys());
+        self.variables = filter(lambda name: name != 'hbY', self.vars.keys());
         if (self.outputBias):
-            variables.append('hbY');
-        var_list = map(lambda var: self.vars[var], variables);
+            self.variables.append('hbY');
+        self.var_list = map(lambda var: self.vars[var], self.variables);
         
         if (self.gradient_inspection):
             sentence_index_derivatives = [];
             derivatives = [];
             # Do first digit manually
-            sentence_index_derivatives.append(T.grad(per_index_error[0], var_list));
-            for j in range(len(var_list)):
+            sentence_index_derivatives.append(T.grad(per_index_error[0], self.var_list));
+            for j in range(len(self.var_list)):
                 derivatives.append(sentence_index_derivatives[-1][j]);
             for i in range(1,self.n_max_digits-self.lag):
-                sentence_index_derivatives.append(T.grad(per_index_error[i], var_list));
-                for j in range(len(var_list)):
+                sentence_index_derivatives.append(T.grad(per_index_error[i], self.var_list));
+                for j in range(len(self.var_list)):
                     derivatives[j] += sentence_index_derivatives[-1][j];
             derivatives = [d / float(self.n_max_digits-self.lag) for d in derivatives];
         else:
-            derivatives = T.grad(error, var_list);
+            derivatives = T.grad(error, self.var_list);
             sentence_index_derivatives = [T.zeros((1,1))];
         
         if (self.optimizer == self.SGD_OPTIMIZER):
             # Automatic backward pass for all models: gradients
-            updates = [(var,var-self.learning_rate*der) for (var,der) in zip(var_list,derivatives)];
+            updates = [(var,var-self.learning_rate*der) for (var,der) in zip(self.var_list,derivatives)];
         elif (self.optimizer == self.RMS_OPTIMIZER):
-            updates = lasagne.updates.rmsprop(derivatives,var_list,learning_rate=self.learning_rate).items();
+            updates = lasagne.updates.rmsprop(derivatives,self.var_list,learning_rate=self.learning_rate).items();
         else:
-            updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
+            updates = lasagne.updates.nesterov_momentum(derivatives,self.var_list,learning_rate=self.learning_rate).items();
 
         # Defining SGD functuin
         outputs = [error, summed_error];
         if (self.gradient_inspection):
+            outputs.append(T.constant(len(derivatives)));
+            outputs.extend(derivatives);
             for j in range(len(sentence_index_derivatives)):
                 outputs.extend(sentence_index_derivatives[j]);
         self._sgd = theano.function([label], outputs,
@@ -720,20 +722,20 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                                          on_unused_input='ignore');
         
         # Defining stochastic gradient descent
-        variables = filter(lambda name: name != 'hbY', self.vars.keys());
+        self.variables = filter(lambda name: name != 'hbY', self.vars.keys());
         if (self.outputBias):
-            variables.append('hbY');
-        var_list = map(lambda var: self.vars[var], variables)
+            self.variables.append('hbY');
+        self.var_list = map(lambda var: self.vars[var], self.variables)
         if (self.optimizer == self.SGD_OPTIMIZER):
             # Automatic backward pass for all models: gradients
-            derivatives = T.grad(error, var_list);
-            updates = [(var,var-self.learning_rate*der) for (var,der) in zip(var_list,derivatives)];
+            derivatives = T.grad(error, self.var_list);
+            updates = [(var,var-self.learning_rate*der) for (var,der) in zip(self.var_list,derivatives)];
         elif (self.optimizer == self.RMS_OPTIMIZER):
-            derivatives = T.grad(error, var_list);
-            updates = lasagne.updates.rmsprop(derivatives,var_list,learning_rate=self.learning_rate).items();
+            derivatives = T.grad(error, self.var_list);
+            updates = lasagne.updates.rmsprop(derivatives,self.var_list,learning_rate=self.learning_rate).items();
         else:
-            derivatives = T.grad(error, var_list);
-            updates = lasagne.updates.nesterov_momentum(derivatives,var_list,learning_rate=self.learning_rate).items();
+            derivatives = T.grad(error, self.var_list);
+            updates = lasagne.updates.nesterov_momentum(derivatives,self.var_list,learning_rate=self.learning_rate).items();
         
         # Defining SGD functuin
         self._sgd = theano.function([X, label],
@@ -1265,14 +1267,18 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
     def getVars(self):
         return self.vars.items();
 
-    def getIncorrectPredictions(self, label_expressions, predictions, dataset, nrSamples):
-        incorrect = [];
+    def getCorrectPredictions(self, predictions, dataset, nrSamples):
+        """ Takes entire expressions as predictions """
+        incorrects = [];
+        corrects = [];
         for i in range(nrSamples):
-            expr = dataset.indicesToStr(predictions[i]);
-            if (label_expressions[i][0] != expr):
-                incorrect.append(i);
+            _, correct, _, _ = dataset.valid_correct_expression(predictions[i], self.digits, self.operators, asString=True);
+            if (not correct):
+                incorrects.append(i);
+            else:
+                corrects.append(i);
         
-        return incorrect;
+        return corrects, incorrects;
 
     def batch_statistics(self, stats, prediction,
                          target_expressions, intervention_locations,

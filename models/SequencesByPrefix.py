@@ -23,11 +23,17 @@ class SequencesByPrefix(object):
         self.primedExpressions = [];
         self.maxExpressionSize = 0;
         self.nearest_cache = {};
+        
+        self.noEditMarker = False;
     
     def add(self, expression, expression_prime):
+        if (self.noEditMarker):
+            raise ValueError("Cannot edit!");
         self._add(expression, expression, expression_prime);
     
     def _add(self, expression, fullExpression, expression_prime):
+        if (self.noEditMarker):
+            raise ValueError("Cannot edit!");
         self.expressions.append(expression);
         self.fullExpressions.append(fullExpression);
         self.primedExpressions.append(expression_prime);
@@ -164,60 +170,66 @@ class SequencesByPrefix(object):
         expression = self.expressions[candidate];
         return self.get(expression);
     
-    
-#     def get_next(self, lastPath):
-#         availablePrefixes = sorted(self.prefixedExpressions.keys());
-#         if (len(lastPath) > 0):
-#             # If the path is not empty we try the path instructions
-#             pathType, index = lastPath[0];
-#             if (pathType == 0):
-#                 if (index >= len(availablePrefixes)):
-#                     # whut
-#                     pass;
-#                 result = self.prefixedExpressions[availablePrefixes[index]].get_next(lastPath[1:]);
-#                 if (result != False):
-#                     return result[0], [(0, index)] + result[1];
-#                 # If the path instructions fail we fall through to iterating over
-#                 # the options at the current level
-#         else:
-#             # If there is no path left we start iterating over the options at
-#             # the current level
-#             pathType = 0;
-#             index = -1;
-#             lastPath = [(0, 0)];
-#         
-#         if (pathType == 0):
-#             # We start with checking the prefixes for options if 1) we don't
-#             # have path instructions or 2) the path says the last option was
-#             # a prefix
-#             if (len(availablePrefixes) > 0):
-#                 success = False;
-#                 currentIndex = index;
-#                 while (not success):
-#                     # Iterate over all prefixes until we find a valid one
-#                     currentIndex += 1;
-#                     if (currentIndex >= len(self.prefixedExpressions)):
-#                         # We ran out of valid prefixes to explore
-#                         break;
-#                     # Call without path because we are changing the path branch 
-#                     # we follow
-#                     result = self.prefixedExpressions[availablePrefixes[currentIndex]].get_next([]);
-#                     if (result == False):
-#                         # The explored prefix has no valid options left
-#                         continue;
-#                     return result[0], [(0, currentIndex)] + result[1];
-#             # If we need to explore the expressions after considering the
-#             # prefixes we need to reset the index as it was supposed to point
-#             # to a prefix, not an expression
-#             index = -1;
-#         
-#         # Find the next expression
-#         expressionsAtCurrentLevel = filter(lambda e: e[1] == "", enumerate(self.expressions));
-#         choiceExpression = index + 1;
-#         if (choiceExpression >= len(expressionsAtCurrentLevel)):
-#             # Expressions are done as well
-#             return False;
-#         return self.fullExpressions[expressionsAtCurrentLevel[choiceExpression][0]], [(1, choiceExpression)];
+    def get_next(self, lastPath):
+        """
+        Iterates over all expressions in the storage in depth-first way.
+        Path is a list of tuples (instruction, index).
+        Instructions are:
+        - 0 = go down to prefix 'index'
+        - 1 = return expression at 'index' + 1.
+        """
+        self.noEditMarker = True;
+        # Move along the path as far as possible
+        availablePrefixes = sorted(self.prefixedExpressions.keys());
+        if (len(lastPath) > 0):
+            # If the path is not empty we try the path instructions
+            pathType, index = lastPath[0];
+            if (pathType == 0):
+                if (index >= len(availablePrefixes)):
+                    raise ValueError("whut: %d, %d" % (len(availablePrefixes), index));
+                result = self.prefixedExpressions[availablePrefixes[index]].get_next(lastPath[1:]);
+                if (result != False):
+                    return result[0], [(0, index)] + result[1];
+                # If the path instructions fail we fall through to iterating over
+                # the options at the current level
+        else:
+            # If there is no path (left) we start iterating over the options at
+            # the current level
+            pathType = 0;
+            index = -1;
+        
+        # At this point we have moved along the path as far as possible
+        # pathType and index are the last instuctions in the path 
+        # If pathType == 0 we are instructed to try prefixes at this level
+        # This matches two scenario's: 
+        # 1) we don't have path instructions or 
+        # 2) the path says the last option was a prefix
+        if (pathType == 0):
+            if (len(availablePrefixes) > 0):
+                currentIndex = index + 1;
+                # Iterate over all prefixes until we find a valid one
+                while (currentIndex < len(availablePrefixes)):
+                    result = self.prefixedExpressions[availablePrefixes[currentIndex]].get_next([]);
+                    if (result is not False):
+                        return result[0], [(0, currentIndex)] + result[1];
+                    # If result == False, the explored prefix has no valid options 
+                    # left so we skip it
+                    currentIndex += 1;
+            # We found no suitable prefixes left at this level
+            # We need to explore the expressions
+            pathType = 1;
+            # We need to reset the index as it was supposed to point
+            # to a prefix, not an expression
+            index = -1;
+         
+        # If we get to this point we have processed all prefixes at this and deeper levels
+        # What remains is to try the expressions at this level
+        expressionsAtCurrentLevel = filter(lambda e: e[1] == "", enumerate(self.expressions));
+        choiceExpression = index + 1;
+        if (choiceExpression >= len(expressionsAtCurrentLevel)):
+            # Expressions are done as well
+            return False;
+        return self.fullExpressions[expressionsAtCurrentLevel[choiceExpression][0]], [(1, choiceExpression)];
     
     def exists(self, prefix, prime=None):
         if (len(prefix) == 0):

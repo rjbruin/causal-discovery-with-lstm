@@ -61,6 +61,35 @@ class Test(unittest.TestCase):
             expressions = dataset.expressionsByPrefix.get_random(10);
             print(expressions);
     
+    def testGetNext(self):
+        n = 50000;
+        min_length = 1;
+        max_length = 15;
+        
+        storage = SequencesByPrefix();
+        symbols = [str(i) for i in range(10)] + ['+','-','*','/','(',')','='];
+        expressions = [];
+        for _ in range(n):
+            np.random.seed();
+            length = np.random.randint(min_length, max_length);
+            expression = "".join([symbols[i] for i in np.random.randint(0,len(symbols),(length))]);
+            expressions.append(expression);
+            storage.add(expression,"");
+        
+        lastPath = [];
+        for _ in range(n):
+            expression, lastPath = storage.get_next(lastPath);
+            if (expression in expressions):
+                expressions.remove(expression);
+            else:
+                self.assertEqual(True,False,"Expression retrieved not originally generated: %s" % expression);
+        
+        for expression in expressions:
+            self.assertEqual(True,False,"Expression not retrieved: %s" % expression);
+        
+        result = storage.get_next(lastPath);
+        self.assertEqual(result,False,"get_next() returned expression when all should have been returned already.");
+    
     def testExists(self):
         params = ['--finish_subsystems','True',
                   '--only_cause_expression','1',

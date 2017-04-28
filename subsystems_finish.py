@@ -579,6 +579,14 @@ if __name__ == '__main__':
     np.set_printoptions(precision=3, threshold=10000000);
     profiler.off();
     
+    # Individual parameter gradient settings
+    param_groups = [('hWh', lambda name: name[0] == 'h'),
+                    ('XWh', lambda name: name[0] == 'X'),
+                    ('f', lambda name: len(name) >= 3 and name[2] == 'f'),
+                    ('i', lambda name: len(name) >= 3 and name[2] == 'i'),
+                    ('c', lambda name: len(name) >= 3 and name[2] == 'c'),
+                    ('o', lambda name: len(name) >= 3 and name[2] == 'o')];
+    
     # Settings
     api_key = os.environ.get('TCDL_API_KEY');
     if (api_key is None):
@@ -639,6 +647,8 @@ if __name__ == '__main__':
         score_types['Indiv.digit %d' % size] = 'Indiv. digit %d' % size;
     for size in range(20):
         score_types['Mean gradient index %d' % size] = 'Mean gradient index %d' % size;
+    for name, _ in param_groups:
+        score_types['GI %s' % name] = 'Mean param gradient %s' % name;
     for size in range(8):
         score_types['Errors %d' % size] = 'Errors %d' % size;
         score_types['First error %d' % size] = 'First error %d' % size;
@@ -856,6 +866,7 @@ if __name__ == '__main__':
             if (repetition_size % parameters['minibatch_size'] > 0):
                 nrBatches += 1;
             gradients = None;
+            param_gradients = None;
             while k < repetition_size:
                 profiler.start('train batch');
                 profiler.start('get train batch');
@@ -888,7 +899,34 @@ if __name__ == '__main__':
                 
                 # Process individual gradients
                 if (parameters['gradient_inspection']):
-                    grads = outputs[2:];
+                    param_length = outputs[2];
+                    param_grads = outputs[3:3+param_length];
+                    def get_names(name):
+                        names =[]
+                        for n, f in param_groups:
+                            if (f(name)):
+                                names.append(n);
+                        if (len(names) == 0):
+                            return ['other'];
+                        return names;
+                    param_grouped = {k: [] for k in [name for (name,f) in param_groups]};
+                    param_grouped['other'] = [];
+                    # Process param grads
+                    for j in range(0,len(param_grads)):
+                        param = np.array(param_grads[j]).flatten();
+                        name = model.variables[j];
+                        names = get_names(name);
+                        for n in names:
+                            param_grouped[n].extend(param);
+                        
+                    if (param_gradients is None):
+                        param_gradients = {k: np.array(l, dtype='float32') for k,l in param_grouped.items()};
+                    else:
+                        for j in param_gradients:
+                            param_gradients[j] += (1./float(nrBatches)) * np.array(param_grouped[j]);
+                    
+                    # Process sentence index grads
+                    grads = outputs[3+param_length+1:];
                     length = parameters['n_max_digits'] - parameters['lag'];
                     sentence_length = len(grads)/length;
                     dim_length = 0;
@@ -910,6 +948,7 @@ if __name__ == '__main__':
                     if (gradients is None):
                         gradients = np.zeros((length,dim_length), dtype='float32');
                     gradients += (1./float(nrBatches)) * np.array(gradients_per_index);
+                    del(gradients_per_index);
                     
                 
                 profiler.stop('train sgd');
@@ -927,6 +966,15 @@ if __name__ == '__main__':
                 k += nrSamples;
             
             if (parameters['gradient_inspection']):
+                # Compute param mean gradients
+                mean_param_gradients = {};
+                for j in param_gradients:
+                    if (len(param_gradients[j]) > 0):
+                        mean_param_gradients[j] = np.mean(abs(param_gradients[j]));
+                for j in param_gradients:
+                    if (len(param_gradients[j]) > 0):
+                        mean_param_gradients[j] = mean_param_gradients[j] / np.min(mean_param_gradients.values());
+                        printF("Mean param gradient %s: %.2f" % (j, mean_param_gradients[j]), experimentId, currentIteration);
                 # Compute mean gradients
                 mean_gradients = np.mean(abs(gradients), axis=1);
                 mean_gradients = mean_gradients / np.min(mean_gradients);
