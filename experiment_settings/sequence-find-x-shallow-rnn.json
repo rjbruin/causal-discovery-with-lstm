@@ -1,6 +1,6 @@
 [
     {
-        "name": "f-fndx-s",
+        "name": "f-fndx-s-rnn",
         "dataset": "./data/subsystems_shallow",
         "repetitions": "150",
         "sample_testing_size": "100000",
