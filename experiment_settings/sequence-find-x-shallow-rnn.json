@@ -12,7 +12,6 @@
       	"minibatch_size": "64",
         "triple_layer": "True",
         "only_cause_expression": "1",
-        "early_stopping": "True",
         "lstm": "False"
     }
 ]
