@@ -833,9 +833,10 @@ if __name__ == '__main__':
         if (parameters['simple_data_loading']):
             dataset_data, label_index = load_data(parameters, processor, dataset);
                 
-        if (not os.path.exists(os.path.join('.','figures'))):
-            os.makedirs(os.path.join('.','figures'));
-        model.plotWeights("%s_%d" % (name, starting_repetition));
+        if (parameters['lstm']):
+            if (not os.path.exists(os.path.join('.','figures'))):
+                os.makedirs(os.path.join('.','figures'));
+            model.plotWeights("%s_%d" % (name, starting_repetition));
         
         intervention_locations_train = {k: 0 for k in range(model.n_max_digits)};
         if (starting_repetition == 0):
