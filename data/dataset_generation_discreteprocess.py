@@ -73,13 +73,13 @@ def generateSample(length, max_lag, inputrange, weights1, weights2, weights1to2,
 
 if __name__ == '__main__':
     # Define dataset settings
-    n = 500000;
+    n = 1000000;
     length = 20;
-    max_lag = 3;
+    max_lag = 7;
     inputrange = [0,9];
     weightsrange = [-1,2];
     progressPrintInterval = 10000;
-    crosslinks = False;
+    crosslinks = True;
     homogeneous_weights = False;
     
     # Noise settings
