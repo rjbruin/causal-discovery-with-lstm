@@ -695,8 +695,8 @@ if __name__ == '__main__':
                     suffix = raw_input("Provide the suffix to the name for iteration %d: " % k);
                     newparams = copy.deepcopy(allparameters[i]);
                     newparams[key] = processKeyValue(key,val);
-                    newparams['basename'] += suffix;
                     newparams['name'] += suffix;
+                    newparams['trackername'] = newparams['basename'] + suffix;
                     newparameters.append(newparams);
             else:
                 newparameters.append(allparameters[i]);
@@ -716,7 +716,7 @@ if __name__ == '__main__':
                 datasets = parameters['multipart_dataset'];
             else:
                 datasets = 1;
-            experimentId = trackerreporter.initExperiment(parameters['basename'], totalProgress=parameters['repetitions'], 
+            experimentId = trackerreporter.initExperiment(parameters['trackername'], totalProgress=parameters['repetitions'], 
                                                 totalDatasets=datasets, scoreTypes=score_types.keys(), 
                                                 scoreIdentifiers=score_types);
             if (experimentId is False):
@@ -805,7 +805,7 @@ if __name__ == '__main__':
                     raise ValueError("ERROR: Loading saved model failed: wrong model variables supplied!");
                 
                 # Sanity checks
-                skipParams = ['name','continue','continue_to_repetition'];
+                skipParams = ['name','continue','continue_to_repetition','trackername'];
                 for k in modelParams:
                     if (modelParams[k] != otherParams[k] and k not in skipParams):
                         printF("WARNING: Experiment parameters for saved model and saved other vars do not match!", experimentId, currentIteration);
