@@ -683,6 +683,7 @@ if __name__ == '__main__':
             if (basename != ''):
                 allparameters[i]['basename'] = basename;
             allparameters[i]['name'] = allparameters[i]['basename'] + time.strftime("_%d-%m-%Y_%H-%M-%S");
+            allparameters[i]['trackername'] = allparameters[i]['basename'];
             
             # Ask for iterative parameter
             iterativeArgs = raw_input("(optional) Add one iterative parameter where values are separated by commas (e.g. '--key value1,value2,value3'): ");
