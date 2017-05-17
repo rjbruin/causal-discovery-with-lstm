@@ -1317,7 +1317,8 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                          emptySamples=None,
                          training=False, topcause=True,
                          testInDataset=True, bothcause=False,
-                         data=None):
+                         data=None,
+                         onlyPrecision=False):
         """
         Overriding for finish-target_expressions.
         expressions_with_interventions contains the label-target_expressions (in
@@ -1385,7 +1386,7 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                         stats['digit_2_correct'][i] += 1.0;
                         if (first_error != -1):
                             correct_after_first_error = True;
-                    else:
+                    elif (not onlyPrecision):
                         errors += 1;
                         if (first_error == -1):
                             first_error = i;
@@ -1393,18 +1394,19 @@ class TheanoRecurrentNeuralNetwork(RecurrentModel):
                             correct_after_first_error = False;
                     stats['digit_2_prediction_size'][i] += 1;
                 
-                first_error = min(8,first_error);
-                if (first_error != -1):
-                    if (correct_after_first_error and first_error < 8):
-                        stats['recovery'][first_error] += 1.0;
-                    else:
-                        stats['no_recovery'][first_error] += 1.0;
-                stats['first_error'][first_error] += 1.0;
-                
-                if (errors > 8):
-                    errors = 8;
-                stats['error_size'][errors] += 1.0;
-                stats['prediction_size'] += 1.0;
+                if (not onlyPrecision):
+                    first_error = min(8,first_error);
+                    if (first_error != -1):
+                        if (correct_after_first_error and first_error < 8):
+                            stats['recovery'][first_error] += 1.0;
+                        else:
+                            stats['no_recovery'][first_error] += 1.0;
+                    stats['first_error'][first_error] += 1.0;
+                    
+                    if (errors > 8):
+                        errors = 8;
+                    stats['error_size'][errors] += 1.0;
+                    stats['prediction_size'] += 1.0;
         else:
             # Sequence answering and sequence finishing
             dont_switch = False;

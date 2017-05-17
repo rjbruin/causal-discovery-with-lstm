@@ -44,126 +44,128 @@ def print_stats(stats, parameters, experimentId, currentIteration, prefix=''):
         printF(prefix + "Score: %.2f percent" % (stats['score']*100), experimentId, currentIteration);
     else:
         printF(prefix + "Score: %.2f percent" % (stats['digit_2_total_score']*100), experimentId, currentIteration);
-        for i in range(parameters['n_max_digits']):
-            printF(prefix + "Indiv. digit %d: %.2f percent" % (i, stats['digit_2_score'][i]*100.), experimentId, currentIteration);
-        
-        for i in range(8):
-            printF(prefix + "Errors %d: %.2f percent" % (i, stats['error_size_percentage'][i]*100.), experimentId, currentIteration);
-        printF(prefix + "Errors >8: %.2f percent" % (stats['error_size_percentage'][8]*100.), experimentId, currentIteration);
-        
-        printF(prefix + "First error None: %.2f percent" % (stats['first_error_score'][-1]*100.), experimentId, currentIteration);
-        for i in range(8):
-            printF(prefix + "First error %d: %.2f percent" % (i, stats['first_error_score'][i]*100.), experimentId, currentIteration);
-        printF(prefix + "First error >8: %.2f percent" % (stats['first_error_score'][8]*100.), experimentId, currentIteration);
-        
-        for i in range(8):
-            printF(prefix + "Recovery %d: %.2f percent" % (i, stats['recovery_score'][i]*100.), experimentId, currentIteration);
+        if (not parameters['only_precision']):
+            for i in range(parameters['n_max_digits']):
+                printF(prefix + "Indiv. digit %d: %.2f percent" % (i, stats['digit_2_score'][i]*100.), experimentId, currentIteration);
+            
+            for i in range(8):
+                printF(prefix + "Errors %d: %.2f percent" % (i, stats['error_size_percentage'][i]*100.), experimentId, currentIteration);
+            printF(prefix + "Errors >8: %.2f percent" % (stats['error_size_percentage'][8]*100.), experimentId, currentIteration);
+            
+            printF(prefix + "First error None: %.2f percent" % (stats['first_error_score'][-1]*100.), experimentId, currentIteration);
+            for i in range(8):
+                printF(prefix + "First error %d: %.2f percent" % (i, stats['first_error_score'][i]*100.), experimentId, currentIteration);
+            printF(prefix + "First error >8: %.2f percent" % (stats['first_error_score'][8]*100.), experimentId, currentIteration);
+            
+            for i in range(8):
+                printF(prefix + "Recovery %d: %.2f percent" % (i, stats['recovery_score'][i]*100.), experimentId, currentIteration);
     
-    digit_score = (stats['digit_1_total_score']) * 100.;
-    if (not parameters['only_cause_expression']):
-        digit_score = (stats['digit_1_total_score'] + stats['digit_2_total_score']) * 50.;
-    printF(prefix + "Digit-based score: %.2f percent" % (digit_score), experimentId, currentIteration);
+    if (not parameters['only_precision']):
+        digit_score = (stats['digit_1_total_score']) * 100.;
+        if (not parameters['only_cause_expression']):
+            digit_score = (stats['digit_1_total_score'] + stats['digit_2_total_score']) * 50.;
+        printF(prefix + "Digit-based score: %.2f percent" % (digit_score), experimentId, currentIteration);
     
-    if (not parameters['only_cause_expression']):
+        if (not parameters['only_cause_expression']):
+            if (parameters['dataset_type'] != 3):
+                printF(prefix + "Structure score cause: %.2f percent" % (stats['structureScoreCause']*100), experimentId, currentIteration);
+                printF(prefix + "Structure score effect: %.2f percent" % (stats['structureScoreEffect']*100), experimentId, currentIteration);
+            printF(prefix + "Structure score top: %.2f percent" % (stats['structureScoreTop']*100), experimentId, currentIteration);
+            printF(prefix + "Structure score bot: %.2f percent" % (stats['structureScoreBot']*100), experimentId, currentIteration);
+            if (parameters['dataset_type'] != 3):
+                printF(prefix + "Structure score: %.2f percent" % (stats['structureScore']*100), experimentId, currentIteration);
+                printF(prefix + "Effect score: %.2f percent" % (stats['effectScore']*100), experimentId, currentIteration);
+                printF(prefix + "Effect score including no effect: %.2f percent" % (stats['allEffectScore']*100), experimentId, currentIteration);
+    
         if (parameters['dataset_type'] != 3):
-            printF(prefix + "Structure score cause: %.2f percent" % (stats['structureScoreCause']*100), experimentId, currentIteration);
-            printF(prefix + "Structure score effect: %.2f percent" % (stats['structureScoreEffect']*100), experimentId, currentIteration);
-        printF(prefix + "Structure score top: %.2f percent" % (stats['structureScoreTop']*100), experimentId, currentIteration);
-        printF(prefix + "Structure score bot: %.2f percent" % (stats['structureScoreBot']*100), experimentId, currentIteration);
-        if (parameters['dataset_type'] != 3):
-            printF(prefix + "Structure score: %.2f percent" % (stats['structureScore']*100), experimentId, currentIteration);
-            printF(prefix + "Effect score: %.2f percent" % (stats['effectScore']*100), experimentId, currentIteration);
-            printF(prefix + "Effect score including no effect: %.2f percent" % (stats['allEffectScore']*100), experimentId, currentIteration);
-    
-    if (parameters['dataset_type'] != 3):
-        if (not parameters['answering']):
-            printF(prefix + "Valid: %.2f percent" % (stats['semantically_valid_score']*100), experimentId, currentIteration);
-        printF(prefix + "Syntactically valid: %.2f percent" % (stats['syntactically_valid_score']*100), experimentId, currentIteration);
-        if (not parameters['answering']):
-            printF(prefix + "Valid left hand side: %.2f percent" % (stats['left_hand_valid_score']*100), experimentId, currentIteration);
-            printF(prefix + "Valid right hand side: %.2f percent" % (stats['right_hand_valid_score']*100), experimentId, currentIteration);
-            printF(prefix + "Score with valid left hand side: %.2f percent" % (stats['left_hand_valid_correct_score']*100), experimentId, currentIteration);
-            printF(prefix + "Partially predicted left hand sides: %.2f percent" % ((stats['left_hand_valid_with_prediction_size']*100) / float(stats['prediction_size'])), experimentId, currentIteration);
-            printF(prefix + "Valid left hand with partially predicted left hand side: %.2f percent" % (stats['valid_left_hand_with_prediction_score']*100.), experimentId, currentIteration);
-            printF(prefix + "Score with partially predicted left hand side: %.2f percent" % (stats['left_hand_valid_with_prediction_score']*100), experimentId, currentIteration);
-            printF(prefix + "Score with given left hand side: %.2f percent" % (stats['left_hand_given_score']*100), experimentId, currentIteration);
-            printF(prefix + "Score with partially predicted valid left hand side: %.2f percent" % (stats['valid_left_hand_valid_with_prediction_score']*100), experimentId, currentIteration);
-        
-#         printF(prefix + "Local valid: %.2f percent" % (stats['localValidScore']*100), experimentId, currentIteration);
-#         if (not parameters['only_cause_expression']):
-#             printF(prefix + "Structure valid cause: %.2f percent" % (stats['structureValidScoreCause']*100), experimentId, currentIteration);
-#             printF(prefix + "Structure valid effect: %.2f percent" % (stats['structureValidScoreEffect']*100), experimentId, currentIteration);
-#             printF(prefix + "Structure valid top: %.2f percent" % (stats['structureValidScoreTop']*100), experimentId, currentIteration);
-#             printF(prefix + "Structure valid bot: %.2f percent" % (stats['structureValidScoreBot']*100), experimentId, currentIteration);
-#             printF(prefix + "Local valid cause: %.2f percent" % (stats['localValidScoreCause']*100), experimentId, currentIteration);
-#             printF(prefix + "Local valid effect: %.2f percent" % (stats['localValidScoreEffect']*100), experimentId, currentIteration);
-        printF(prefix + "Intervention locations:   %s" % (str(stats['intervention_locations'])), experimentId, currentIteration);
-        if (parameters['test_in_dataset']):
-            printF(prefix + "In dataset: %.2f percent" % (stats['inDatasetScore']*100), experimentId, currentIteration);
+            if (not parameters['answering']):
+                printF(prefix + "Valid: %.2f percent" % (stats['semantically_valid_score']*100), experimentId, currentIteration);
+            printF(prefix + "Syntactically valid: %.2f percent" % (stats['syntactically_valid_score']*100), experimentId, currentIteration);
+            if (not parameters['answering']):
+                printF(prefix + "Valid left hand side: %.2f percent" % (stats['left_hand_valid_score']*100), experimentId, currentIteration);
+                printF(prefix + "Valid right hand side: %.2f percent" % (stats['right_hand_valid_score']*100), experimentId, currentIteration);
+                printF(prefix + "Score with valid left hand side: %.2f percent" % (stats['left_hand_valid_correct_score']*100), experimentId, currentIteration);
+                printF(prefix + "Partially predicted left hand sides: %.2f percent" % ((stats['left_hand_valid_with_prediction_size']*100) / float(stats['prediction_size'])), experimentId, currentIteration);
+                printF(prefix + "Valid left hand with partially predicted left hand side: %.2f percent" % (stats['valid_left_hand_with_prediction_score']*100.), experimentId, currentIteration);
+                printF(prefix + "Score with partially predicted left hand side: %.2f percent" % (stats['left_hand_valid_with_prediction_score']*100), experimentId, currentIteration);
+                printF(prefix + "Score with given left hand side: %.2f percent" % (stats['left_hand_given_score']*100), experimentId, currentIteration);
+                printF(prefix + "Score with partially predicted valid left hand side: %.2f percent" % (stats['valid_left_hand_valid_with_prediction_score']*100), experimentId, currentIteration);
+            
+    #         printF(prefix + "Local valid: %.2f percent" % (stats['localValidScore']*100), experimentId, currentIteration);
+    #         if (not parameters['only_cause_expression']):
+    #             printF(prefix + "Structure valid cause: %.2f percent" % (stats['structureValidScoreCause']*100), experimentId, currentIteration);
+    #             printF(prefix + "Structure valid effect: %.2f percent" % (stats['structureValidScoreEffect']*100), experimentId, currentIteration);
+    #             printF(prefix + "Structure valid top: %.2f percent" % (stats['structureValidScoreTop']*100), experimentId, currentIteration);
+    #             printF(prefix + "Structure valid bot: %.2f percent" % (stats['structureValidScoreBot']*100), experimentId, currentIteration);
+    #             printF(prefix + "Local valid cause: %.2f percent" % (stats['localValidScoreCause']*100), experimentId, currentIteration);
+    #             printF(prefix + "Local valid effect: %.2f percent" % (stats['localValidScoreEffect']*100), experimentId, currentIteration);
+            printF(prefix + "Intervention locations:   %s" % (str(stats['intervention_locations'])), experimentId, currentIteration);
+            if (parameters['test_in_dataset']):
+                printF(prefix + "In dataset: %.2f percent" % (stats['inDatasetScore']*100), experimentId, currentIteration);
 
-    if (not parameters['only_cause_expression']):
-        printF(prefix + "Digit-based (1) score: %.2f percent" % (stats['digit_1_total_score']*100), experimentId, currentIteration);
-        printF(prefix + "Digit-based (1) individual scores histogram: %s percent" % (str(stats['digit_1_score'])), experimentId, currentIteration);
-        printF(prefix + "Digit prediction (1) histogram:   %s" % (str(stats['prediction_1_histogram'])), experimentId, currentIteration);
+        if (not parameters['only_cause_expression']):
+            printF(prefix + "Digit-based (1) score: %.2f percent" % (stats['digit_1_total_score']*100), experimentId, currentIteration);
+            printF(prefix + "Digit-based (1) individual scores histogram: %s percent" % (str(stats['digit_1_score'])), experimentId, currentIteration);
+            printF(prefix + "Digit prediction (1) histogram:   %s" % (str(stats['prediction_1_histogram'])), experimentId, currentIteration);
+            
+            printF(prefix + "Digit-based (2) score: %.2f percent" % (stats['digit_2_total_score']*100), experimentId, currentIteration);
+            printF(prefix + "Digit-based (2) individual scores histogram: %s percent" % (str(stats['digit_2_score'])), experimentId, currentIteration);
+            printF(prefix + "Digit prediction (2) histogram:   %s" % (str(stats['prediction_2_histogram'])), experimentId, currentIteration);
+            
+            if (parameters['dataset_type'] != 3):
+                printF(prefix + "Prediction size (1) histogram:   %s" % (str(stats['prediction_1_size_histogram'])), experimentId, currentIteration);
+                printF(prefix + "Prediction size (2) histogram:   %s" % (str(stats['prediction_2_size_histogram'])), experimentId, currentIteration);
+            else:
+                dp_length = 20 - 8;
+                printF(prefix + "Digit-based score (1st quarter): %.2f percent" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((0./4)*dp_length),int((1./4)*dp_length))])), experimentId, currentIteration);
+                printF(prefix + "Digit-based score (2nd quarter): %.2f percent" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((1./4)*dp_length),int((2./4)*dp_length))])), experimentId, currentIteration);
+                printF(prefix + "Digit-based score (3rd quarter): %.2f percent" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((2./4)*dp_length),int((3./4)*dp_length))])), experimentId, currentIteration);
+                printF(prefix + "Digit-based score (4th quarter): %.2f percent" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((3./4)*dp_length),int((4./4)*dp_length))])), experimentId, currentIteration);
+            
+    #     printF(prefix + "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
+        printF(prefix + "Digit histogram:   %s" % (str(stats['prediction_histogram'])), experimentId, currentIteration);
+    
+        if (parameters['dataset_type'] != 3 and 'label_size_score' in stats):
+            printF(prefix + "Label sizes: %s" % (str(stats['label_sizes'])), experimentId, currentIteration);
+            for size in stats['label_size_score'].keys():
+                printF(prefix + "Score by label size = %d: %.2f percent" % (size, stats['label_size_score'][size]*100.), experimentId, currentIteration);
+        if ('input_size_score' in stats):
+            printF(prefix + "Input sizes: %s" % (str(stats['input_sizes'])), experimentId, currentIteration);
+            for size in stats['input_size_score'].keys():
+                printF(prefix + "Score by input size = %d: %.2f percent" % (size, stats['input_size_score'][size]*100.), experimentId, currentIteration);
+    
+        printF(prefix + "Error margin 1 score: %.2f percent" % (stats['error_1_score']*100.), experimentId, currentIteration);
+        printF(prefix + "Error margin 2 score: %.2f percent" % (stats['error_2_score']*100.), experimentId, currentIteration);
+        printF(prefix + "Error margin 3 score: %.2f percent" % (stats['error_3_score']*100.), experimentId, currentIteration);
         
-        printF(prefix + "Digit-based (2) score: %.2f percent" % (stats['digit_2_total_score']*100), experimentId, currentIteration);
-        printF(prefix + "Digit-based (2) individual scores histogram: %s percent" % (str(stats['digit_2_score'])), experimentId, currentIteration);
-        printF(prefix + "Digit prediction (2) histogram:   %s" % (str(stats['prediction_2_histogram'])), experimentId, currentIteration);
+        printF(prefix + "All error margins: %s" % str(stats['error_histogram']), experimentId, currentIteration);
+    
+        trueSizes = parameters['n_max_digits'];
+        nrCorrects = parameters['n_max_digits'];
+        if (parameters['answering']):
+            trueSizes = 5;
+            nrCorrects = 6;
+        if (parameters['answering']):
+            for trueSize in range(1,trueSizes+1):
+                for nrCorrect in range(min(nrCorrects,trueSize)+1):
+                    printF(prefix + "Label size %d nr correct %d: %.2f (%d)" % (trueSize, nrCorrect, stats['correct_matrix_scores'][trueSize,nrCorrect] * 100., stats['correct_matrix'][trueSize,nrCorrect]), experimentId, currentIteration);
+        
+        if ('label_size_input_size_confusion_score' in stats):
+            for i in range(stats['label_size_input_size_confusion_score'].shape[0]):
+                percentages = [];
+                for j in range(stats['label_size_input_size_confusion_score'].shape[1]):
+                    percentages.append("%.2f" % stats['label_size_input_size_confusion_score'][i,j]);
+                printF(prefix + "Label / input size row %d: %s" % (i, ", ".join(percentages)), experimentId, currentIteration);
+        
+        if (parameters['rnn_version'] == 0):
+            for i in range(stats['left_missing_vs_left_size_score'].shape[0]):
+                for j in range(stats['left_missing_vs_left_size_score'].shape[1]):
+                    if (stats['left_missing_vs_left_size_size'][i,j] > 0):
+                        printF(prefix + "LM %d LS %d: %.2f percent" % (i, j, stats['left_missing_vs_left_size_score'][i,j]), experimentId, currentIteration);
         
         if (parameters['dataset_type'] != 3):
-            printF(prefix + "Prediction size (1) histogram:   %s" % (str(stats['prediction_1_size_histogram'])), experimentId, currentIteration);
-            printF(prefix + "Prediction size (2) histogram:   %s" % (str(stats['prediction_2_size_histogram'])), experimentId, currentIteration);
-        else:
-            dp_length = 20 - 8;
-            printF(prefix + "Digit-based score (1st quarter): %.2f percent" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((0./4)*dp_length),int((1./4)*dp_length))])), experimentId, currentIteration);
-            printF(prefix + "Digit-based score (2nd quarter): %.2f percent" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((1./4)*dp_length),int((2./4)*dp_length))])), experimentId, currentIteration);
-            printF(prefix + "Digit-based score (3rd quarter): %.2f percent" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((2./4)*dp_length),int((3./4)*dp_length))])), experimentId, currentIteration);
-            printF(prefix + "Digit-based score (4th quarter): %.2f percent" % (np.mean([stats['digit_1_score'][i]*50. + stats['digit_2_score'][i]*50. for i in range(int((3./4)*dp_length),int((4./4)*dp_length))])), experimentId, currentIteration);
-        
-#     printF(prefix + "Prediction size histogram:   %s\n" % (str(stats['prediction_size_histogram']));
-    printF(prefix + "Digit histogram:   %s" % (str(stats['prediction_histogram'])), experimentId, currentIteration);
-    
-    if (parameters['dataset_type'] != 3 and 'label_size_score' in stats):
-        printF(prefix + "Label sizes: %s" % (str(stats['label_sizes'])), experimentId, currentIteration);
-        for size in stats['label_size_score'].keys():
-            printF(prefix + "Score by label size = %d: %.2f percent" % (size, stats['label_size_score'][size]*100.), experimentId, currentIteration);
-    if ('input_size_score' in stats):
-        printF(prefix + "Input sizes: %s" % (str(stats['input_sizes'])), experimentId, currentIteration);
-        for size in stats['input_size_score'].keys():
-            printF(prefix + "Score by input size = %d: %.2f percent" % (size, stats['input_size_score'][size]*100.), experimentId, currentIteration);
-    
-    printF(prefix + "Error margin 1 score: %.2f percent" % (stats['error_1_score']*100.), experimentId, currentIteration);
-    printF(prefix + "Error margin 2 score: %.2f percent" % (stats['error_2_score']*100.), experimentId, currentIteration);
-    printF(prefix + "Error margin 3 score: %.2f percent" % (stats['error_3_score']*100.), experimentId, currentIteration);
-    
-    printF(prefix + "All error margins: %s" % str(stats['error_histogram']), experimentId, currentIteration);
-    
-    trueSizes = parameters['n_max_digits'];
-    nrCorrects = parameters['n_max_digits'];
-    if (parameters['answering']):
-        trueSizes = 5;
-        nrCorrects = 6;
-    if (parameters['answering']):
-        for trueSize in range(1,trueSizes+1):
-            for nrCorrect in range(min(nrCorrects,trueSize)+1):
-                printF(prefix + "Label size %d nr correct %d: %.2f (%d)" % (trueSize, nrCorrect, stats['correct_matrix_scores'][trueSize,nrCorrect] * 100., stats['correct_matrix'][trueSize,nrCorrect]), experimentId, currentIteration);
-    
-    if ('label_size_input_size_confusion_score' in stats):
-        for i in range(stats['label_size_input_size_confusion_score'].shape[0]):
-            percentages = [];
-            for j in range(stats['label_size_input_size_confusion_score'].shape[1]):
-                percentages.append("%.2f" % stats['label_size_input_size_confusion_score'][i,j]);
-            printF(prefix + "Label / input size row %d: %s" % (i, ", ".join(percentages)), experimentId, currentIteration);
-    
-    if (parameters['rnn_version'] == 0):
-        for i in range(stats['left_missing_vs_left_size_score'].shape[0]):
-            for j in range(stats['left_missing_vs_left_size_score'].shape[1]):
-                if (stats['left_missing_vs_left_size_size'][i,j] > 0):
-                    printF(prefix + "LM %d LS %d: %.2f percent" % (i, j, stats['left_missing_vs_left_size_score'][i,j]), experimentId, currentIteration);
-    
-    if (parameters['dataset_type'] != 3):
-        printF(prefix + "Unique labels used: %d" % stats['unique_labels_predicted'], experimentId, currentIteration);
-        printF(prefix + "Skipped because of zero prediction length: %d" % stats['skipped_because_intervention_location'], experimentId, currentIteration);
+            printF(prefix + "Unique labels used: %d" % stats['unique_labels_predicted'], experimentId, currentIteration);
+            printF(prefix + "Skipped because of zero prediction length: %d" % stats['skipped_because_intervention_location'], experimentId, currentIteration);
     
 #     printF(prefix + "! Samples correct: %s" % str(map(lambda (x,y): "%d,%d" % (int(x), int(y)),stats['samplesCorrect']));
     
@@ -456,7 +458,8 @@ def test(model, dataset, dataset_data, label_index, parameters, max_length, base
                                        dataset_data, parameters,
                                        topcause=topcause or parameters['bothcause'], # If bothcause then topcause = 1
                                        testInDataset=parameters['test_in_dataset'],
-                                       bothcause=parameters['bothcause']);
+                                       bothcause=parameters['bothcause'],
+                                       onlyPrecision=parameters['only_precision']);
         
         for j in range(nrSamples):
             if (parameters['only_cause_expression'] is not False):
