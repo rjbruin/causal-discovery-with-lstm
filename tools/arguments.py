@@ -33,6 +33,7 @@ def processFalseOrInt(val):
 
 argumentProcessors = {'name': processString,
                       'output_name': processString,
+                      'trackername': processString,
                       'debug': processBool,
                       'report_to_tracker': processBool,
                       'dataset': processString,
@@ -108,6 +109,7 @@ argumentProcessors = {'name': processString,
                       'only_precision': processBool
                       }
 defaults = {'output_name': "",
+            'trackername': "",
             'report_to_tracker': True,
             'debug': False,
             'dataset': './data/expressions_positive_integer_answer_shallow',
