@@ -795,6 +795,8 @@ if __name__ == '__main__':
                 otherFilename = priorities[0][1];
                 starting_repetition = priorities[0][0]; # Add one for next iteration, remove one for transition from 1-based to 0-based
                 currentIteration = starting_repetition+1; 
+                
+                printF("Continuing from repetition %d with file %s..." % (starting_repetition, otherFilename), experimentId, currentIteration);
             
                 # Load other vars
                 loadedOtherVars, otherParams = load_from_pickle_with_filename("./saved_models/" + otherFilename);
@@ -817,8 +819,6 @@ if __name__ == '__main__':
                         raise ValueError("ERROR: Experiment parameters for saved model and current experiment do not match: %s (saved), %s (current)" % (str(modelParams[k]), str(parameters[k])));
                 if (starting_repetition == parameters['repetitions'] and parameters['continue_to_repetition'] is False):
                     raise ValueError("ERROR: Loaded experiment is already done!");
-                
-                printF("Continuing from repetition %d with model file %s..." % (starting_repetition, modelFilename), experimentId, currentIteration);
             
             # Override repetitions
             if (parameters['continue_to_repetition'] is not False):
