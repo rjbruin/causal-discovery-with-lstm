@@ -1,0 +1,64 @@
+{'use_bias': False, 'input_shift_to_tanh': False, 'loss_causal_linear': False, 'output_shift_to_prob': False, 'name': 'cnn', 'output_dim': 1, 'repetitions': 200, 'hidden_activation': 1, 'hidden_dim': 5, 'loss_weights_sum': False, 'train_samples_per_iteration': 1000, 'loss_function': 1, 'input_dim': 1, 'add_negative_activations': False, 'rnn_timesteps': 10, 'msize': 1000, 'output_name': '', 'output_activation': 1, 'n_networks': 10, 'network_tries': 100}
+
+# NETWORK 1: (! X0)Z0	(= X0)Z1	(! X0)Z2	(! X0)Z3	(= X0)Z4	(! Z4)Y0	
+Batch 1 NETWORK 1 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 0.00% (0/100)	Mean weights sum: 36.97860594
+
+# NETWORK 2: (= X0)Z0	(= X0)Z1	(! X0)Z2	(! X0)Z3	(! X0)Z4	(! Z3)Y0	
+Batch 1 NETWORK 2 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 100.00% (100/100)	Mean weights sum: 8.86831156
+
+# NETWORK 3: (= X0)Z0	(= X0)Z1	(! X0)Z2	(! X0)Z3	(! X0)Z4	(= Z1)Y0	
+Batch 1 NETWORK 3 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 100.00% (100/100)	Mean weights sum: 11.07515806
+
+# NETWORK 4: (! X0)Z0	(! X0)Z1	(! X0)Z2	(= X0)Z3	(= X0)Z4	(! Z0)Y0	
+Batch 1 NETWORK 4 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 100.00% (100/100)	Mean weights sum: 8.88080568
+
+# NETWORK 5: (! X0)Z0	(! X0)Z1	(= X0)Z2	(! X0)Z3	(= X0)Z4	(= Z3)Y0	
+Batch 1 NETWORK 5 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 0.00% (0/100)	Mean weights sum: 34.62076871
+
+# NETWORK 6: (! X0)Z0	(! X0)Z1	(! X0)Z2	(= X0)Z3	(= X0)Z4	(! Z1)Y0	
+Batch 1 NETWORK 6 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 100.00% (100/100)	Mean weights sum: 10.55894005
+
+# NETWORK 7: (= X0)Z0	(= X0)Z1	(! X0)Z2	(! X0)Z3	(! X0)Z4	(! Z1)Y0	
+Batch 1 NETWORK 7 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 0.00% (0/100)	Mean weights sum: 32.69384415
+
+# NETWORK 8: (= X0)Z0	(! X0)Z1	(! X0)Z2	(! X0)Z3	(= X0)Z4	(= Z2)Y0	
+Batch 1 NETWORK 8 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 0.00% (0/100)	Mean weights sum: 32.36692794
+
+# NETWORK 9: (= X0)Z0	(! X0)Z1	(! X0)Z2	(= X0)Z3	(! X0)Z4	(! Z4)Y0	
+Batch 1 NETWORK 9 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 100.00% (100/100)	Mean weights sum: 9.48698848
+
+# NETWORK 10: (! X0)Z0	(! X0)Z1	(= X0)Z2	(! X0)Z3	(= X0)Z4	(! Z2)Y0	
+Batch 1 NETWORK 10 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 0.00% (0/100)	Mean weights sum: 34.85469791
+# DONE!
+Mean success rate: 50.00 percent
+Stddev success rate: 50.00 percent
+Mean convergence iteration: 2.06 percent
+Stddev convergence iteration: 0.36 percent
+Mean non-convergence precision: 42.12 percent
+Stddev non-convergence precision: 18.30 percent
+Mean dominance fails: 2.36 percent
+Stddev dominance fails: 1.25 percent
+Mean weights difference: nan percent
+Stddev weights difference: nan percent
+Mean unique dominant structures: 3.90 percent
+Stddev unique dominant structures: 3.91 percent

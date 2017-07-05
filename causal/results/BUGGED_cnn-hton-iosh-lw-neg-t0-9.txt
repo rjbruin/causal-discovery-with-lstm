@@ -1,0 +1,12 @@
+Mean success rate: 99.70 percent
+Stddev success rate: 0.46 percent
+Mean convergence iteration: 7.57 percent
+Stddev convergence iteration: 16.66 percent
+Mean non-convergence precision: 59.13 percent
+Stddev non-convergence precision: 13.03 percent
+Mean dominance fails: 5.29 percent
+Stddev dominance fails: 0.94 percent
+Mean weights difference: 16.69 percent
+Stddev weights difference: 1.92 percent
+Mean unique dominant structures: 98.20 percent
+Stddev unique dominant structures: 1.33 percent

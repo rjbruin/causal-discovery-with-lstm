@@ -1,0 +1,16 @@
+Mean success rate: 0.00 percent
+Stddev success rate: 0.00 percent
+Mean convergence iteration: nan percent
+C:\Anaconda\lib\site-packages\numpy\core\_methods.py:59: RuntimeWarning: Mean of empty slice.
+  warnings.warn("Mean of empty slice.", RuntimeWarning)
+C:\Anaconda\lib\site-packages\numpy\core\_methods.py:82: RuntimeWarning: Degrees of freedom <= 0 for slice
+  warnings.warn("Degrees of freedom <= 0 for slice", RuntimeWarning)
+Stddev convergence iteration: nan percent
+Mean non-convergence precision: 0.00 percent
+Stddev non-convergence precision: 0.00 percent
+Mean dominance fails: 5.26 percent
+Stddev dominance fails: 0.95 percent
+Mean weights difference: 16.73 percent
+Stddev weights difference: 1.97 percent
+Mean unique dominant structures: 0.00 percent
+Stddev unique dominant structures: 0.00 percent

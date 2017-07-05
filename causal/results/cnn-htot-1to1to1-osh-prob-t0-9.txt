@@ -1,0 +1,64 @@
+{'use_bias': False, 'input_shift_to_tanh': False, 'loss_causal_linear': False, 'output_shift_to_prob': True, 'name': 'cnn', 'output_dim': 1, 'repetitions': 200, 'hidden_activation': 1, 'hidden_dim': 1, 'loss_weights_sum': False, 'train_samples_per_iteration': 1000, 'loss_function': 0, 'input_dim': 1, 'add_negative_activations': False, 'rnn_timesteps': 10, 'msize': 1000, 'output_name': '', 'output_activation': 1, 'n_networks': 10, 'network_tries': 100}
+
+# NETWORK 1: (= X0)Z0	(= Z0)Y0	
+Batch 1 NETWORK 1 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 100.00% (100/100)	Mean weights sum: 3.84593023
+
+# NETWORK 2: (! X0)Z0	(! Z0)Y0	
+Batch 1 NETWORK 2 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 100.00% (100/100)	Mean weights sum: 2.52465767
+
+# NETWORK 3: (= X0)Z0	(= Z0)Y0	
+Batch 1 NETWORK 3 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 100.00% (100/100)	Mean weights sum: 3.92189017
+
+# NETWORK 4: (! X0)Z0	(! Z0)Y0	
+Batch 1 NETWORK 4 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 100.00% (100/100)	Mean weights sum: 2.27699885
+
+# NETWORK 5: (! X0)Z0	(= Z0)Y0	
+Batch 1 NETWORK 5 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 0.00% (0/100)	Mean weights sum: 13.39057399
+
+# NETWORK 6: (! X0)Z0	(! Z0)Y0	
+Batch 1 NETWORK 6 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 100.00% (100/100)	Mean weights sum: 3.57562481
+
+# NETWORK 7: (= X0)Z0	(= Z0)Y0	
+Batch 1 NETWORK 7 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 100.00% (100/100)	Mean weights sum: 2.60290737
+
+# NETWORK 8: (= X0)Z0	(= Z0)Y0	
+Batch 1 NETWORK 8 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 100.00% (100/100)	Mean weights sum: 1.31722968
+
+# NETWORK 9: (! X0)Z0	(= Z0)Y0	
+Batch 1 NETWORK 9 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 0.00% (0/100)	Mean weights sum: 14.45039879
+
+# NETWORK 10: (! X0)Z0	(! Z0)Y0	
+Batch 1 NETWORK 10 _ _ _ 1 
+Score: 0.00 percent
+# Successes: 100.00% (100/100)	Mean weights sum: 3.41881458
+# DONE!
+Mean success rate: 80.00 percent
+Stddev success rate: 40.00 percent
+Mean convergence iteration: 2.38 percent
+Stddev convergence iteration: 0.71 percent
+Mean non-convergence precision: 50.15 percent
+Stddev non-convergence precision: 1.54 percent
+Mean dominance fails: 0.99 percent
+Stddev dominance fails: 0.68 percent
+Mean weights difference: 1.99 percent
+Stddev weights difference: 1.36 percent
+Mean unique dominant structures: 3.20 percent
+Stddev unique dominant structures: 1.60 percent

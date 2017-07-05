@@ -1,0 +1,14 @@
+{'use_bias': False, 'input_shift_to_tanh': True, 'loss_causal_linear': False, 'output_shift_to_prob': True, 'name': 'cnn', 'output_dim': 3, 'repetitions': 2000, 'hidden_activation': 1, 'hidden_dim': 2, 'loss_weights_sum': False, 'train_samples_per_iteration': 1000, 'loss_function': 0, 'input_dim': 3, 'add_negative_activations': True, 'rnn_timesteps': 10, 'msize': 1000, 'output_name': '', 'output_activation': 0, 'n_networks': 10, 'network_tries': 100}
+
+Mean success rate: 95.00 percent
+Stddev success rate: 3.63 percent
+Mean convergence iteration: 48.45 percent
+Stddev convergence iteration: 149.48 percent
+Mean non-convergence precision: 45.83 percent
+Stddev non-convergence precision: 10.35 percent
+Mean dominance fails: 5.31 percent
+Stddev dominance fails: 0.96 percent
+Mean weights difference: 16.77 percent
+Stddev weights difference: 1.99 percent
+Mean unique dominant structures: 94.30 percent
+Stddev unique dominant structures: 3.32 percent
