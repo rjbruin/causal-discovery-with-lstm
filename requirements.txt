@@ -62,7 +62,7 @@ openpyxl==1.8.5
 pandas==0.15.2
 patsy==0.3.0
 pep8==1.6.2
-Pillow==2.7.0
+Pillow==8.3.2
 plato==0
 ply==3.4
 psutil==2.2.1
